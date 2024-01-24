@@ -103,3 +103,13 @@ if ($Options.RunPerformance -eq $True) {
 else {
     Write-Output "Skipping performance tests as they are not configured for '$($Options.Name)'"
 }
+
+if ($Options.RunUpdateDataflow -eq $True -and $PullRequestId -ne 0) {
+    Write-Output "::group::Run Update Dataflow"
+    ./steps/run-repo-script.ps1 -RepoName $RepoName -OrgName $OrgName -ScriptName "run-update-dataflow.ps1" -Options $Options -DryRun $DryRun
+    Write-Output "::endgroup::"
+
+    if ($LASTEXITCODE -ne 0) {
+        exit $LASTEXITCODE
+    }
+}
