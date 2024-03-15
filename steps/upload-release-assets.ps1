@@ -10,7 +10,7 @@ param (
 
 $PackagePath = [IO.Path]::Combine($pwd, $RepoName, "package")
 
-[System.IO.Directory]::Exists($PackagePath) {
+if ([System.IO.Directory]::Exists($PackagePath) -eq $true) {
     
     Write-Output "Entering '$PackagePath'"
     Push-Location $PackagePath
