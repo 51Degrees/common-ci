@@ -25,7 +25,7 @@ try {
             $file = Get-Item "$($file).zip"
         }
         Write-Output "Uploading $($file.Name)"
-        $Command = {gh release upload $Version $file.Name --repo https://github.com/$OrgName/$RepoName}
+        $Command = {gh release upload $Tag $file.Name --repo https://github.com/$OrgName/$RepoName}
         if ($DryRun -eq $False) {
             & $Command
         }
