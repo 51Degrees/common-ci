@@ -44,7 +44,7 @@ try {
                 }
             }
             catch {
-                Write-Output "Could not find the package '$PackageName' in source '$Source' : $_.ScriptStackTrace"
+                Write-Output "Could not find the package '$PackageName' in source '$Source' : $_"
             }
         }
     }
