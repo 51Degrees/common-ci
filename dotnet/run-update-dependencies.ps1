@@ -26,7 +26,7 @@ try {
 
             try {
                 if ($SourceUser -ne "" -and $SourceKey -ne "") {
-                    $Credential = new PSCredential($SourceUser, new SecureString($SourceKey)
+                    $Credential = new PSCredential($SourceUser, new SecureString($SourceKey))
                     $Available = $(Find-Package -Name $PackageName -AllVersions -Source $Source -Credential $Credential | Where-Object {$_.Version -Match "^$MajorVersion\.$MinorVersion\..*$"})
                 }
                 else {
