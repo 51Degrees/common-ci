@@ -43,8 +43,8 @@ try {
                     
                 }
             }
-            catch ($e) {
-                Write-Output "Could not find the package '$PackageName' in source '$Source' : $e"
+            catch {
+                Write-Output "Could not find the package '$PackageName' in source '$Source' : $_.ScriptStackTrace"
             }
         }
     }
