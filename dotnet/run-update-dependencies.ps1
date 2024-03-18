@@ -3,7 +3,9 @@ param(
     [string]$RepoName,
     [string]$ProjectDir = ".",
     [string]$Name,
-    [string]$Source = "https://api.nuget.org/v3/index.json"
+    [string]$Source = "https://api.nuget.org/v3/index.json",
+    [string]$SourceUser = "",
+    [string]$SourceKey = ""
 )
 
 $RepoPath = [IO.Path]::Combine($pwd, $RepoName)
@@ -23,7 +25,13 @@ try {
             $PatchVersion = $Package -replace '^ *> [a-zA-Z0-9\.]* *([0-9]*)\.([0-9]*)\.([0-9]*).*$', '$3' 
 
             try {
-                $Available = $(Find-Package -Name $PackageName -AllVersions -Source $Source | Where-Object {$_.Version -Match "^$MajorVersion\.$MinorVersion\..*$"})
+                if ($SourceUser -ne "" -and $SourceKey -ne "") {
+                    $Credential = new PSCredential($SourceUser, new SecureString($SourceKey)
+                    $Available = $(Find-Package -Name $PackageName -AllVersions -Source $Source -Credential $Credential | Where-Object {$_.Version -Match "^$MajorVersion\.$MinorVersion\..*$"})
+                }
+                else {
+                    $Available = $(Find-Package -Name $PackageName -AllVersions -Source $Source | Where-Object {$_.Version -Match "^$MajorVersion\.$MinorVersion\..*$"})
+                }
                 $HighestPatch = $Available | Sort-Object {[int]($_.Version.Split('.')[2])} | Select-Object -Last 1
     
                 if ($HighestPatch.Version -ne "$MajorVersion.$MinorVersion.$PatchVersion") {
