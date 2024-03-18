@@ -29,8 +29,8 @@ try {
                     $Password = ConvertTo-SecureString $SourceKey -AsPlainText -Force
                     $Credential = New-Object System.Management.Automation.PSCredential($SourceUser, $Password)
                     Register-PackageSource -Name SpecifiedSource -Location $Source -Credential $Credential
-                    Get-PackageSource
-                    $Available = $(Find-Package -Name $PackageName -AllVersions -Source $Source -Credential $Credential | Where-Object {$_.Version -Match "^$MajorVersion\.$MinorVersion\..*$"})
+                    Find-PackageProvider
+                    $Available = $(Find-Package -Name $PackageName -AllVersions -Source $Source -PackageProvider "NuGet" | Where-Object {$_.Version -Match "^$MajorVersion\.$MinorVersion\..*$"})
                 }
                 else {
                     $Available = $(Find-Package -Name $PackageName -AllVersions -Source $Source | Where-Object {$_.Version -Match "^$MajorVersion\.$MinorVersion\..*$"})
