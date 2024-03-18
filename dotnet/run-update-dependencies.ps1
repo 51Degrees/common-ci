@@ -9,7 +9,7 @@ $RepoPath = [IO.Path]::Combine($pwd, $RepoName)
 
 Write-Output "Entering '$RepoPath'"
 Push-Location $RepoPath
-
+Get-PackageSource
 try {
     
     dotnet restore $ProjectDir
