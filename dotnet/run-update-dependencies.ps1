@@ -2,8 +2,7 @@ param(
     [Parameter(Mandatory=$true)]
     [string]$RepoName,
     [string]$ProjectDir = ".",
-    [string]$Name,
-    [string]$Source = "https://api.nuget.org/v3/index.json"
+    [string]$Name
 )
 
 $RepoPath = [IO.Path]::Combine($pwd, $RepoName)
@@ -22,7 +21,7 @@ try {
             $MinorVersion = $Package -replace '^ *> [a-zA-Z0-9\.]* *([0-9]*)\.([0-9]*)\.([0-9]*).*$', '$2' 
             $PatchVersion = $Package -replace '^ *> [a-zA-Z0-9\.]* *([0-9]*)\.([0-9]*)\.([0-9]*).*$', '$3' 
 
-            $Available = $(Find-Package -Name $PackageName -AllVersions -Source $Source | Where-Object {$_.Version -Match "^$MajorVersion\.$MinorVersion\..*$"})
+            $Available = $(Find-Package -Name $PackageName -AllVersions | Where-Object {$_.Version -Match "^$MajorVersion\.$MinorVersion\..*$"})
             $HighestPatch = $Available | Sort-Object {[int]($_.Version.Split('.')[2])} | Select-Object -Last 1
 
             if ($HighestPatch.Version -ne "$MajorVersion.$MinorVersion.$PatchVersion") {
