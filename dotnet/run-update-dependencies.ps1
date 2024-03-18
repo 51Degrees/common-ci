@@ -30,7 +30,7 @@ try {
                     $Credential = New-Object System.Management.Automation.PSCredential($SourceUser, $Password)
                     Register-PackageSource -Name SpecifiedSource -Location $Source -Credential $Credential
                     Find-PackageProvider
-                    $Available = $(Find-Package -Name $PackageName -AllVersions -Source $Source -PackageProvider "NuGet" | Where-Object {$_.Version -Match "^$MajorVersion\.$MinorVersion\..*$"})
+                    $Available = $(Find-Package -Name $PackageName -AllVersions -Source $Source -ProviderName "NuGet" | Where-Object {$_.Version -Match "^$MajorVersion\.$MinorVersion\..*$"})
                 }
                 else {
                     $Available = $(Find-Package -Name $PackageName -AllVersions -Source $Source | Where-Object {$_.Version -Match "^$MajorVersion\.$MinorVersion\..*$"})
