@@ -28,8 +28,7 @@ try {
                 if ($SourceUser -ne "" -and $SourceKey -ne "") {
                     $Password = ConvertTo-SecureString $SourceKey -AsPlainText -Force
                     $Credential = New-Object System.Management.Automation.PSCredential($SourceUser, $Password)
-                    Register-PackageSource -Name SpecifiedSource -Location $Source -Credential $Credential
-                    $Available = $(Find-Package -Name $PackageName -AllVersions -Source $Source | Where-Object {$_.Version -Match "^$MajorVersion\.$MinorVersion\..*$"})
+                    $Available = $(Find-Package -Name $PackageName -AllVersions -Source $Source -Credential $Credential | Where-Object {$_.Version -Match "^$MajorVersion\.$MinorVersion\..*$"})
                 }
                 else {
                     $Available = $(Find-Package -Name $PackageName -AllVersions -Source $Source | Where-Object {$_.Version -Match "^$MajorVersion\.$MinorVersion\..*$"})
