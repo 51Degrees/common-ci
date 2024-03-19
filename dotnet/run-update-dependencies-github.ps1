@@ -4,14 +4,8 @@ param(
     [Parameter(Mandatory=$true)]
     [string]$OrgName,
     [string]$ProjectDir = ".",
-    [string]$Name,
-    [Parameter(Mandatory=$true)]
-    [string]$GitHubToken
+    [string]$Name
 )
-
-# This token is used by the hub command.
-Write-Output "Setting GITHUB_TOKEN"
-$env:GITHUB_TOKEN="$GitHubToken"
 
 $FetchVersions = {
     param($PackageName)
