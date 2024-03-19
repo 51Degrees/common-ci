@@ -20,13 +20,13 @@ try {
             if ($Package.Line.Contains('[') -eq $false -and
                 $Package.Line.Contains(']') -eq $false -and
                 $Package.Line.Contains('(') -eq $false -and
-                $Package.Line.Contains(')'))
-            {
+                $Package.Line.Contains(')')) {
                 $PackageName = $Package -replace '^ *> ([a-zA-Z0-9\.]*) .*$', '$1' 
                 $MajorVersion = $Package -replace '^ *> [a-zA-Z0-9\.]* *([0-9]*)\.([0-9]*)\.([0-9]*).*$', '$1' 
                 $MinorVersion = $Package -replace '^ *> [a-zA-Z0-9\.]* *([0-9]*)\.([0-9]*)\.([0-9]*).*$', '$2' 
                 $PatchVersion = $Package -replace '^ *> [a-zA-Z0-9\.]* *([0-9]*)\.([0-9]*)\.([0-9]*).*$', '$3' 
 
+                Write-Line "Checking '$($Package.Line)'"
                 $Available = $(&$FetchVersions -PackageName $PackageName | Where-Object {$_.Version -Match "^$MajorVersion\.$MinorVersion\..*$"})
                 $HighestPatch = $Available | Sort-Object {[int]($_.Version.Split('.')[2])} | Select-Object -Last 1
                 if ($null -ne $HighestPatch.Version -and $HighestPatch.Version -ne "$MajorVersion.$MinorVersion.$PatchVersion") {
@@ -36,6 +36,9 @@ try {
                     dotnet add $Project.FullName package $PackageName -v $HighestPatch.Version
                     
                 }
+            }
+            else {
+                Write-Output "Skipping '$($Package.Line)'"
             }
         }
     }
