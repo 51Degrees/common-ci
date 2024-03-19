@@ -16,3 +16,5 @@ $FetchVersions = {
 }
 
 ./dotnet/run-update-dependencies.ps1 -RepoName $RepoName -ProjectDir $ProjectDir -Name $Name -FetchVersions $FetchVersions
+
+exit $LASTEXITCODE
