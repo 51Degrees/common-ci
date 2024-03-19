@@ -20,7 +20,7 @@ try {
             if ($Package.Line.Contains('[') -eq $false -and
                 $Package.Line.Contains(']') -eq $false -and
                 $Package.Line.Contains('(') -eq $false -and
-                $Package.Line.Contains(')')) {
+                $Package.Line.Contains(')') -eq $false) {
                 $PackageName = $Package -replace '^ *> ([a-zA-Z0-9\.]*) .*$', '$1' 
                 $MajorVersion = $Package -replace '^ *> [a-zA-Z0-9\.]* *([0-9]*)\.([0-9]*)\.([0-9]*).*$', '$1' 
                 $MinorVersion = $Package -replace '^ *> [a-zA-Z0-9\.]* *([0-9]*)\.([0-9]*)\.([0-9]*).*$', '$2' 
