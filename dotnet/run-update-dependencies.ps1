@@ -13,7 +13,7 @@ Push-Location $RepoPath
 
 try {
     
-    ##dotnet restore $ProjectDir
+    dotnet restore $ProjectDir
 
     foreach ($Project in $(Get-ChildItem -Path $pwd -Filter *.csproj -Recurse -ErrorAction SilentlyContinue -Force)) {
         foreach ($Package in $(dotnet list $Project.FullName package | Select-String -Pattern "^\s*>")) {
