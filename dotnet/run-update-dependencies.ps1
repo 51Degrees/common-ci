@@ -15,7 +15,7 @@ try {
     
     ##dotnet restore $ProjectDir
 
-    foreach ($Project in $(Get-ChildItem -Path $pwd -Filter FiftyOne.Pipeline.Core.csproj -Recurse -ErrorAction SilentlyContinue -Force)) {
+    foreach ($Project in $(Get-ChildItem -Path $pwd -Filter *.csproj -Recurse -ErrorAction SilentlyContinue -Force)) {
         foreach ($Package in $(dotnet list $Project.FullName package | Select-String -Pattern "^\s*>")) {
             if ($Package.Line.Contains('[') -eq $false -and
                 $Package.Line.Contains(']') -eq $false -and
