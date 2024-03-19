@@ -3,7 +3,7 @@ param(
     [string]$RepoName,
     [string]$ProjectDir = ".",
     [string]$Name,
-    [scriptblock]$FetchVersions = { param($PackageName) Find-Package -Name $PackageName -AllVersions -Source https://api.nuget.org/v3/index.json }
+    [scriptblock]$FetchVersions = { param($PackageName) Find-Package -Name $PackageName -AllVersions -Source https://api.nuget.org/v3/index.json -ErrorAction SilentlyContinue }
 )
 
 $RepoPath = [IO.Path]::Combine($pwd, $RepoName)
