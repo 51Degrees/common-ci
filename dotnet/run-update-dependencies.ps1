@@ -27,7 +27,7 @@ try {
                 $PatchVersion = $Package -replace '^ *> [a-zA-Z0-9\.]* *([0-9]*)\.([0-9]*)\.([0-9]*).*$', '$3' 
 
                 Write-Output "Checking '$($Package.Line)'"
-                $Available = $(&$FetchVersions -PackageName $PackageName | Where-Object {$_.Version -Match "^$MajorVersion\.$MinorVersion\..*$"})
+                $Available = $(&$FetchVersions -PackageName $PackageName | Where-Object {$_.Version -Match "^$MajorVersion\.$MinorVersion\.d+\..*$"})
                 $HighestPatch = $Available | Sort-Object {[int]($_.Version.Split('.')[2])} | Select-Object -Last 1
                 if ($null -ne $HighestPatch.Version -and $HighestPatch.Version -ne "$MajorVersion.$MinorVersion.$PatchVersion") {
 
