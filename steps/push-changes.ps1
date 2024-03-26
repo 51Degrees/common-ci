@@ -14,6 +14,15 @@ Push-Location $RepoPath
 
 try {
 
+    Write-Output "Pulling"
+    $Command = "git pull origin $Branch"
+    if ($DryRun -eq $False) {
+        Invoke-Expression $Command
+    }
+    else {
+        Write-Output "Dry run - not executing the following: $Command"
+    }
+    
     Write-Output "Pushing"
     $Command = "git push origin $Branch"
     if ($DryRun -eq $False) {
