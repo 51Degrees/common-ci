@@ -7,12 +7,13 @@ param(
     [string]$Arch = "x64",
     [string]$Configuration = "Release",
     [string]$BuildMethod = "cmake",
+    [string]$BuildDir = "build",
     [string]$ExtraArgs
 )
 
 if ($BuildMethod -eq "cmake") {
 
-    $RepoPath = [IO.Path]::Combine($pwd, $RepoName, $ProjectDir, "build")
+    $RepoPath = [IO.Path]::Combine($pwd, $RepoName, $ProjectDir, $BuildDir)
     mkdir $RepoPath
 
     Write-Output "Entering '$RepoPath'"
@@ -48,7 +49,7 @@ elseif ($BuildMethod -eq "msbuild") {
     try {
 
         nuget restore
-        msbuild /p:Configuration=$Configuration /p:Platform=$Arch /p:OutDir=$RepoPath\build
+        msbuild /p:Configuration=$Configuration /p:Platform=$Arch /p:OutDir=$RepoPath\$BuildDir
 
     }
     finally {
