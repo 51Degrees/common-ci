@@ -22,6 +22,10 @@ on:
         required: false
         type: string
         default: false
+      common-ci-ref:
+        required: false
+        type: string
+        default: ''
     secrets:
       token:
         required: true
@@ -39,7 +43,8 @@ jobs:
         with:
           repository: ${{ inputs.org-name }}/common-ci
           path: common
-        
+          ref: ${{ inputs.common-ci-ref }}
+           
       - name: Update Packages
         shell: pwsh
         working-directory: ${{ github.workspace }}/common/

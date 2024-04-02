@@ -38,6 +38,14 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
+Write-Output "::group::Setup Environment"
+./steps/run-repo-script.ps1 -RepoName $RepoName -OrgName $OrgName -ScriptName "setup-environment.ps1" -Options $Options -DryRun $DryRun
+Write-Output "::endgroup::"
+
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+}
+
 Write-Output "::group::Build Package"
 ./steps/run-repo-script.ps1 -RepoName $RepoName -OrgName $OrgName -ScriptName "build-package.ps1" -Options $Options -DryRun $DryRun
 Write-Output "::endgroup::"

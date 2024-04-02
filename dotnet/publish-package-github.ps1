@@ -10,7 +10,7 @@ param(
     [string]$ApiKey
 )
 
-./publish-package-nuget.ps1 `
+./dotnet/publish-package-nuget.ps1 `
     -RepoName $RepoName `
     -ProjectDir $ProjectDir `
     -Name $Name `

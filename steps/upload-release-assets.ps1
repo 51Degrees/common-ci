@@ -8,7 +8,7 @@ param (
     [bool]$DryRun = $False
 )
 
-$PackagePath = [IO.Path]::Combine($pwd, $RepoName, "package")
+$PackagePath = [IO.Path]::Combine($pwd, "package")
 
 Write-Output "Entering '$PackagePath'"
 Push-Location $PackagePath
@@ -25,7 +25,7 @@ try {
             $file = Get-Item "$($file).zip"
         }
         Write-Output "Uploading $($file.Name)"
-        $Command = {gh release upload $Version $file.Name --repo https://github.com/$OrgName/$RepoName}
+        $Command = {gh release upload $Tag $file.Name --repo https://github.com/$OrgName/$RepoName}
         if ($DryRun -eq $False) {
             & $Command
         }
