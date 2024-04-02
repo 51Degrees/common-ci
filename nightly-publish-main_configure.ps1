@@ -6,7 +6,7 @@ param (
     [string]$OrgName,
     [Parameter(Mandatory=$true)]
     [string]$GitHubToken,
-    [string]$Branch = $null,
+    [string]$Branch = "",
     [string]$GitHubUser = "",
     [string]$GitHubEmail = "",
     [Parameter(Mandatory=$true)]

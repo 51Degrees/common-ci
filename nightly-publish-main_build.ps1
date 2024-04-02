@@ -6,7 +6,6 @@ param (
     [string]$OrgName,
     [Parameter(Mandatory=$true)]
     [string]$GitHubToken,
-    [string]$Branch = $null,
     [string]$GitHubUser = "",
     [string]$GitHubEmail = "",
     [Parameter(Mandatory=$true)]
@@ -32,7 +31,7 @@ Write-Output "::group::Configure Git"
 Write-Output "::endgroup::"
 
 Write-Output "::group::Clone $RepoName"
-./steps/clone-repo.ps1 -RepoName $RepoName -OrgName $OrgName -Branch $Branch
+./steps/clone-repo.ps1 -RepoName $RepoName -OrgName $OrgName
 Write-Output "::endgroup::"
 
 if ($LASTEXITCODE -ne 0) {
