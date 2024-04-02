@@ -104,13 +104,6 @@ jobs:
           $stringAsStream.Position = 0
           "hash=$(Get-Date -Format FileDate)-$((Get-FileHash -InputStream $stringAsStream).Hash)" | Out-File $env:GITHUB_OUTPUT -Append
 
-      - name: Check Variables
-        shell: pwsh
-        run: |
-          Write-Output ${{ github.event_name }}
-          Write-Output ${{ github.ref_name }}
-          Write-Output "${{ github.event_name == 'workflow_dispatch' && github.ref_name || '' }}"
-        
       - name: Configure
         id: configure
         shell: pwsh
