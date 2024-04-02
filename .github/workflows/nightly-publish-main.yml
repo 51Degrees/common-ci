@@ -112,7 +112,7 @@ jobs:
           . ${{ github.workspace }}/common/nightly-publish-main_configure.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
-          -Branch ${{ inputs.branch }} `
+          -Branch ${{ github.event == 'workflow_dispatch' && github.ref_name || '' }} `
           -GitHubToken ${{ secrets.token }} `
           -GitHubOutput $Env:GITHUB_OUTPUT `
           -GitHubUser ${{ inputs.user }} `
