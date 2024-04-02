@@ -13,7 +13,6 @@ These parameters are common to all the C/C++ scripts:
 | Configuration | | The build configuration to give to the build tool. Generally this is either `Debug` or `Release` (default). |
 | Arch | | The architecture to build with. by default this is `x64`. |
 
-
 ## Build Project
 
 **Script: `build-project.ps1`**
@@ -22,6 +21,7 @@ Takes the following additional parameters:
 | Parameter | Mandatory | Description |
 | --------- | :-------: | ----------- |
 | BuildMethod |  | The build tool to use. This can be either `cmake` (default) or `msbuild`. |
+| BuildDir | | The directory to output the build to. By default this is `build`. |
 
 The project is build in the `./build` directory of the repo, unless the project has steps which explicitly output to a path. See CMake and MSBuild implementations for more info.
 

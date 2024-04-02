@@ -274,6 +274,8 @@ PRs to `main` can only be initiated by a project Contributor, Administrator, or 
 
 Any changes to the `main` branch are published automatically on a nightly basis as a new package at the target package manager environment.
 
+This can also be run manually against any branch. If the branch is not the main branch, then the generated version for the package will be a prerelease version, following semantic versioning.
+
 ### Nightly Documentation Update
 
 Any changes to the `main` branch are used to generate the latest documentation. This is then published to the `gh-pages` branch of the reposiory.

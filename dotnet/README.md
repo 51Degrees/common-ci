@@ -50,6 +50,46 @@ Takes the following additional parameters:
 | --------- | :-------: | ----------- |
 | BuildMethod |  | The build tool to use. This can be either `msbuild` (default) or `dotnet`. |
 
+## Add NuGet Source
+
+**Script: `add-nuget-source.ps1`**
+
+Takes the following additional parameters:
+| Parameter | Mandatory | Description |
+| --------- | :-------: | ----------- |
+| Source | :check: | URL of the NuGet source to add. |
+| UserName | :check: | Username to authenticate with the source. |
+| Key | :check: | User key to authenticate with the source. |
+
+## Build Publish Zip
+
+**Script: `build-publish-zip.ps1`**
+
+Takes the following additional parameters:
+| Parameter | Mandatory | Description |
+| --------- | :-------: | ----------- |
+| Version | :check: | The version of the package being built. |
+| Project | | Project file name, if there is more than one in the directory. By default this is `.`. |
+
+## Publish Package NuGet
+
+**Script: `publish-package-nuget.ps1`**
+
+Takes the following additional parameters:
+| Parameter | Mandatory | Description |
+| --------- | :-------: | ----------- |
+| ApiKey | :check: | Auth key for the NuGet source to publish to. |
+| Source | | NuGet source to publish to. By default this is `https://api.nuget.org/v3/index.json`. |
+
+## Publish Package GitHub
+
+**Script: `publish-package-github.ps1`**
+
+Takes the following additional parameters:
+| Parameter | Mandatory | Description |
+| --------- | :-------: | ----------- |
+| ApiKey | :check: | Auth token for the GitHub repo to publish to. |
+
 ## Run Unit Tests
 
 **Script: `run-unit-tests.ps1`**
@@ -72,3 +112,20 @@ See [Run Unit Tests](#Run-Unit-Tests)
 **Script: `run-integration-tests.ps1`**
 
 See [Run Unit Tests](#Run-Unit-Tests)
+
+## Update Dependencies
+
+**Script: `run-update-dependencies.ps1`**
+
+Updates all packages to the latest minor version.
+
+Takes the following additional parameters:
+| Parameter | Mandatory | Description |
+| --------- | :-------: | ----------- |
+| FetchVersions | | Script to fetch the available versions of a package when provided with the package name. The result must be an array of objects where each object has at least a `Version` element. By default, this calls the official NuGet source. |
+
+## Update Dependencies GitHub
+
+**Script: `run-update-dependencies-github.ps1`**
+
+Calls `run-update-dependencies.ps1` with a `FetchVersions` that gets the versions present in the organizations private NuGet repo on GitHub.
