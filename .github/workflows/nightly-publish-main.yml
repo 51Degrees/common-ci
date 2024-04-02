@@ -32,11 +32,6 @@ on:
         required: false
         type: string
         default: ''
-      branch:
-        default: ''
-        required: false
-        type: string
-        description: "Optional branch to build package from, if not building from the default branch (e.g. main)."
     secrets:
       # PAT that we use to authenticate on behalf of GitHub Actions.
       token:
@@ -159,7 +154,7 @@ jobs:
           . ${{ github.workspace }}/common/nightly-publish-main_prebuild.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
-          -Branch ${{ inputs.branch }} `
+          -Branch ${{ github.event == 'workflow_dispatch' && github.ref_name || '' }} `
           -GitHubToken ${{ secrets.token }} `
           -Options $Options `
           -GitHubUser ${{ inputs.user }} `
@@ -205,7 +200,7 @@ jobs:
           . ${{ github.workspace }}/common/nightly-publish-main_build.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
-          -Branch ${{ inputs.branch }} `
+          -Branch ${{ github.event == 'workflow_dispatch' && github.ref_name || '' }} `
           -GitHubToken ${{ secrets.token }} `
           -Options $Options `
           -GitHubUser ${{ inputs.user }} `
@@ -272,7 +267,7 @@ jobs:
           . ${{ github.workspace }}/common/nightly-publish-main_test.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
-          -Branch ${{ inputs.branch }} `
+          -Branch ${{ github.event == 'workflow_dispatch' && github.ref_name || '' }} `
           -GitHubToken ${{ secrets.token }} `
           -Options $Options `
           -GitHubUser ${{ inputs.user }} `
@@ -329,7 +324,7 @@ jobs:
           . ${{ github.workspace }}/common/nightly-publish-main_package.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
-          -Branch ${{ inputs.branch }} `
+          -Branch ${{ github.event == 'workflow_dispatch' && github.ref_name || '' }} `
           -GitHubToken ${{ secrets.token }} `
           -Options $Options `
           -GitHubUser ${{ inputs.user }} `
