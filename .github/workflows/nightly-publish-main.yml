@@ -107,8 +107,8 @@ jobs:
       - name: Check Variables
         shell: pwsh
         run: |
-          Write-Output $${ github.event }}
-          Write-Output $${ github.ref_name }}
+          Write-Output $${{ github.event }}
+          Write-Output $${{ github.ref_name }}
           Write-Output ${{ github.event == 'workflow_dispatch' && github.ref_name || '' }}
         
       - name: Configure
