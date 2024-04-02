@@ -17,10 +17,12 @@ try {
 
     foreach ($Project in $(Get-ChildItem -Path $pwd -Filter *.csproj -Recurse -ErrorAction SilentlyContinue -Force)) {
         foreach ($Package in $(dotnet list $Project.FullName package | Select-String -Pattern "^\s*>")) {
+            # Ignore version ranges like [1.0,1.0)
             if ($Package.Line.Contains('[') -eq $false -and
                 $Package.Line.Contains(']') -eq $false -and
                 $Package.Line.Contains('(') -eq $false -and
                 $Package.Line.Contains(')') -eq $false) {
+                # Parse the version
                 $PackageName = $Package -replace '^ *> ([a-zA-Z0-9\.]*) .*$', '$1' 
                 $MajorVersion = $Package -replace '^ *> [a-zA-Z0-9\.]* *([0-9]*)\.([0-9]*)\.([0-9]*).*$', '$1' 
                 $MinorVersion = $Package -replace '^ *> [a-zA-Z0-9\.]* *([0-9]*)\.([0-9]*)\.([0-9]*).*$', '$2' 
