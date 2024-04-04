@@ -15,7 +15,7 @@ Push-Location $RepoPath
 try {
 
     Write-Output "Pulling"
-    $Command = "git pull origin $Branch"
+    $Command = "git pull --rebase origin $Branch"
     if ($DryRun -eq $False) {
         Invoke-Expression $Command
     }
