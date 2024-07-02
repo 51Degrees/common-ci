@@ -18,7 +18,7 @@ try {
             Write-Output "Running tests in '$pwd'"
             # coverage run -m xmlrunner discover -s tests -p 'test*.py' -o $commonTestResults || $($testsFailed = $true)
             $coverageOutputFile = Join-Path -Path $commonTestResults -ChildPath "$package.xml"
-            $toxEnv = $env:GITHUB_JOB -eq "Build-and-Test" ? "py" : "pre-publish"
+            $toxEnv = $env:GITHUB_JOB -ilike "build*test" ? "py" : "pre-publish"
             python -m tox -e $toxEnv -- --junit-xml=$coverageOutputFile || $($testsFailed = $true)
             Move-Item -Path .coverage -Destination $repoPath/.coverage.$package || $(throw "failed to move coverage report")
         } finally {

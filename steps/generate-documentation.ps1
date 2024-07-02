@@ -1,11 +1,13 @@
 param (
+    [Parameter(Mandatory=$true)]
     [string]$RepoName
 )
+$ErrorActionPreference = "Stop"
+$PSNativeCommandUseErrorActionPreference = $true
 
-$RepoPath = [IO.Path]::Combine($pwd, $RepoName)
-$DocsPath = [IO.Path]::Combine($RepoPath, "docs")
-$DoxyGenPath = [IO.Path]::Combine($pwd, "tools", "DoxyGen")
-$DoxyGen = [IO.Path]::Combine($DoxyGenPath, "doxygen")
+$DocsPath = "$PWD/$RepoName/docs"
+$DoxyGenPath = "$PWD/tools/DoxyGen"
+$DoxyGen = "$DoxyGenPath/doxygen"
 
 Write-Output "Setting up requirements"
 sudo apt-get install -y graphviz flex bison
@@ -13,13 +15,11 @@ sudo apt-get install -y graphviz flex bison
 Write-Output "Entering '$DoxyGenPath'"
 Push-Location $DoxyGenPath
 try {
-
     Write-Output "Extracting DoxyGen executable"
     unzip -o doxygen-linux.zip
     Move-Item doxygen-linux $DoxyGen -Force
 
-}
-finally {
+} finally {
     Write-Output "Leaving '$DoxyGenPath'"
     Pop-Location
 }
@@ -30,51 +30,45 @@ chmod +x $DoxyGen
 Write-Output "Entering '$DocsPath'"
 Push-Location $DocsPath
 try {
-
     Write-Output "Running DoxyGen"
     & $DoxyGen
 
-}
-finally {
-
+} finally {
     Write-Output "Leaving '$DocsPath'"
     Pop-Location
-
 }
 
-Write-Output "Entering '$RepoPath'"
-Push-Location $RepoPath
+Write-Output "Entering '$RepoName'"
+Push-Location $RepoName
 try {
-    $VersionPath = Get-ChildItem -Path $pwd -Filter "4.*"
+    $VersionPath = Get-ChildItem -Filter "4.*"
     Write-Output "Moving $($VersionPath.FullName)"
     Move-Item $VersionPath.FullName "$($VersionPath.FullName)-new"
 
-    # Check out the gh-pages branch so we're ready to commit images.
-    $branches = $(git branch -a --format "%(refname)")
-    $PagesBranch = "gh-pages"
-    if ($branches.Contains("refs/remotes/origin/$PagesBranch")) {
-        Write-Output "Checking out branch '$PagesBranch'"
-        git checkout $PagesBranch -f --recurse-submodules
+    $branch = "gh-pages"
+    Write-Output "Switching to branch '$branch'"
+    & {
+        $PSNativeCommandUseErrorActionPreference = $false
+        git show-ref --quiet $branch
+        if ($LASTEXITCODE -ne 0) {
+            Write-Output "Creating new orphan branch"
+        }
     }
-    else {
-        Write-Output "Creating new branch '$PagesBranch'"
-        git checkout --orphan $PagesBranch
-        git rm -rf .
-    }
+    git switch --recurse-submodules ($LASTEXITCODE -ne 0 ? '--orphan' : $null) $branch
 
-    if ($(Test-Path -Path $VersionPath.FullName)) {
+    if (Test-Path $VersionPath) {
         Write-Output "Removing existing docs in $($VersionPath.FullName)"
         Remove-Item -Recurse -Path $VersionPath.FullName
     }
-    if ($(Test-Path -Path ".nojekyll") -eq $False) {
+    if (!(Test-Path ".nojekyll")) {
         Write-Output "Creating a .nojekyll file"
         Write-Output "" > .nojekyll
         git add .nojekyll
     }
     Write-Output "Moving $($VersionPath.FullName)-new back to original location"
     Move-Item "$($VersionPath.FullName)-new" $VersionPath.FullName
-}
-finally {
-    Write-Output "Leaving '$RepoPath'"
+
+} finally {
+    Write-Output "Leaving $RepoName"
     Pop-Location
 }

@@ -49,6 +49,7 @@ jobs:
           -GitHubToken ${{ secrets.token }} `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
+          -Branch ${{ github.ref_name }} `
           -GitHubUser ${{ inputs.user }} `
           -GitHubEmail ${{ inputs.email }} `
           -DryRun $DryRun

@@ -1,15 +1,15 @@
-
 param (
     [Parameter(Mandatory=$true)]
     [string]$RepoName,
     [Parameter(Mandatory=$true)]
     [string]$OrgName,
-    [string]$GitHubUser = "",
-    [string]$GitHubEmail = "",
+    [string]$GitHubUser,
+    [string]$GitHubEmail,
     [string]$GitHubToken,
-    [bool]$DryRun = $False,
-    [bool]$SeparateExamples= $False
+    [bool]$DryRun,
+    [bool]$SeparateExamples
 )
+$ErrorActionPreference = "Stop"
 
 ./generate-documentation.ps1 `
     -RepoName $RepoName `
@@ -19,16 +19,11 @@ param (
     -GitHubToken $GitHubToken `
     -SeparateExamples $SeparateExamples
 
-if ($SeparateExamples){
-    $ExamplesRepo = "$RepoName-examples"
-    $ExamplesPath = [IO.Path]::Combine($RepoName, $ExamplesRepo)
-    Write-Output "::group::Removing $ExamplesRepo"
-    Remove-Item -Path $ExamplesPath -Recurse -Force
+if ($SeparateExamples) {
+    $ExamplesPath = "$RepoName/$RepoName-examples"
+    Write-Output "::group::Removing $ExamplesPath"
+    Remove-Item $ExamplesPath -Recurse -Force
     Write-Output "::endgroup::"
-    
-    if ($LASTEXITCODE -ne 0) {
-        exit $LASTEXITCODE
-    }    
 }
 
 Write-Output "::group::Has Changed"
@@ -36,28 +31,16 @@ Write-Output "::group::Has Changed"
 Write-Output "::endgroup::"
 
 if ($LASTEXITCODE -eq 0) {
-    
     Write-Output "::group::Commit Changes"
-    ./steps/commit-changes.ps1 -RepoName $RepoName -Message "REF: Updated documentation."
+    ./steps/commit-changes.ps1 -RepoName $RepoName -Message "Update documentation"
     Write-Output "::endgroup::"
 
-    if ($LASTEXITCODE -ne 0) {
-        exit $LASTEXITCODE
-    }
-    
     Write-Output "::group::Push Changes"
-    ./steps/push-changes.ps1 -RepoName $RepoName -Branch gh-pages -DryRun $DryRun
+    ./steps/push-changes.ps1 -RepoName $RepoName -DryRun $DryRun
     Write-Output "::endgroup::"
-
-    if ($LASTEXITCODE -ne 0) {
-        exit $LASTEXITCODE
-    }
     
-}
-else {
-
+} else {
     Write-Host "No property changes, so not pushing changes."
-
 }
 
-exit 0
+exit # Ignore $LASTEXITCODE here

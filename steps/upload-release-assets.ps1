@@ -5,44 +5,30 @@ param (
     [string]$OrgName,
     [Parameter(Mandatory=$true)]
     [string]$Tag,
-    [bool]$DryRun = $False
+    [bool]$DryRun
 )
+$ErrorActionPreference = "Stop"
+$PSNativeCommandUseErrorActionPreference = $true
 
-$PackagePath = [IO.Path]::Combine($pwd, "package")
+$files = Get-ChildItem "package"
 
-Write-Output "Entering '$PackagePath'"
-Push-Location $PackagePath
-
-try {
-
-    $files = Get-ChildItem "."
-
-    if ($files.count -eq 0 -or ($files.Count -eq 1 -and $files[0].Name -eq "dummy.txt")) {
-        Write-Output "No files to upload."
-        return
-    }
-
-    foreach ($file in $files) {
-
-        if ($file.Attributes.Equals([System.IO.FileAttributes]::Directory)) {
-            Write-Output "Compressing $($file.Name)"
-            Compress-Archive -Path $file -DestinationPath "$($file).zip"
-            $file = Get-Item "$($file).zip"
-        }
-        Write-Output "Uploading $($file.Name)"
-        $Command = {gh release upload $Tag $file.Name --repo https://github.com/$OrgName/$RepoName}
-        if ($DryRun -eq $False) {
-            & $Command
-        }
-        else {
-            Write-Output "Dry run - not executing the following: $Command"
-        }
-    }
-
+if ($files.count -eq 0 -or ($files.Count -eq 1 -and $files[0].Name -eq "dummy.txt")) {
+    Write-Output "No files to upload."
+    return
 }
-finally {
 
-    Write-Output "Leaving '$PackagePath'"
-    Pop-Location
+foreach ($file in $files) {
+    if ($file.PSIsContainer) {
+        $archive = "package/$($file.Name).zip"
+        Write-Output "Compressing '$($file.Name)' to '$archive'"
+        Compress-Archive -Path $file -DestinationPath $archive
+        $file = Get-Item $archive
+    }
 
+    if ($DryRun) {
+        Write-Output "Dry run - not uploading '$($file.Name)'"
+    } else {
+        Write-Output "Uploading $($file.Name)"
+        gh release upload $Tag $file --repo https://github.com/$OrgName/$RepoName
+    }
 }

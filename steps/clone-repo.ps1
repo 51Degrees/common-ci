@@ -3,53 +3,32 @@ param (
     [string]$RepoName,
     [Parameter(Mandatory=$true)]
     [string]$OrgName,
-    [string]$Branch,
-    [string]$DestinationDir = ""
+    [string]$Branch = "main",
+    [string]$ForceSwitchTo,
+    [string]$DestinationDir = "."
 )
+$ErrorActionPreference = "Stop"
+$PSNativeCommandUseErrorActionPreference = $true
 
-. ./constants.ps1
+# Using short directory name to avoid/delay problems with long paths when cloning on Windows
+$tmp = "$DestinationDir/b"
 
-$TemporaryRepoName = [IO.Path]::Combine($DestinationDir, "b")
-$Url = "https://github.com/$OrgName/$RepoName"
-$RepoPath = [IO.Path]::Combine($pwd, $TemporaryRepoName)
+git clone --recurse-submodules --shallow-submodules --branch $Branch "https://github.com/$OrgName/$RepoName" $tmp
 
-Write-Output "Cloning '$Url'"
-git clone $Url $TemporaryRepoName
+if ($ForceSwitchTo) {
+    Write-Output "Switching to $ForceSwitchTo"
+    git -C b switch --recurse-submodules -C $ForceSwitchTo
+}
 
+git -C b log -1
 
-Write-Output "Entering '$RepoPath'"
-Push-Location $RepoPath
+Write-Output "Renaming '$tmp' to '$RepoName'"
+Rename-Item $tmp $RepoName
 
-try {
-    
-    if ("" -ne $Branch) {
-        # The format %(refname) returns the branches in the format "refs/remotes/[remotename]/[branchname]"
-        $branches = $(git branch -a --format "%(refname)")
-
-        if ($branches.Contains("refs/remotes/origin/$Branch")) {
-
-            Write-Output "Checking out branch '$Branch'"
-            git checkout $Branch
-
-        }
-        else {
-
-            Write-Output "Creating new branch '$Branch'"
-            git checkout -b $Branch
-
-        }
+<#if ($Branch) {
+    & {
+        $PSNativeCommandUseErrorActionPreference = $false
+        git -C $RepoName show-ref --quiet --branches $Branch
     }
-    
-    Write-Output "Checking out submodules"
-    git submodule update --init --recursive
-
-}
-finally {
-    
-    Write-Output "Leaving '$RepoPath'"
-    Pop-Location
-
-    Write-Output "Rename temporary directory"
-    Rename-Item $RepoPath $RepoName
-
-}
+    git switch ($LASTEXITCODE -ne 0 ? '-c' : $null) $Branch
+}#>

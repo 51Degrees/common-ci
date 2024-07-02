@@ -1,31 +1,24 @@
-
 param (
     [Parameter(Mandatory=$true)]
     [string]$RepoName,
     [Parameter(Mandatory=$true)]
     [string]$OrgName,
+    [string]$Branch = "main",
     [Parameter(Mandatory=$true)]
     [string]$GitHubToken,
-    [string]$Branch = "",
-    [string]$GitHubUser = "",
-    [string]$GitHubEmail = "",
+    [string]$GitHubUser,
+    [string]$GitHubEmail,
     [Parameter(Mandatory=$true)]
-    [Hashtable]$Options,
+    [hashtable]$Options,
     [bool]$DryRun = $False
 )
+$ErrorActionPreference = "Stop"
 
-. ./constants.ps1
-
-if ($GitHubUser -eq "") {
-  $GitHubUser = $DefaultGitUser
+# Common options
+$Options += $PSBoundParameters # Add RepoName, DryRun etc.
+if ($Options.Keys) {
+    $Options += $Options.Keys # Expand keys into options
 }
-if ($GitHubEmail -eq "") {
-  $GitHubEmail = $DefaultGitEmail
-}
-
-# This token is used by the gh command.
-Write-Output "Setting GITHUB_TOKEN"
-$env:GITHUB_TOKEN="$GitHubToken"
 
 Write-Output "::group::Configure Git"
 ./steps/configure-git.ps1 -GitHubToken $GitHubToken -GitHubUser $GitHubUser -GitHubEmail $GitHubEmail
@@ -35,25 +28,17 @@ Write-Output "::group::Clone $RepoName"
 ./steps/clone-repo.ps1 -RepoName $RepoName -OrgName $OrgName -Branch $Branch
 Write-Output "::endgroup::"
 
-if ($LASTEXITCODE -ne 0) {
-    exit $LASTEXITCODE
-}
-
 Write-Output "::group::Install Package From Artifact"
-./steps/run-repo-script.ps1 -RepoName $RepoName -OrgName $OrgName -ScriptName "install-package.ps1" -Options $Options -DryRun $DryRun
+./steps/run-script.ps1 ./$RepoName/ci/install-package.ps1 $Options
 Write-Output "::endgroup::"
-
-if ($LASTEXITCODE -ne 0) {
-  exit $LASTEXITCODE
-}
 
 Write-Output "::group::Publish Packages"
-./steps/run-repo-script.ps1 -RepoName $RepoName -OrgName $OrgName -ScriptName "publish-package.ps1" -Options $Options -DryRun $DryRun
-Write-Output "::endgroup::"
-
-if ($LASTEXITCODE -ne 0) {
-  exit $LASTEXITCODE
+if ($Branch -eq "main") {
+    ./steps/run-script.ps1 ./$RepoName/ci/publish-package.ps1 $Options
+} else {
+    Write-Output "Not on the main branch, skipping publishing"
 }
+Write-Output "::endgroup::"
 
 Write-Output "::group::Update Tag"
 if ($global:SkipUpdateTag) { # Using a global here so that it can be set by publish-package.ps1
@@ -63,7 +48,3 @@ if ($global:SkipUpdateTag) { # Using a global here so that it can be set by publ
   ./steps/upload-release-assets.ps1 -RepoName $RepoName -OrgName $OrgName -Tag $Options.Version -DryRun $DryRun
 }
 Write-Output "::endgroup::"
-
-if ($LASTEXITCODE -ne 0) {
-  exit $LASTEXITCODE
-}

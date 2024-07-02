@@ -47,7 +47,7 @@ try {
             # coverage run -m xmlrunner discover -s tests -p 'test*.py' -o $commonTestResults || $($testsFailed = $true)
             $packageName = Split-Path -Path $pwd -Leaf # Required for location-python, which uses . as package path
             $coverageOutputFile = Join-Path -Path $commonTestResults -ChildPath "$packageName.xml"
-            $toxEnv = $env:GITHUB_JOB -eq "Build-and-Test" ? "py" : "pre-publish"
+            $toxEnv = $env:GITHUB_JOB -ilike "build*test" ? "py" : "pre-publish"
             python -m tox -e $toxEnv -- --junit-xml=$coverageOutputFile || $($testsFailed = $true)
             Move-Item -Path .coverage -Destination $repoPath/.coverage.$packageName || $(throw "failed to move coverage report")
         } finally {

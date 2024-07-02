@@ -5,40 +5,22 @@ param (
     [string]$OrgName,
     [Parameter(Mandatory=$true)]
     [int]$PullRequestId,
-    [bool]$DryRun = $False
+    [bool]$DryRun
 )
+$ErrorActionPreference = "Stop"
+$PSNativeCommandUseErrorActionPreference = $true
 
-. ./constants.ps1
 
-$RepoPath = [IO.Path]::Combine($pwd, $RepoName)
-
-Write-Output "Entering '$RepoPath'"
-Push-Location $RepoPath
-
-try {
-
-    if ($PullRequestId -eq 0) {
-
-        Write-Output "Not running for a PR"
-        exit 0
-    
-    }
-    
-    $PrTitle = gh pr view $PullRequestId --json number,headRefName,baseRefName,title -t '#{{.number}} {{.headRefName}}->{{.baseRefName}} : {{.title}}'
-
-    Write-Output "Merging PR $PrTitle"
-    $Command = {gh api /repos/$OrgName/$RepoName/pulls/$PullRequestId/merge -X PUT -f "commit_title=Merged Pull Request '$PrTitle'"}
-    if ($DryRun -eq $False) {
-        & $Command
-    }
-    else {
-        Write-Output "Dry run - not executing the following: $Command"
-    }
-    
+if ($PullRequestId -eq 0) {
+    Write-Output "Not running for a PR"
+    exit
 }
-finally {
 
-    Write-Output "Leaving '$RepoPath'"
-    Pop-Location
+$PrTitle = gh pr view -R $OrgName/$RepoName $PullRequestId --json number,headRefName,baseRefName,title -t '#{{.number}} {{.headRefName}}->{{.baseRefName}}: {{.title}}'
 
+if ($DryRun) {
+    Write-Output "Dry run - not merging"
+} else {
+    Write-Output "Merging PR $PrTitle"
+    gh api /repos/$OrgName/$RepoName/pulls/$PullRequestId/merge -X PUT -f "commit_title=Merged Pull Request '$PrTitle'"
 }

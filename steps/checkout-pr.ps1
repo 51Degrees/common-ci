@@ -3,53 +3,33 @@ param (
     [string]$RepoName,
     [Parameter(Mandatory=$true)]
     [int]$PullRequestId,
-    [string]$VariableName = "PullRequestSha"
+    [string]$Branch = "main",
+    [string]$SetVariable = "PullRequestSha"
 )
+$ErrorActionPreference = "Stop"
+$PSNativeCommandUseErrorActionPreference = $true
 
-. ./constants.ps1
-
-$RepoPath = [IO.Path]::Combine($pwd, $RepoName)
-
-Write-Output "Entering '$RepoPath'"
-Push-Location $RepoPath
-
+Write-Output "Entering $RepoName"
+Push-Location $RepoName
 try {
-
     if ($PullRequestId -eq 0) {
-
         Write-Output "Not running for a PR"
-        exit 0
-    
+        exit
     }
 
     $PrTitle = gh pr view $PullRequestId --json number,headRefName,baseRefName,title -t '#{{.number}} {{.headRefName}}->{{.baseRefName}} : {{.title}}'
 
-    Write-Output "Checking out PR $PrTitle"
-    gh pr checkout $PullRequestId
-    if ($LASTEXITCODE -ne 0) {
-        exit $LASTEXITCODE
-    }
+    Write-Output "Checking out PR '$PrTitle'"
+    gh pr checkout --force --recurse-submodules $PullRequestId
 
-    Write-Output "Merging in any changes from main"
-    git merge origin/main
-    if ($LASTEXITCODE -ne 0) {
-        exit $LASTEXITCODE
-    }
-    
-    # Any submodules may not have updated, so do this manually.
-    git submodule update --init --recursive
-    if ($LASTEXITCODE -ne 0) {
-        exit $LASTEXITCODE
-    }
-    
+    Write-Output "Merging in any changes from $Branch"
+    git merge origin/$Branch
+
     $Sha = gh pr view $PullRequestId --json headRefOid --jq '.headRefOid'
-    Write-Output "Setting '$VariableName' to '$Sha'"
-    Set-Variable -Name $VariableName -Value $Sha -Scope Global
+    Write-Output "Setting '$SetVariable' to '$Sha'"
+    Set-Variable -Scope 1 -Name $SetVariable -Value $Sha
 
-}
-finally {
-
-    Write-Output "Leaving '$RepoPath'"
+} finally {
+    Write-Output "Leaving $RepoName"
     Pop-Location
-
 }

@@ -1,18 +1,19 @@
-
 param (
     [Parameter(Mandatory=$true)]
     [string]$RepoName,
     [Parameter(Mandatory=$true)]
     [string]$OrgName,
+    [string]$Branch = "main",
     [Parameter(Mandatory=$true)]
     [string]$GitHubUser,
     [Parameter(Mandatory=$true)]
     [string]$GitHubEmail,
     [string]$GitHubToken,
-    [bool]$DryRun = $False
+    [bool]$DryRun
 )
+$ErrorActionPreference = "Stop"
 
-. ./constants.ps1
+$PrBranch = "update-copyright/$Branch"
 
 # This token is used by the gh command.
 Write-Output "Setting GITHUB_TOKEN"
@@ -22,22 +23,16 @@ Write-Output "::group::Configure Git"
 ./steps/configure-git.ps1 -GitHubToken $GitHubToken -GitHubUser $GitHubUser -GitHubEmail $GitHubEmail
 Write-Output "::endgroup::"
 
-Write-Output "::group::Clone $RepoName - $CopyrightUpdateBranch"
-./steps/clone-repo.ps1 -RepoName $RepoName -OrgName $OrgName -Branch $CopyrightUpdateBranch
+Write-Output "::group::Clone $RepoName - $Branch"
+./steps/clone-repo.ps1 -RepoName $RepoName -OrgName $OrgName -Branch $Branch -ForceSwitchTo $PrBranch
 Write-Output "::endgroup::"
 
 Write-Output "::group::Clone Tools"
 ./steps/clone-repo.ps1 -RepoName "tools" -OrgName $OrgName
 Write-Output "::endgroup::"
 
-Write-Output "::group::Options"
-$Options = @{
-    TargetRepo = $RepoName
-}
-Write-Output "::endgroup::"
-
 Write-Output "::group::Update Copyright"
-./steps/run-repo-script.ps1 -RepoName "tools" -OrgName $OrgName -ScriptName "update-copyright.ps1" -Options $Options -DryRun $DryRun
+./steps/run-script.ps1 ./tools/ci/update-copyright.ps1 @{RepoName = tools; TargetRepo = $RepoName}
 Write-Output "::endgroup::"
 
 Write-Output "::group::Has Changed"
@@ -45,24 +40,20 @@ Write-Output "::group::Has Changed"
 Write-Output "::endgroup::"
 
 if ($LASTEXITCODE -eq 0) {
-    
     Write-Output "::group::Commit Changes"
-    ./steps/commit-changes.ps1 -RepoName $RepoName -Message "REF: Updated copyright."
+    ./steps/commit-changes.ps1 -RepoName $RepoName -Message "Update copyright"
     Write-Output "::endgroup::"
 
     Write-Output "::group::Push Changes"
-    ./steps/push-changes.ps1 -RepoName $RepoName -Branch $CopyrightUpdateBranch -DryRun $DryRun
+    ./steps/push-changes.ps1 -RepoName $RepoName -DryRun $DryRun -Force $true
     Write-Output "::endgroup::"
 
     Write-Output "::group::PR To Main"
-    ./steps/pull-request-to-main.ps1 -RepoName $RepoName -Message "Updated copyright." -DryRun $DryRun
+    ./steps/pull-request.ps1 -RepoName $RepoName -From $PrBranch -To $Branch -Message "Update copyright" -DryRun $DryRun
     Write-Output "::endgroup::"
 
-}
-else {
-
+} else {
     Write-Host "No copyright changes, so not creating a pull request."
-
 }
 
-exit 0
+exit # Ignore $LASTEXITCODE here

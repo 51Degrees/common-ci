@@ -1,36 +1,29 @@
-name: Nightly PRs to Main
+name: Nightly Pull Requests
 
 on:
   workflow_call:
     inputs:
       repo-name:
+        type: string
         required: true
-        type: string
       org-name:
-        required: false
         type: string
-        default: 51degrees
+        default: 51Degrees
       user:
-        required: false
         type: string
         default: Automation51D
       email:
-        required: false
         type: string
-        default: "51DCI@51Degrees.com"
+        default: 51DCI@51degrees.com
       dryrun:
-        required: false
         type: string
         default: false
       cache-assets:
-        default: false
         type: boolean
       common-ci-ref:
-        required: false
         type: string
         default: ''
       prs: # Comma-separated list of pull request IDs to build
-        required: false
         type: string
     secrets:
       token:
@@ -62,11 +55,15 @@ on:
       UsePublishTests:
       PearlLicense:
 
+defaults:
+  run:
+    shell: pwsh
+    working-directory: ./common
+
 jobs:
   # Get all the pull requests that are going to main
-  Get_Pull_Requests:
-    outputs:
-      pull_request_ids: ${{ steps.get_pull_requests.outputs.pull_request_ids }}
+  GetPullRequests:
+    name: Get Pull Requests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Common
@@ -79,30 +76,27 @@ jobs:
       # Get all the pull requests into main, and output the ids
       - name: Get Pull Requests
         id: get_pull_requests
-        shell: pwsh
-        working-directory: ${{ github.workspace }}/common/
         env:
           PULL_REQUEST_IDS: ${{ inputs.prs }}
         run: |
-          . ${{ github.workspace }}/common/nightly-pr-to-main_get-prs.ps1 `
+          ./nightly-pull-requests.get-prs.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
-          -VariableName PullRequestIds `
+          -Branch ${{ github.ref_name }} `
           -GitHubToken ${{ secrets.token }} `
-          -GitHubUser ${{ inputs.user }} `
-          -GitHubEmail ${{ inputs.email }} `
-          -GitHubOutput $Env:GITHUB_OUTPUT 
+          -GitHubOutput $Env:GITHUB_OUTPUT
+    outputs:
+      pull_request_ids: ${{ steps.get_pull_requests.outputs.pull_request_ids }}
 
   # Run the common workflow on each pull request
-  Nightly_PR_to_Main:
-    needs: Get_Pull_Requests
-    name: Nightly PR to Main - ${{ matrix.id }}
+  NightlyPullRequest:
+    needs: GetPullRequests
     strategy:
       fail-fast: false
       matrix:
-        id: ${{ fromJSON(needs.Get_Pull_Requests.outputs.pull_request_ids) }}
-
-    uses: ./.github/workflows/nightly-pr-to-main.yml
+        id: ${{ fromJSON(needs.GetPullRequests.outputs.pull_request_ids) }}
+    name: Nightly PR - ${{ matrix.id }}
+    uses: ./.github/workflows/nightly-pull-request.yml
     with:
       repo-name: ${{ inputs.repo-name }}
       org-name: ${{ inputs.org-name }}

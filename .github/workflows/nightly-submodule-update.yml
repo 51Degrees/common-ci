@@ -22,34 +22,35 @@ on:
         required: false
         type: string
         default: false
+      common-ci-ref:
+        type: string
+        default: ''
     secrets:
       token:
         required: true
 
 jobs:
-  nightly-submodule-update:
+  NightlySubmoduleUpdate:
     runs-on: ubuntu-latest
-
+    name: Nightly Submodule Update
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        
-      - name: Checkout reusable workflow dir
+      - name: Checkout Common
         uses: actions/checkout@v4
         with:
           repository: ${{ inputs.org-name }}/common-ci
           path: common
-        
+          ref: ${{ inputs.common-ci-ref }}
+
       - name: Update Submodules
         shell: pwsh
         working-directory: ${{ github.workspace }}/common/
         run: |
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
-          . ${{ github.workspace }}/common/nightly-submodule-update.ps1 `
+          ./nightly-submodule-update.ps1 `
           -GitHubToken ${{ secrets.token }} `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
-          -RunId ${{ github.run_id }} `
+          -Branch ${{ github.ref_name }} `
           -GitHubUser ${{ inputs.user }} `
           -GitHubEmail ${{ inputs.email }} `
           -DryRun $DryRun

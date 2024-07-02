@@ -3,15 +3,11 @@ param (
     [string]$RepoName,
     [Parameter(Mandatory=$true)]
     [string]$OrgName,
-    [string]$VariableName = "PullRequestIds",
-    [string]$GitHubToken
+    [string]$Branch = "main",
+    [string]$SetVariable = "PullRequestIds"
 )
-
-# This token is used by the gh command.
-Write-Output "Setting GITHUB_TOKEN"
-$env:GITHUB_TOKEN="$GitHubToken"
-
-$RepoPath = [IO.Path]::Combine($pwd, $RepoName)
+$ErrorActionPreference = "Stop"
+$PSNativeCommandUseErrorActionPreference = $true
 
 $Collaborators = gh api /repos/$OrgName/$RepoName/collaborators | ConvertFrom-Json
 
@@ -30,12 +26,13 @@ function Test-Approval {
         [Object[]]$Reviews,
         [Object[]]$RequestedReviewers
     )
+    $InformationPreference = 'Continue'
 
     # First, check if all required reviewers approved the PR; fail early if not
     foreach ($reviewer in $RequestedReviewers) {
         if ($Reviews | Where-Object { $_.user.id -eq $reviewer.id -and $_.state -ne 'APPROVED' }) {
             Write-Information "The pull request is not approved by the requested reviewer: $($reviewer.login)"
-            return $False
+            return $false
         }
     }
 
@@ -43,11 +40,11 @@ function Test-Approval {
     $approvals = ($Reviews | Where-Object { $_.state -eq 'APPROVED' -and (Test-WriteAccess $_.user.id) }).user.login
     if ($approvals) {
         Write-Information "The creator doesn't have write access, but the pull request has been approved by: $approvals"
-        return $True
+        return $true
     }
 
     Write-Information "The creator doesn't have write access, and the pull request is not approved by anyone with write access to the repository"
-    return $False
+    return $false
 }
 
 function Test-Pr {
@@ -69,43 +66,28 @@ function Test-Pr {
     }
 }
 
-Write-Output "Entering '$RepoPath'"
-Push-Location $RepoPath
+$Ids = gh pr list -R $OrgName/$RepoName -B $Branch --json number,isDraft --jq '.[]|select(.isDraft|not).number'
+if ($Ids) {
+    $ValidIds = @()
 
-try {
-
-    $Ids = gh pr list -B main --json number,isDraft --jq '.[]|select(.isDraft|not).number'
-    if ($Null -ne $Ids) {
-        $ValidIds = @()
-
-        foreach ($Id in $Ids) {
-            # Only select PRs which are eligeble for automation.
-            Write-Output "Checking PR #$Id"
-            if (Test-Pr $RepoName $Id) {
-                $ValidIds += $Id
-            }
+    foreach ($Id in $Ids) {
+        # Only select PRs which are eligeble for automation.
+        Write-Output "Checking PR #$Id"
+        if (Test-Pr $RepoName $Id) {
+            $ValidIds += $Id
         }
-
-        if ($ValidIds.Count -gt 0) {
-            Write-Output "Pull request ids are: $([string]::Join(",", $ValidIds))"
-            Set-Variable -Name $VariableName -Value $ValidIds -Scope Global
-        }
-        else {
-            Write-Output "No pull requests to be checked."
-            Set-Variable -Name $VariableName -Value @(0) -Scope Global
-        }
-
-    } else {
-
-        Write-Output "No pull requests to be checked."
-        Set-Variable -Name $VariableName -Value @(0) -Scope Global
-
     }
+
+    if ($ValidIds.Count -gt 0) {
+        Write-Output "Pull request ids are: $([string]::Join(",", $ValidIds))"
+        Set-Variable -Scope 1 -Name $SetVariable -Value $ValidIds
+    }
+    else {
+        Write-Output "No pull requests to be checked."
+        Set-Variable -Scope 1 -Name $SetVariable -Value @(0)
+    }
+
+} else {
+    Write-Output "No pull requests to be checked."
+    Set-Variable -Scope 1 -Name $SetVariable -Value @(0)
 }
-finally {
-
-    Write-Output "Leaving '$RepoPath'"
-    Pop-Location
-
-}
-

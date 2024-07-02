@@ -22,6 +22,9 @@ on:
         required: false
         type: string
         default: false
+      common-ci-ref:
+        type: string
+        default: ''
     secrets:
       token:
         required: true
@@ -43,6 +46,7 @@ jobs:
         with:
           repository: ${{ inputs.org-name }}/common-ci
           path: common
+          ref: ${{ inputs.common-ci-ref }}
         
       - name: Generate Accessors
         shell: pwsh
@@ -53,6 +57,7 @@ jobs:
           -GitHubToken ${{ secrets.token }} `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
+          -Branch ${{ github.ref_name }} `
           -DeviceDetectionKey ${{ secrets.device-detection-key }} `
           -DeviceDetectionUrl "${{ secrets.device-detection-url }}" `
           -GitHubUser ${{ inputs.user }} `

@@ -22,6 +22,9 @@ on:
         required: false
         type: string
         default: false
+      common-ci-ref:
+        type: string
+        default: ''
       separate-examples:
         required: false
         type: string
@@ -31,26 +34,25 @@ on:
         required: true        
 
 jobs:
-  nightly-documentation-update:
+  NightlyDocumentationUpdate:
+    name: Nightly Documentation Update
     runs-on: ubuntu-latest
-
+    if: ${{ github.ref_name == 'main' }} # main only, for now
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        
-      - name: Checkout reusable workflow dir
+      - name: Checkout Common
         uses: actions/checkout@v4
         with:
           repository: ${{ inputs.org-name }}/common-ci
           path: common
-            
+          ref: ${{ inputs.common-ci-ref }}
+
       - name: Generate Documentation
         shell: pwsh
         working-directory: ${{ github.workspace }}/common/
         run: |
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
           $SeparateExamples = [bool]::Parse( "${{ inputs.separate-examples}}" )
-          . ${{ github.workspace }}/common/nightly-documentation-update.ps1 `
+          ./nightly-documentation-update.ps1 `
           -GitHubToken ${{ secrets.token }} `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `

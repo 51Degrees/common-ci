@@ -1,35 +1,30 @@
-name: Nightly Publish Main
+name: Nightly Publish
 
 on:
   workflow_call:
     inputs:
       repo-name:
-        required: true
         type: string
+        required: true
       build-platform:
-        required: true
         type: string
+        default: ubuntu-latest
       org-name:
-        required: false
         type: string
         default: 51degrees
       user:
-        required: false
         type: string
         default: Automation51D
       email:
-        required: false
         type: string
         default: "51DCI@51Degrees.com"
       dryrun:
-        required: false
-        type: string
+        type: boolean
         default: false
       cache-assets:
-        default: false
         type: boolean
+        default: false
       common-ci-ref:
-        required: false
         type: string
         default: ''
     secrets:
@@ -74,16 +69,20 @@ on:
       DockerUser:
       PearlLicense:
 
+defaults:
+  run:
+    shell: pwsh
+    working-directory: ./common
+
 jobs:
   Configure:
     runs-on: ubuntu-latest
     outputs:
-      asset-cache-key: ${{ steps.hash-asset-cache-key.outputs.hash }}
+      asset_cache_key: ${{ steps.hash_asset_cache_key.outputs.hash }}
       options: ${{ steps.configure.outputs.options }}
       version: ${{ steps.configure.outputs.version }}
       update_required: ${{ steps.configure.outputs.update_required }}
     steps:
-    
       - name: Checkout Common
         uses: actions/checkout@v4
         with:
@@ -92,9 +91,8 @@ jobs:
           ref: ${{ inputs.common-ci-ref }}
 
       - name: Hash the Asset Cache Key
-        id: hash-asset-cache-key
+        id: hash_asset_cache_key
         if: inputs.cache-assets
-        shell: pwsh
         env:
           KEY: ${{ toJSON(secrets) }}
         run: |
@@ -107,13 +105,11 @@ jobs:
 
       - name: Configure
         id: configure
-        shell: pwsh
-        working-directory: ${{ github.workspace }}/common/
         run: |
-          . ${{ github.workspace }}/common/nightly-publish-main_configure.ps1 `
+          ./nightly-publish.configure.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
-          -Branch "${{ github.event_name == 'workflow_dispatch' && github.ref_name || '' }}" `
+          -Branch ${{ github.ref_name }} `
           -GitHubToken ${{ secrets.token }} `
           -GitHubOutput $Env:GITHUB_OUTPUT `
           -GitHubUser ${{ inputs.user }} `
@@ -145,33 +141,31 @@ jobs:
 
       - name: PreBuild
         if: ${{ matrix.options.packagerequirement }}
-        shell: pwsh
-        working-directory: ${{ github.workspace }}/common/
         env:
           SECRETS: ${{ toJSON(secrets) }}
         run: |
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
           $Options = $(ConvertFrom-Json -AsHashtable '${{ toJSON(matrix.options) }}')
           $Options.Add("Keys", $(ConvertFrom-Json -AsHashtable $env:SECRETS))
-          . ${{ github.workspace }}/common/nightly-publish-main_prebuild.ps1 `
+          ./nightly-publish.prebuild.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
-          -Branch "${{ github.event_name == 'workflow_dispatch' && github.ref_name || '' }}" `
+          -Branch ${{ github.ref_name }} `
           -GitHubToken ${{ secrets.token }} `
           -Options $Options `
           -GitHubUser ${{ inputs.user }} `
           -GitHubEmail ${{ inputs.email }} `
           -DryRun $DryRun
-          
+
       - name: Upload Package Artifact
         uses: actions/upload-artifact@v4
         if: ${{ success() && matrix.options.packagerequirement }}
         with:
           name: package_${{ matrix.options.name }}
           path: ${{ github.workspace }}/common/package-files
-          if-no-files-found: ignore   
+          if-no-files-found: ignore
           include-hidden-files: true
-          
+
 
   Build:
     runs-on: ${{ inputs.build-platform }}
@@ -191,8 +185,6 @@ jobs:
           path: ${{ github.workspace }}/common/package-files
 
       - name: Build
-        shell: pwsh
-        working-directory: ${{ github.workspace }}/common/
         env:
           SECRETS: ${{ toJSON(secrets) }}
         run: |
@@ -200,10 +192,10 @@ jobs:
           $Options = @{}
           $Options.Add("Keys", $(ConvertFrom-Json -AsHashtable $env:SECRETS))
           $Options.Add("Version", "${{ needs.configure.outputs.version }}")
-          . ${{ github.workspace }}/common/nightly-publish-main_build.ps1 `
+          ./nightly-publish.build.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
-          -Branch "${{ github.event_name == 'workflow_dispatch' && github.ref_name || '' }}" `
+          -Branch ${{ github.ref_name }} `
           -GitHubToken ${{ secrets.token }} `
           -Options $Options `
           -GitHubUser ${{ inputs.user }} `
@@ -227,7 +219,7 @@ jobs:
         options: ${{ fromJSON(needs.configure.outputs.options ) }}
     name: Test - ${{ matrix.options.name }}
     runs-on: ${{ matrix.options.image }}
-    
+
     steps:
       - name: Checkout Common
         if: ${{ matrix.options.packagerequirement }}
@@ -255,23 +247,21 @@ jobs:
         if: inputs.cache-assets
         uses: actions/cache/restore@v4
         with:
-          key: ${{ needs.configure.outputs.asset-cache-key }}
+          key: ${{ needs.configure.outputs.asset_cache_key }}
           path: ${{ github.workspace }}/common/assets
 
       - name: Test
-        shell: pwsh
         if: ${{ success() && matrix.options.packagerequirement }}
-        working-directory: ${{ github.workspace }}/common/
         env:
           SECRETS: ${{ toJSON(secrets) }}
         run: |
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
           $Options = $(ConvertFrom-Json -AsHashtable '${{ toJSON(matrix.options) }}')
           $Options.Add("Keys", $(ConvertFrom-Json -AsHashtable $env:SECRETS))
-          . ${{ github.workspace }}/common/nightly-publish-main_test.ps1 `
+          ./nightly-publish.test.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
-          -Branch "${{ github.event_name == 'workflow_dispatch' && github.ref_name || '' }}" `
+          -Branch ${{ github.ref_name }} `
           -GitHubToken ${{ secrets.token }} `
           -Options $Options `
           -GitHubUser ${{ inputs.user }} `
@@ -282,7 +272,7 @@ jobs:
         if: inputs.cache-assets && always()
         uses: actions/cache/save@v4
         with:
-          key: ${{ needs.configure.outputs.asset-cache-key }}
+          key: ${{ needs.configure.outputs.asset_cache_key }}
           path: ${{ github.workspace }}/common/assets
 
       - name: Publish Test Results
@@ -293,8 +283,8 @@ jobs:
           name: ${{ matrix.options.name }}
           skip-unit: true
           skip-performance: true
-          
-  Package:      
+
+  Package:
     runs-on: ${{ inputs.build-platform }}
     needs: [ Test, Configure ]
     if: ${{ success() && needs.configure.outputs.update_required == 'true' }}
@@ -315,9 +305,7 @@ jobs:
           path: ${{ github.workspace }}/common/package
 
       - name: Package
-        shell: pwsh
         if: ${{ success() }}
-        working-directory: ${{ github.workspace }}/common/
         env:
           SECRETS: ${{ toJSON(secrets) }}
         run: |
@@ -325,10 +313,10 @@ jobs:
           $Options = @{}
           $Options.Add("Keys", $(ConvertFrom-Json -AsHashtable $env:SECRETS))
           $Options.Add("Version", "${{ needs.configure.outputs.version }}")
-          . ${{ github.workspace }}/common/nightly-publish-main_package.ps1 `
+          ./nightly-publish.package.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
-          -Branch "${{ github.event_name == 'workflow_dispatch' && github.ref_name || '' }}" `
+          -Branch ${{ github.ref_name }} `
           -GitHubToken ${{ secrets.token }} `
           -Options $Options `
           -GitHubUser ${{ inputs.user }} `

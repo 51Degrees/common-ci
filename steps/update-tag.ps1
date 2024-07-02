@@ -5,43 +5,21 @@ param (
     [string]$OrgName,
     [Parameter(Mandatory=$true)]
     [string]$Tag,
-    [bool]$DryRun = $False
+    [bool]$DryRun
 )
-$RepoPath = [IO.Path]::Combine($pwd, $RepoName)
+$ErrorActionPreference = "Stop"
+$PSNativeCommandUseErrorActionPreference = $true
 
+Write-Output "Tagging '$Tag'"
+git -C $RepoName tag $Tag
 
-Write-Output "Entering '$RepoPath'"
-Push-Location $RepoPath
+if ($DryRun) {
+    Write-Output "Dry run - not pushing tag '$Tag'"
+    Write-Output "Dry run - not creating a release"
+} else {
+    Write-Output "Pushing tag '$Tag'"
+    git -C $RepoName push origin $Tag
 
-try {
-
-    Write-Output "Tagging with '$Tag'"
-    git tag $Tag
-
-    Write-Output "Pushing tag"
-    $Command = "git push origin $Tag"
-    if ($DryRun -eq $False) {
-        Invoke-Expression $Command
-    }
-    else {
-        Write-Output "Dry run - not executing the following: $Command"
-    }
-
-    # When creating the release, auto-generate the release notes from the
-    # PRs that are included in the changes.
     Write-Output "Creating a GitHub release"
-    $Command = {gh api /repos/$OrgName/$RepoName/releases -X POST -f "tag_name=$Tag" -F "generate_release_notes=true" -f "name=Version $Tag"}
-    if ($DryRun -eq $False) {
-        & $Command
-    }
-    else {
-        Write-Output "Dry run - not executing the following: $Command"
-    }
-
-}
-finally {
-    
-    Write-Output "Leaving '$RepoPath'"
-    Pop-Location
-
+    gh api /repos/$OrgName/$RepoName/releases -X POST -f "tag_name=$Tag" -F "generate_release_notes=true" -f "name=Version $Tag"
 }
