@@ -21,7 +21,7 @@ The following rules are common across the organisation.
 -   GitHub triggers initiate the stages.
 -   Use of GitHub actions and other platform specific features are minimised to enable portability of CI/CD. For example, cloning a repository is performed in PowerShell via a generic command line that works on Linux, Windows, and Mac rather than in a GitHub action. This ensures the PowerShell script can be tested outside a CI/CD deployment environment.
 -   C/C++ is compiled using CMake on all platforms.
--   Versioning is performed using the most appropriate method for the target language. For example, GitVersion used for .NET
+-   Versioning is handled by GitVersion.
 -   Common PowerShell scripts are contained in this repository. Repository specific scripts are contained under the root `ci` folder.
 -   Code that is in the `main` branch has passed all relevant tests. This is a critical gate to avoid repeating tests.
 -   The package output from a repository in the organisation is used as the input to other packages in the same organisation via the relevant package manager. This ensures that the organisations published packages are treated just like any other dependency and are not given special treatment.
@@ -256,29 +256,39 @@ Each of the triggers shown is described at a high level. More detail is provided
 
 ### Nightly Data File Change
 
-When data files used by the packages change new properties might be added or current ones deprecated. The strongly type accessors for the language might therefore need to change resulting in a new version of the resulting package. Every night, data files are fetched, and the auto generated strongly typed accessor code is updated. Any changes are then committed to a branch and a pull request to `main` is created.
+When data files used by the packages change new properties might be added or current ones deprecated. The strongly type accessors for the language might therefore need to change resulting in a new version of the resulting package. Every night, data files are fetched, and the auto generated strongly typed accessor code is updated. Any changes are then committed to a branch and a pull request to the target branch is created.
 
 ### Nightly Package Dependency Update and Nightly Sub-Module Update
 
-Every night any dependencies of the package are updated automatically to the latest patch version of that package or `main` branch commit of the sub-module. This includes any dependencies on packages within the organisation. Where changes are identified a branch is created and a PR to `main` is initiated. The tests associated with any PR to `main` will identify any failures for engineers to address before the updated versions can be used.
+Every night any dependencies of the package are updated automatically to the latest patch version of that package or the latest commit of the sub-module's specified branch. This includes any dependencies on packages within the organisation. Where changes are identified a branch is created and a PR to the target branch is initiated. The tests associated with any PR to the target branch will identify any failures for engineers to address before the updated versions can be used.
 
-### PR to Main
+### Pull Requests
 
 All tests associated with the repository are run only at this point to avoid repetition. Code can only be present in the main branch of the repository if all tests have passed.
 
-PRs to `main` can only be initiated by a project Contributor, Administrator, or GitHub actions.
+Pull Requests can only be initiated by a project Contributor, Administrator, or GitHub actions.
 
-### Nightly Main Package Publish
+### Nightly Package
 
 **This job should only be run once all the other nightly jobs have completed.**
 
-Any changes to the `main` branch are published automatically on a nightly basis as a new package at the target package manager environment.
+Any changes to the target branch are published automatically on a nightly basis as a new package at the target package manager environment.
 
 This can also be run manually against any branch. If the branch is not the main branch, then the generated version for the package will be a prerelease version, following semantic versioning.
 
 ### Nightly Documentation Update
 
 Any changes to the `main` branch are used to generate the latest documentation. This is then published to the `gh-pages` branch of the reposiory.
+
+### Nightly Pipeline
+
+This is a wrapper workflow that's not present in `common-ci`. It calls other nightly workflows (some in paralell, others sequentially) as part of a single workflow to preserve the trigger metadata between them, and allow running the entire Nightly workflows suite from any branch. This approach is required, because unlike PowerShell scripts, that can be parametrized to run from any branch, some of the actions that the workflows call (e.g. [publish-unit-test-result-action](https://github.com/EnricoMi/publish-unit-test-result-action)) use the branch from GitHub's metadata.
+
+The wrapper should usually just be a combination of other nightly workflows, with dependencies between stages specified using the `needs` job property instead of `workflow_run` triggers used previously.
+
+One limitation of such approach is that GitHub's scheduled pipelines always run from `main`, but we need to be able to schedule them on any branch. To work around this limitation a separate scheduler workflow is used. Its only task is to trigger the Nightly Pipeline workflow from the specified branch, using the GitHub API.
+
+The unified nightly pipeline is opt-in. Only repositories that need to run the nightly suite from branches other than `main` have to use it. Other repositories can continue using the previous system, based on `workflow_run` triggers.
 
 ### Monthly Copyright Update
 
@@ -294,7 +304,7 @@ The Data File Change trigger creates new auto generated code for the strongly ty
 
 #### Update dependency
 
-A package that the organisation uses is updated to a new version within the same `major.minor` version. The nightly dependency check will pick up on the new version and create a branch and associated PR to main. The changes will then propagate to the published packages if the tests executed for any PR to main pass.
+A package that the organisation uses is updated to a new version within the same `major.minor` version. The nightly dependency check will pick up on the new version and create a branch and associated PR to main. The changes will then propagate to the published packages if the tests executed for any PR pass.
 
 #### Organisation package update
 
