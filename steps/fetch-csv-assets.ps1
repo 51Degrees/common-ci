@@ -25,7 +25,11 @@ try {
         Write-Error "Failed to download data file"
         exit 1
 
-    }     
+    }
+
+    Write-Output "Extracting $FileName"
+    Expand-Archive -Path $FileName
+     
 }
 finally {
 
