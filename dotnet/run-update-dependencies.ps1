@@ -121,6 +121,11 @@ try {
     }
     Write-Output "========= ========= ========="
 }
+catch {
+    Write-Output "An error occurred:"
+    Write-Output $_
+    Write-Output "========= ========= ========="
+}
 finally {
 
     Write-Output "Leaving '$RepoPath'"
