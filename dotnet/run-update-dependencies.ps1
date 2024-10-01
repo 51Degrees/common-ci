@@ -25,6 +25,9 @@ try {
     foreach ($ProjectFile in $ProjectsToCheck) {
         Write-Output "========= ========= ========="
         Write-Output $ProjectFile.FullName
+        Write-Output ""
+        
+        dotnet restore $ProjectFile.FullName
 
         $ProjectPackagesOutdatedRaw = (dotnet list $ProjectFile.FullName package --format json --outdated --highest-patch)
         if ($ProjectPackagesOutdatedRaw[0][0] -ne '{') {
@@ -124,10 +127,6 @@ try {
                 }
             }
         }
-    
-        Write-Output "===== ===== ====="
-        Write-Output "Restore other projects for futher updates...."
-        dotnet restore $ProjectDir
     }
     if ($LASTEXITCODE -eq 0) {
         Write-Output "========= ========= ========="
