@@ -122,15 +122,17 @@ try {
     Write-Output "========= ========= ========="
 }
 catch {
+    Write-Output "░░░░░░░░░ ░░░░░░░░░ ░░░░░░░░░ ░░░░░░░░░ ░░░░░░░░░"
     Write-Output "An error occurred:"
     Write-Output $_
-    Write-Output "========= ========= ========="
 }
 finally {
-
+    Write-Output "░░░░░░░░░ ░░░░░░░░░ ░░░░░░░░░ ░░░░░░░░░ ░░░░░░░░░"
+    Write-Output "In [run-update-dependencies.ps1]:"
+    Write-Output "LASTEXITCODE = $LASTEXITCODE"
+    Write-Output ""
     Write-Output "Leaving '$RepoPath'"
     Pop-Location
-
 }
 
 exit $LASTEXITCODE
