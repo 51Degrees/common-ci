@@ -16,7 +16,13 @@ try {
     
     dotnet restore $ProjectDir
 
-    foreach ($ProjectFile in $(Get-ChildItem -Path $pwd -Filter $Filter -Recurse -ErrorAction SilentlyContinue -Force)) {
+    Write-Output "========= ========= ========="
+    Write-Output "LOOKING FOR PROJECTS..."
+    $ProjectsToCheck = $(Get-ChildItem -Path $pwd -Filter $Filter -Recurse -ErrorAction SilentlyContinue -Force)
+    Write-Output "FOUND ($($ProjectsToCheck.count)):"
+    Write-Output $($ProjectsToCheck | Select-Object -ExpandProperty FullName)
+
+    foreach ($ProjectFile in $ProjectsToCheck) {
         Write-Output "========= ========= ========="
         Write-Output $ProjectFile.FullName
 
