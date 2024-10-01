@@ -24,7 +24,6 @@ try {
 
     foreach ($ProjectFile in $ProjectsToCheck) {
         Write-Output "========= ========= ========="
-        Write-Output "LASTEXITCODE = $LASTEXITCODE"
         Write-Output $ProjectFile.FullName
 
         $ProjectPackagesOutdatedRaw = (dotnet list $ProjectFile.FullName package --format json --outdated --highest-patch)
@@ -36,6 +35,12 @@ try {
         Write-Debug "OUTDATED PACKAGES:"
         $ProjectPackagesOutdated = (ConvertFrom-Json -InputObject (-Join $ProjectPackagesOutdatedRaw))
         Write-Debug (ConvertTo-Json -InputObject $ProjectPackagesOutdated -Depth 6)
+
+        if ($ProjectPackagesOutdated.ContainsKey("problems")) {
+            Write-Warning "❌ Problems:"
+            Write-Warning (ConvertTo-Json -InputObject $ProjectPackagesOutdated["problems"])
+            break
+        }
 
         $RequestedPackages = @{}
         foreach ($ProjectDic in $ProjectPackagesOutdated.projects) {
@@ -62,9 +67,7 @@ try {
             }
         }
         if ($RequestedPackages.Count -eq 0) {
-            Write-Output "LASTEXITCODE = $LASTEXITCODE"
             Write-Output "✅ NO UPDATES"
-            Write-Output "LASTEXITCODE = $LASTEXITCODE"
             continue
         }
         Write-Output "NECESSARY UPDATES:"
@@ -122,18 +125,11 @@ try {
             }
         }
     }
-    Write-Output "========= ========= ========="
-}
-catch {
-    Write-Output "░░░░░░░░░ ░░░░░░░░░ ░░░░░░░░░ ░░░░░░░░░ ░░░░░░░░░"
-    Write-Output "An error occurred:"
-    Write-Output $_
+    if ($LASTEXITCODE -eq 0) {
+        Write-Output "========= ========= ========="
+    }
 }
 finally {
-    Write-Output "░░░░░░░░░ ░░░░░░░░░ ░░░░░░░░░ ░░░░░░░░░ ░░░░░░░░░"
-    Write-Output "In [run-update-dependencies.ps1]:"
-    Write-Output "LASTEXITCODE = $LASTEXITCODE"
-    Write-Output ""
     Write-Output "Leaving '$RepoPath'"
     Pop-Location
 }
