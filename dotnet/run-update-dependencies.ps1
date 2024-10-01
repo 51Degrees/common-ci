@@ -124,6 +124,10 @@ try {
                 }
             }
         }
+    
+        Write-Output "===== ===== ====="
+        Write-Output "Restore other projects for futher updates...."
+        dotnet restore $ProjectDir
     }
     if ($LASTEXITCODE -eq 0) {
         Write-Output "========= ========= ========="
