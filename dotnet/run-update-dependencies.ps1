@@ -24,6 +24,7 @@ try {
 
     foreach ($ProjectFile in $ProjectsToCheck) {
         Write-Output "========= ========= ========="
+        Write-Output "LASTEXITCODE = $LASTEXITCODE"
         Write-Output $ProjectFile.FullName
 
         $ProjectPackagesOutdatedRaw = (dotnet list $ProjectFile.FullName package --format json --outdated --highest-patch)
