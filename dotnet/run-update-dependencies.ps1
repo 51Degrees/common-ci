@@ -36,9 +36,9 @@ try {
         $ProjectPackagesOutdated = (ConvertFrom-Json -InputObject (-Join $ProjectPackagesOutdatedRaw))
         Write-Debug (ConvertTo-Json -InputObject $ProjectPackagesOutdated -Depth 6)
 
-        if ($ProjectPackagesOutdated.ContainsKey("problems")) {
+        if ($null -ne $ProjectPackagesOutdated.problems) {
             Write-Warning "❌ Problems:"
-            Write-Warning (ConvertTo-Json -InputObject $ProjectPackagesOutdated["problems"])
+            Write-Warning (ConvertTo-Json -InputObject $ProjectPackagesOutdated.problems)
             break
         }
 
