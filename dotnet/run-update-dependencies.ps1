@@ -62,7 +62,9 @@ try {
             }
         }
         if ($RequestedPackages.Count -eq 0) {
+            Write-Output "LASTEXITCODE = $LASTEXITCODE"
             Write-Output "✅ NO UPDATES"
+            Write-Output "LASTEXITCODE = $LASTEXITCODE"
             continue
         }
         Write-Output "NECESSARY UPDATES:"
