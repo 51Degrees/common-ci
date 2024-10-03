@@ -27,6 +27,7 @@ try {
         Write-Output $ProjectFile.FullName
         Write-Output ""
         
+        # Explicitly restore the project in case `dotnet restore $ProjectDir` above failed to find it.
         dotnet restore $ProjectFile.FullName
 
         $ProjectPackagesOutdatedRaw = (dotnet list $ProjectFile.FullName package --format json --outdated --highest-patch)
