@@ -6,6 +6,6 @@ param (
 )
 $ErrorActionPreference = "Stop"
 
-./steps/get-next-package-version.ps1 -RepoName $RepoName -VariableName GitVersion
+./steps/get-next-package-version.ps1 -RepoName $RepoName -VariableName GitVersion -GitVersionConfigPath cxx/gitversion.yml
 
-Set-Variable -Scope 1 -Name $VariableName -Value $GitVersion.MajorMinorPatch
+Set-Variable -Scope 1 -Name $VariableName -Value $GitVersion.SemVer

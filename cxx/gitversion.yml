@@ -1,0 +1,4 @@
+branches:
+  alpha:
+    regex: ^version/
+    label: alpha
