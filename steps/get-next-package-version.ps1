@@ -11,7 +11,7 @@ Write-Output "Entering $RepoName"
 Push-Location $RepoName
 try {
     Write-Output "Installing gitversion"
-    dotnet tool install --global GitVersion.Tool --version 5.*
+    dotnet tool install --global GitVersion.Tool --version 6.*
 
     $GitVersionOutput = dotnet-gitversion ($GitVersionConfigPath ? '/config', $GitVersionConfigPath : $null)
 

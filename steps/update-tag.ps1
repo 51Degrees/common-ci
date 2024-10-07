@@ -21,5 +21,5 @@ if ($DryRun) {
     git -C $RepoName push origin $Tag
 
     Write-Output "Creating a GitHub release"
-    gh api /repos/$OrgName/$RepoName/releases -X POST -f "tag_name=$Tag" -F "generate_release_notes=true" -f "name=Version $Tag"
+    gh -R $OrgName/$RepoName release create --verify-tag --generate-notes ($Tag -cmatch '-SNAPSHOT$|-alpha(\.\d+)?$' ? '--prerelease' : $null) $Tag
 }

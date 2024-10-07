@@ -26,7 +26,7 @@ Write-Output "::endgroup::"
 Write-Output "::group::Get Next Package Version"
 ./steps/run-script.ps1 ./$RepoName/ci/get-next-package-version.ps1 @{RepoName = $RepoName; VariableName = "Version"}
 Write-Output version=$Version
-if (!($Version -match '^(\d+)\.(\d+)\.(\d+)(\.\d+)?(-SNAPSHOT)?$')) {
+if (!($Version -match '^(\d+)\.(\d+)\.(\d+)(\.\d+)?(-SNAPSHOT|-alpha\.\d+)?$')) {
   Write-Error "Version '$Version' isn't valid"
   exit 1
 }
