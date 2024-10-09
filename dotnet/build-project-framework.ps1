@@ -15,7 +15,7 @@ Push-Location $RepoPath
 
 try {
     
-    msbuild -t:build -restore $ProjectDir /p:Platform=$Arch /p:Configuration=$Configuration /p:BuiltOnCI=true -verbosity:minimal
+    msbuild -t:build -restore $ProjectDir /p:Platform=$Arch /p:Configuration=$Configuration /p:BuiltOnCI=true -verbosity:minimal || Write-Error "build failed"
 
 }
 finally {
@@ -24,5 +24,3 @@ finally {
     Pop-Location
 
 }
-
-exit $LASTEXITCODE

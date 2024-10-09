@@ -1,4 +1,3 @@
-
 param(
     [Parameter(Mandatory=$true)]
     [string]$RepoName,
@@ -19,9 +18,8 @@ $TestResultPath = [IO.Path]::Combine($RepoPath, "test-results", $OutputFolder, $
 Write-Output "Entering '$RepoPath'"
 Push-Location $RepoPath
 
-$ok = $true
-
 try {
+    $ok = $true
 
     $skipPattern = "*performance*"
     Write-Output "Testing '$Name'"
@@ -33,8 +31,7 @@ try {
                 dotnet test $_.FullName --results-directory $TestResultPath --blame-crash -l "trx" || $($script:ok = $false)
             }
         }
-    }
-    else{
+    } else {
         Write-Output "[$BuildMethod] ~> Looking for '$Filter' in directories like '$DirNameFormatForNotDotnet'"
         Get-ChildItem -Path $RepoPath -Recurse -File | ForEach-Object {
             if (($_.DirectoryName -like $DirNameFormatForNotDotnet -and $_.Name -notlike $skipPattern) -and ($_.Name -match "$Filter")) {
@@ -44,12 +41,10 @@ try {
         }
     }
 
-}
-finally {
-
+    if (!$ok) {
+        Write-Error "Tests failed"
+    }
+} finally {
     Write-Output "Leaving '$RepoPath'"
     Pop-Location
-
 }
-
-exit $ok ? 0 : 1

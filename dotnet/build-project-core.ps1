@@ -16,7 +16,7 @@ Push-Location $RepoPath
 try {
 
     Write-Output "Building '$Name'"
-    dotnet build $ProjectDir -c $Configuration /p:Platform=$Arch /p:BuiltOnCI=true
+    dotnet build $ProjectDir -c $Configuration /p:Platform=$Arch /p:BuiltOnCI=true || Write-Error "build failed"
 }
 finally {
 
@@ -24,5 +24,3 @@ finally {
     Pop-Location
 
 }
-
-exit $LASTEXITCODE
