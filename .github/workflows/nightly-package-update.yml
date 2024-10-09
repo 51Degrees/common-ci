@@ -55,7 +55,6 @@ jobs:
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ github.ref_name }} `
-          -RunId ${{ github.run_id }} `
           -GitHubUser ${{ inputs.user }} `
           -GitHubEmail ${{ inputs.email }} `
           -DryRun $DryRun

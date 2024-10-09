@@ -33,7 +33,7 @@ Write-Output "::group::Fetch Assets"
 Write-Output "::endgroup::"
 
 Write-Output "::group::Generate Accessors"
-./steps/run-script.ps1 ./tools/ci/generate-accessors.ps1 @{RepoName = tools, TargetRepo = $RepoName}
+./steps/run-script.ps1 ./tools/ci/generate-accessors.ps1 @{RepoName = 'tools'; TargetRepo = $RepoName}
 Write-Output "::endgroup::"
 
 Write-Output "::group::Has Changed"
