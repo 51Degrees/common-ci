@@ -33,7 +33,7 @@ Write-Output "::group::Install Package From Artifact"
 Write-Output "::endgroup::"
 
 Write-Output "::group::Publish Packages"
-if ($Branch -eq "main") {
+if ($Branch -ceq "main" -or $Branch -clike "version/*") {
     ./steps/run-script.ps1 ./$RepoName/ci/publish-package.ps1 $Options
 } else {
     Write-Output "Not on the main branch, skipping publishing"
