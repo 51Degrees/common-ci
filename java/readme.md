@@ -35,7 +35,3 @@ The packages are then copied to and from two locations on the local machine: the
 </plugin>
 ```
 To build packages locally, we use the mvn deploy command with the -DskipRemoteStaging=true option, which ensures that packages are not deployed to a remote repository. Once the packages are built, the `publish-package-maven.ps1` script uses the `mvn nexus-staging:deploy-staged` command to stage the packages to the remote Nexus staging repository.
-
-## SNAPSHOTS
-The snapshot repository is configured in the parent pom.xml file. We use gitversion.yml to append the "-SNAPSHOT" string to the version number when the pipeline runs from a develop branch. 
-The deployment process for snapshot versions is the same as that for release versions. We follow the same steps for testing and deploying both types of packages. 

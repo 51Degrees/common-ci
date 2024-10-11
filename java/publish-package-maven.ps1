@@ -45,7 +45,7 @@ try {
             "-Dhttps.protocols=TLSv1.2" `
             "-DfailIfNoTests=false"
 
-        if ($($Version.EndsWith("SNAPSHOT")) -eq $False) {
+        if ($Version -cnotmatch '-alpha(\.\d+)?$') {
 
             Write-Output "Releasing from Nexus to Maven central"
             mvn -B nexus-staging:release `
