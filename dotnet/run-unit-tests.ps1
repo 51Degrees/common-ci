@@ -29,6 +29,7 @@ try {
             if (($_.DirectoryName -like $DirNameFormatForDotnet -and $_.Name -notlike $skipPattern) -and ($_.Name -match "$Filter")) {
                 Write-Output "Testing Assembly: '$_'"
                 dotnet test $_.FullName --results-directory $TestResultPath --blame-crash -l "trx" || $($script:ok = $false)
+                Write-Output "dotnet test LastExitCode=$LASTEXITCODE"
             }
         }
     } else {
@@ -37,6 +38,7 @@ try {
             if (($_.DirectoryName -like $DirNameFormatForNotDotnet -and $_.Name -notlike $skipPattern) -and ($_.Name -match "$Filter")) {
                 Write-Output "Testing Assembly: '$_'"
                 & vstest.console.exe $_.FullName /Logger:trx /ResultsDirectory:$TestResultPath || $($script:ok = $false)
+                Write-Output "vstest.console LastExitCode=$LASTEXITCODE"
             }
         }
     }
