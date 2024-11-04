@@ -286,7 +286,7 @@ This is a wrapper workflow that's not present in `common-ci`. It calls other nig
 
 The wrapper should usually just be a combination of other nightly workflows, with dependencies between stages specified using the `needs` job property instead of `workflow_run` triggers used previously.
 
-One limitation of such approach is that GitHub's scheduled pipelines always run from `main`, but we need to be able to schedule them on any branch. To work around this limitation a separate scheduler workflow is used. Its only task is to trigger the Nightly Pipeline workflow from the specified branch, using the GitHub API.
+One limitation of such approach is that GitHub's scheduled pipelines always run from `main`, but we need to be able to schedule them on any branch. To work around this limitation a separate scheduler workflow (`nightly-pipeline-prerelease.yml`) is used. Its only task is to trigger the Nightly Pipeline workflow from the specified branch, using the GitHub API.
 
 The unified nightly pipeline is opt-in. Only repositories that need to run the nightly suite from branches other than `main` have to use it. Other repositories can continue using the previous system, based on `workflow_run` triggers.
 
