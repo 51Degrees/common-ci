@@ -45,10 +45,10 @@ try {
             "-Dhttps.protocols=TLSv1.2" `
             "-DfailIfNoTests=false"
 
-        if ($Version -cnotmatch '-alpha(\.\d+)?$') {
+        #if ($Version -cnotmatch '-alpha(\.\d+)?$') {
 
-            Write-Output "Releasing from Nexus to Maven central"
-            mvn -B nexus-staging:release `
+        Write-Output "Releasing from Nexus to Maven central"
+        mvn -B nexus-staging:release `
             -s $SettingsPath  `
             -f pom.xml `
             -DXmx2048m `
@@ -58,7 +58,7 @@ try {
             "-DfailIfNoTests=false"
 
 
-        }
+        #}
     }
     else{
 
