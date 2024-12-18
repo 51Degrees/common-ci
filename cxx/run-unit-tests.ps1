@@ -21,7 +21,7 @@ if ($BuildMethod -eq "cmake") {
     try {
         Write-Output "Testing $Name"
 
-        ctest -C $Configuration -T test --no-compress-output --output-junit "$RepoPath/test-results/unit/$Name.xml" --exclude-regex $ExcludeRegex
+        ctest -C $Configuration -T test --no-compress-output --output-on-failure --output-junit "$RepoPath/test-results/unit/$Name.xml" --exclude-regex $ExcludeRegex
 
         if (Test-Path CMakeFiles/*-cov.dir) {
             Write-Output "Generating coverage report..."

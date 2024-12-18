@@ -52,6 +52,7 @@ on:
       NPMAuthToken:
       NginxCert:
       NginxKey:
+      NginxJwtToken:
       PypiToken:
       TestBrowserResourceKey:
       TestHardwareResourceKey:
