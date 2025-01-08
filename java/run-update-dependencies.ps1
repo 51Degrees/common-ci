@@ -1,4 +1,3 @@
-
 param(
     [Parameter(Mandatory=$true)]
     [string]$RepoName,
@@ -6,6 +5,8 @@ param(
     [string]$Name,
     [switch]$AllowSnapshots
 )
+$ErrorActionPreference = "Stop"
+$PSNativeCommandUseErrorActionPreference = $true
 
 $RepoPath = [IO.Path]::Combine($pwd, $RepoName)
 
@@ -23,5 +24,3 @@ finally {
     Pop-Location
 
 }
-
-exit $LASTEXITCODE
