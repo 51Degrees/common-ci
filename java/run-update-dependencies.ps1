@@ -3,7 +3,8 @@ param(
     [Parameter(Mandatory=$true)]
     [string]$RepoName,
     [string]$ProjectDir = ".",
-    [string]$Name
+    [string]$Name,
+    [switch]$AllowSnapshots
 )
 
 $RepoPath = [IO.Path]::Combine($pwd, $RepoName)
@@ -13,8 +14,8 @@ Push-Location $RepoPath
 
 try {
     
-    Write-Output "Updating dependencies. Patch version only"
-    mvn -B versions:update-properties -DallowMinorUpdates=false -DgenerateBackupPoms=false
+    Write-Output "Updating dependencies. Patch version only. Snapshots are $($AllowSnapshots ? '' : 'dis')allowed."
+    mvn -B versions:update-properties -DallowMinorUpdates=false -DallowSnapshots=$($AllowSnapshots.ToString().ToLower()) -DgenerateBackupPoms=false
 
 }
 finally {
