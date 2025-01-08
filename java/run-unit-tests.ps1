@@ -4,7 +4,7 @@ param(
     [string]$RepoName,
     [string]$ProjectDir = ".",
     [string]$Name,
-    [string]$ExtraArgs
+    [string[]]$ExtraArgs
 )
 
 $RepoPath = [IO.Path]::Combine($pwd, $RepoName)
@@ -12,15 +12,12 @@ $RepoPath = [IO.Path]::Combine($pwd, $RepoName)
 Write-Output "Entering '$RepoPath'"
 Push-Location $RepoPath
 
+$ok = $true
+
 try {
     
     Write-Output "Testing '$Name'"
-    if ($ExtraArgs) {
-        mvn -B surefire:test -f pom.xml -DXmx2048m --no-transfer-progress -DfailIfNoTests=false "-Dhttps.protocols=TLSv1.2" $ExtraArgs
-    } else {
-        mvn -B surefire:test -f pom.xml -DXmx2048m --no-transfer-progress -DfailIfNoTests=false "-Dhttps.protocols=TLSv1.2"
-    }
-    
+    mvn -B surefire:test -f pom.xml -DXmx2048m --no-transfer-progress -DfailIfNoTests=false -Dhttps.protocols=TLSv1.2 $ExtraArgs || $($ok = $false)
 
     # Copy the test results into the test-results folder
     Get-ChildItem -Path . -Directory -Depth 1 | 
@@ -46,4 +43,4 @@ finally {
 
 }
 
-exit $LASTEXITCODE
+exit $ok ? 0 : 1

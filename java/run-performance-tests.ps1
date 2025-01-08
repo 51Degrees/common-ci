@@ -12,10 +12,12 @@ $RepoPath = [IO.Path]::Combine($pwd, $RepoName, $ProjectDir)
 Write-Output "Entering '$RepoPath'"
 Push-Location $RepoPath
 
+$ok = $true
+
 try {
 
     Write-Output "Testing $Name"
-    mvn -B test -Dtest="*$TestName*" -DfailIfNoTests=false 
+    mvn -B test -Dtest="*$TestName*" -DfailIfNoTests=false || $($ok = $false) 
     # Copy the test results into the test-results folder
     Get-ChildItem -Path . -Directory -Depth 1 | 
     Where-Object { Test-Path "$($_.FullName)\pom.xml" } | 
@@ -45,4 +47,4 @@ finally {
 
 }
 
-exit $LASTEXITCODE
+exit $ok ? 0 : 1
