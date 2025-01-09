@@ -17,7 +17,7 @@ $ok = $true
 try {
     
     Write-Output "Testing '$Name'"
-    mvn -B surefire:test -f pom.xml -DXmx2048m --no-transfer-progress -DfailIfNoTests=false -Dhttps.protocols=TLSv1.2 $ExtraArgs || $($ok = $false)
+    mvn -B surefire:test -f pom.xml -DXmx2048m --no-transfer-progress -DfailIfNoTests=false '-Dhttps.protocols=TLSv1.2' $ExtraArgs || $($ok = $false)
 
     # Copy the test results into the test-results folder
     Get-ChildItem -Path . -Directory -Depth 1 | 
