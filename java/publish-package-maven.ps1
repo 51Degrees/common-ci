@@ -6,6 +6,8 @@ param (
     [Parameter(Mandatory=$true)]
     [string]$Version
 )
+$ErrorActionPreference = "Stop"
+$PSNativeCommandUseErrorActionPreference = $true
 
 $RepoPath = [IO.Path]::Combine($pwd, $RepoName)
 
