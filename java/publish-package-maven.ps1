@@ -38,6 +38,8 @@ try {
 
         Write-Output "Deploying to Nexus staging"
 
+        $env:MAVEN_OPTS='--add-opens=java.base/java.util=ALL-UNNAMED'
+
         mvn -B nexus-staging:deploy-staged `
             -s $SettingsPath  `
             -f pom.xml `
@@ -58,7 +60,6 @@ try {
             --no-transfer-progress `
             "-Dhttps.protocols=TLSv1.2" `
             "-DfailIfNoTests=false"
-
 
         #}
     }
