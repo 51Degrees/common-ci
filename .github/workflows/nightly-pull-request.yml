@@ -222,11 +222,16 @@ jobs:
           -GitHubEmail ${{ inputs.email }} `
           -DryRun $DryRun
 
+      - name: Escape Branch Name
+        id: escape_branch
+        run: |
+          "name=" + $env:GITHUB_REF_NAME -replace '[":<>|*?/\\\r\n]', '-' | Out-File $env:GITHUB_OUTPUT -Append
+
       - name: Upload Successful Performance Results Artifact
         if: ${{ success()}}
         uses: actions/upload-artifact@v4
         with:
-          name: performance_results_passed_${{ inputs.pull-request-id }}
+          name: performance_results_passed.${{ steps.escape_branch.name }} # https://github.com/actions/upload-artifact/issues/22
           path: ${{ github.workspace }}/common/results_*.json
           if-no-files-found: ignore
           include-hidden-files: true

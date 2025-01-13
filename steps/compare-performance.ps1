@@ -6,8 +6,11 @@ param (
     $AllOptions,
     [Parameter(Mandatory=$true)]
     [string]$OrgName,
+    [Parameter(Mandatory=$true)]
     [string]$RunId,
+    [Parameter(Mandatory=$true)]
     [string]$PullRequestId,
+    [string]$Branch = "main",
     [bool]$DryRun = $False
 )
 
@@ -212,7 +215,8 @@ if ($PlotReady -eq $False) {
 }
 
 # Get all the artifactrs
-$AllArtifacts = $(gh api -X GET -f per_page=100 /repos/$OrgName/$RepoName/actions/artifacts | ConvertFrom-Json).artifacts
+$ArtifactName = "performance_results_passed.$($Branch -replace '[":<>|*?/\\\r\n]', '-')"
+$Artifacts = $(gh api -X GET -f per_page=10 -f "name=$ArtifactName" /repos/$OrgName/$RepoName/actions/artifacts | ConvertFrom-Json).artifacts
 
 foreach ($Options in $AllOptions) {
     if ($Options.RunPerformance -eq $True) {
@@ -220,31 +224,19 @@ foreach ($Options in $AllOptions) {
 
         # Get the artifact for the current run
         $ResultsPath = [IO.Path]::Combine($pwd, "results_$($Options.Name).json")
-        if ($ResultsPath -ne "") {
-            if ($(Test-Path -Path $ResultsPath) -eq $False) {
-                Write-Warning "The file '$ResultsPath' did not exist"
-                exit 0
-            }
-            # Get the result for the current artifact
-            $CurrentResult = Get-Content $ResultsPath | ConvertFrom-Json -AsHashtable
-            $CurrentResult.Artifact = @{}
-            $CurrentResult.Artifact.created_at = Get-Date
+        if (!(Test-Path $ResultsPath)) {
+            Write-Warning "The file '$ResultsPath' did not exist"
+            exit 0
         }
-        else {
-            # Get the result for the current artifact
-            $CurrentArtifact = $AllArtifacts | Where-Object { $_.workflow_run.id -eq $RunId -and $_.name -eq "performance_results_$PullRequestId" }
-            $CurrentResult = Get-Artifact-Result -Artifact $CurrentArtifact -Name $Options.Name
-        }
+        # Get the result for the current artifact
+        $CurrentResult = Get-Content $ResultsPath | ConvertFrom-Json -AsHashtable
+        $CurrentResult.Artifact = @{}
+        $CurrentResult.Artifact.created_at = Get-Date
 
         if ($CurrentResult -eq 0) {
             Write-Error "Results for the workflow run '$RunId' were not found"
             exit 1
         }
-
-        # Filter the artifacts so we only have ones that have passed the performance tests
-        # TODO: replace the branch filtering logic with getting results from the server only for the relevant branch
-        $Artifacts = $AllArtifacts | Where-Object { $_.name.StartsWith("performance_results_passed") -and ($env:GITHUB_REF_NAME ? $_.workflow_run.head_branch -ceq $env:GITHUB_REF_NAME : $true) }
-        Write-Output "Found $($Artifacts.Length) artifacts"
 
         # Sort by date
         $Artifacts = $Artifacts | Sort-Object -Property created_at
