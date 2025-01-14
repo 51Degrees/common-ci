@@ -1,0 +1,112 @@
+#
+# TODO: switch all repos to the new file name (`nightly-publish.yml`), and delete this file
+#
+name: Nightly Pull Requests
+
+on:
+  workflow_call:
+    inputs:
+      repo-name:
+        type: string
+        required: true
+      org-name:
+        type: string
+        default: 51Degrees
+      user:
+        type: string
+        default: Automation51D
+      email:
+        type: string
+        default: 51DCI@51degrees.com
+      dryrun:
+        type: string
+        default: false
+      cache-assets:
+        type: boolean
+      common-ci-ref:
+        type: string
+        default: ''
+      prs: # Comma-separated list of pull request IDs to build
+        type: string
+    secrets:
+      token:
+        required: true
+      AcceptCHBrowserKey:
+      AcceptCHHardwareKey:
+      AcceptCHNoneKey:
+      AcceptCHPlatformKey:
+      ApiKey:
+      CsvUrl:
+      DeviceDetection:
+      DeviceDetectionUrl:
+      JavaGpgKeyPassphrase:
+      JavaPGP:
+      MavenSettings:
+      NPMAuthToken:
+      NginxCert:
+      NginxKey:
+      NginxJwtToken:
+      PypiToken:
+      TestBrowserResourceKey:
+      TestHardwareResourceKey:
+      TestLicenseKey:
+      TestNoSetHeaderResourceKey:
+      TestPlatformResourceKey:
+      TestPypiToken:
+      TestResourceKey:
+      TestSuperResourceKey:
+      UsePublishTests:
+      PearlLicense:
+
+defaults:
+  run:
+    shell: pwsh
+    working-directory: ./common
+
+jobs:
+  # Get all the pull requests that are going to main
+  GetPullRequests:
+    name: Get Pull Requests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Common
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.org-name }}/common-ci
+          path: common
+          ref: ${{ inputs.common-ci-ref }}
+
+      # Get all the pull requests into main, and output the ids
+      - name: Get Pull Requests
+        id: get_pull_requests
+        env:
+          PULL_REQUEST_IDS: ${{ inputs.prs }}
+        run: |
+          ./nightly-pull-requests.get-prs.ps1 `
+          -RepoName ${{ inputs.repo-name }} `
+          -OrgName ${{ inputs.org-name }} `
+          -Branch ${{ github.ref_name }} `
+          -GitHubToken ${{ secrets.token }} `
+          -GitHubOutput $Env:GITHUB_OUTPUT
+    outputs:
+      pull_request_ids: ${{ steps.get_pull_requests.outputs.pull_request_ids }}
+
+  # Run the common workflow on each pull request
+  NightlyPullRequest:
+    needs: GetPullRequests
+    strategy:
+      fail-fast: false
+      matrix:
+        id: ${{ fromJSON(needs.GetPullRequests.outputs.pull_request_ids) }}
+    name: Nightly PR - ${{ matrix.id }}
+    uses: ./.github/workflows/nightly-pull-request.yml
+    with:
+      repo-name: ${{ inputs.repo-name }}
+      org-name: ${{ inputs.org-name }}
+      pull-request-id: ${{ matrix.id }}
+      user: ${{ inputs.user }}
+      email: ${{ inputs.email }}
+      dryrun: ${{ inputs.dryrun }}
+      cache-assets: ${{ inputs.cache-assets }}
+      common-ci-ref: ${{ inputs.common-ci-ref }}
+    secrets: inherit

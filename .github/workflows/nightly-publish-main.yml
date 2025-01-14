@@ -1,0 +1,327 @@
+#
+# TODO: switch all repos to the new file name (`nightly-publish.yml`), and delete this file
+#
+name: Nightly Publish
+
+on:
+  workflow_call:
+    inputs:
+      repo-name:
+        type: string
+        required: true
+      build-platform:
+        type: string
+        default: ubuntu-latest
+      org-name:
+        type: string
+        default: 51degrees
+      user:
+        type: string
+        default: Automation51D
+      email:
+        type: string
+        default: "51DCI@51Degrees.com"
+      dryrun:
+        type: boolean
+        default: false
+      cache-assets:
+        type: boolean
+        default: false
+      common-ci-ref:
+        type: string
+        default: ''
+    secrets:
+      # PAT that we use to authenticate on behalf of GitHub Actions.
+      token:
+        required: true
+      AcceptCHBrowserKey:
+      AcceptCHHardwareKey:
+      AcceptCHNoneKey:
+      AcceptCHPlatformKey:
+      ApiKey:
+      CodeSigningKeyVaultName:
+      CodeSigningKeyVaultUrl:
+      CodeSigningKeyVaultClientId:
+      CodeSigningKeyVaultTenantId:
+      CodeSigningKeyVaultClientSecret:
+      CodeSigningKeyVaultCertificateName:
+      CodeSigningKeyVaultCertificateData:
+      CsvUrl:
+      DeviceDetection:
+      DeviceDetectionUrl:
+      JavaGpgKeyPassphrase:
+      JavaPGP:
+      MavenSettings:
+      NPMAuthToken:
+      NginxCert:
+      NginxKey:
+      NginxJwtToken:
+      PypiToken:
+      TestBrowserResourceKey:
+      TestHardwareResourceKey:
+      TestLicenseKey:
+      TestNoSetHeaderResourceKey:
+      TestPlatformResourceKey:
+      TestPypiToken:
+      TestResourceKey:
+      TestSuperResourceKey:
+      UsePublishTests:
+      DockerPassword:
+      DockerContainer:
+      DockerRegistry:
+      DockerUser:
+      PearlLicense:
+
+defaults:
+  run:
+    shell: pwsh
+    working-directory: ./common
+
+jobs:
+  Configure:
+    runs-on: ubuntu-latest
+    outputs:
+      asset_cache_key: ${{ steps.hash_asset_cache_key.outputs.hash }}
+      options: ${{ steps.configure.outputs.options }}
+      version: ${{ steps.configure.outputs.version }}
+      update_required: ${{ steps.configure.outputs.update_required }}
+    steps:
+      - name: Checkout Common
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.org-name }}/common-ci
+          path: common
+          ref: ${{ inputs.common-ci-ref }}
+
+      - name: Hash the Asset Cache Key
+        id: hash_asset_cache_key
+        if: inputs.cache-assets
+        env:
+          KEY: ${{ toJSON(secrets) }}
+        run: |
+          $stringAsStream = [System.IO.MemoryStream]::new()
+          $writer = [System.IO.StreamWriter]::new($stringAsStream)
+          $writer.write($env:KEY)
+          $writer.Flush()
+          $stringAsStream.Position = 0
+          "hash=$(Get-Date -Format FileDate)-$((Get-FileHash -InputStream $stringAsStream).Hash)" | Out-File $env:GITHUB_OUTPUT -Append
+
+      - name: Configure
+        id: configure
+        run: |
+          ./nightly-publish.configure.ps1 `
+          -RepoName ${{ inputs.repo-name }} `
+          -OrgName ${{ inputs.org-name }} `
+          -Branch ${{ github.ref_name }} `
+          -GitHubToken ${{ secrets.token }} `
+          -GitHubOutput $Env:GITHUB_OUTPUT `
+          -GitHubUser ${{ inputs.user }} `
+          -GitHubEmail ${{ inputs.email }} `
+          -BuildPlatform ${{ inputs.build-platform }}
+
+  PreBuild:
+    needs: Configure
+    strategy:
+      matrix:
+        options: ${{ fromJSON(needs.configure.outputs.options ) }}
+    name: Pre Build - ${{ matrix.options.name }}
+    runs-on: ${{ matrix.options.image }}
+    steps:
+      - name: Checkout Common
+        uses: actions/checkout@v4
+        if: ${{ matrix.options.packagerequirement }}
+        with:
+          repository: ${{ inputs.org-name }}/common-ci
+          path: common
+          ref: ${{ inputs.common-ci-ref }}
+
+      - name: Install Runtime
+        if: matrix.options.Language != '' && matrix.options.LanguageVersion != ''
+        uses: ./common/.github/actions/install_runtime
+        with:
+          language: ${{ matrix.options.Language }}
+          version: ${{ matrix.options.LanguageVersion }}
+
+      - name: PreBuild
+        if: ${{ matrix.options.packagerequirement }}
+        env:
+          SECRETS: ${{ toJSON(secrets) }}
+        run: |
+          $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
+          $Options = $(ConvertFrom-Json -AsHashtable '${{ toJSON(matrix.options) }}')
+          $Options.Add("Keys", $(ConvertFrom-Json -AsHashtable $env:SECRETS))
+          ./nightly-publish.prebuild.ps1 `
+          -RepoName ${{ inputs.repo-name }} `
+          -OrgName ${{ inputs.org-name }} `
+          -Branch ${{ github.ref_name }} `
+          -GitHubToken ${{ secrets.token }} `
+          -Options $Options `
+          -GitHubUser ${{ inputs.user }} `
+          -GitHubEmail ${{ inputs.email }} `
+          -DryRun $DryRun
+
+      - name: Upload Package Artifact
+        uses: actions/upload-artifact@v4
+        if: ${{ success() && matrix.options.packagerequirement }}
+        with:
+          name: package_${{ matrix.options.name }}
+          path: ${{ github.workspace }}/common/package-files
+          if-no-files-found: ignore
+          include-hidden-files: true
+
+
+  Build:
+    runs-on: ${{ inputs.build-platform }}
+    needs: [ PreBuild, Configure ]
+    steps:
+      - name: Checkout Common
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.org-name }}/common-ci
+          path: common
+          ref: ${{ inputs.common-ci-ref }}
+
+      - name: Download Package Artifacts
+        if: ${{ success() }}
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ github.workspace }}/common/package-files
+
+      - name: Build
+        env:
+          SECRETS: ${{ toJSON(secrets) }}
+        run: |
+          $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
+          $Options = @{}
+          $Options.Add("Keys", $(ConvertFrom-Json -AsHashtable $env:SECRETS))
+          $Options.Add("Version", "${{ needs.configure.outputs.version }}")
+          ./nightly-publish.build.ps1 `
+          -RepoName ${{ inputs.repo-name }} `
+          -OrgName ${{ inputs.org-name }} `
+          -Branch ${{ github.ref_name }} `
+          -GitHubToken ${{ secrets.token }} `
+          -Options $Options `
+          -GitHubUser ${{ inputs.user }} `
+          -GitHubEmail ${{ inputs.email }} `
+          -DryRun $DryRun
+
+      - name: Upload Package Artifact
+        uses: actions/upload-artifact@v4
+        if: ${{ success() }}
+        with:
+          name: package
+          path: ${{ github.workspace }}/common/package
+          if-no-files-found: ignore
+          include-hidden-files: true
+
+
+  Test:
+    needs: [ Build, Configure ]
+    strategy:
+      matrix:
+        options: ${{ fromJSON(needs.configure.outputs.options ) }}
+    name: Test - ${{ matrix.options.name }}
+    runs-on: ${{ matrix.options.image }}
+
+    steps:
+      - name: Checkout Common
+        if: ${{ matrix.options.packagerequirement }}
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.org-name }}/common-ci
+          path: common
+          ref: ${{ inputs.common-ci-ref }}
+
+      - name: Download Package Artifact
+        if: ${{ success() && matrix.options.packagerequirement }}
+        uses: actions/download-artifact@v4
+        with:
+          name: package
+          path: ${{ github.workspace }}/common/package
+
+      - name: Install Runtime
+        if: matrix.options.Language != '' && matrix.options.LanguageVersion != ''
+        uses: ./common/.github/actions/install_runtime
+        with:
+          language: ${{ matrix.options.Language }}
+          version: ${{ matrix.options.LanguageVersion }}
+
+      - name: Restore Asset Cache
+        if: inputs.cache-assets
+        uses: actions/cache/restore@v4
+        with:
+          key: ${{ needs.configure.outputs.asset_cache_key }}
+          path: ${{ github.workspace }}/common/assets
+
+      - name: Test
+        if: ${{ success() && matrix.options.packagerequirement }}
+        env:
+          SECRETS: ${{ toJSON(secrets) }}
+        run: |
+          $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
+          $Options = $(ConvertFrom-Json -AsHashtable '${{ toJSON(matrix.options) }}')
+          $Options.Add("Keys", $(ConvertFrom-Json -AsHashtable $env:SECRETS))
+          ./nightly-publish.test.ps1 `
+          -RepoName ${{ inputs.repo-name }} `
+          -OrgName ${{ inputs.org-name }} `
+          -Branch ${{ github.ref_name }} `
+          -GitHubToken ${{ secrets.token }} `
+          -Options $Options `
+          -GitHubUser ${{ inputs.user }} `
+          -GitHubEmail ${{ inputs.email }} `
+          -DryRun $DryRun
+
+      - name: Save Asset Cache
+        if: inputs.cache-assets && always()
+        uses: actions/cache/save@v4
+        with:
+          key: ${{ needs.configure.outputs.asset_cache_key }}
+          path: ${{ github.workspace }}/common/assets
+
+      - name: Publish Test Results
+        if: ${{ always() && matrix.options.packagerequirement }}
+        uses: ./common/.github/actions/publish_test_results
+        with:
+          repo-name: ${{ inputs.repo-name }}
+          name: ${{ matrix.options.name }}
+          skip-unit: true
+          skip-performance: true
+
+  Package:
+    runs-on: ${{ inputs.build-platform }}
+    needs: [ Test, Configure ]
+    if: ${{ success() && needs.configure.outputs.update_required == 'true' }}
+    steps:
+
+      - name: Checkout Common
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.org-name }}/common-ci
+          path: common
+          ref: ${{ inputs.common-ci-ref }}
+
+      - name: Download Package Artifact
+        if: ${{ success() }}
+        uses: actions/download-artifact@v4
+        with:
+          name: package
+          path: ${{ github.workspace }}/common/package
+
+      - name: Package
+        if: ${{ success() }}
+        env:
+          SECRETS: ${{ toJSON(secrets) }}
+        run: |
+          $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
+          $Options = @{}
+          $Options.Add("Keys", $(ConvertFrom-Json -AsHashtable $env:SECRETS))
+          $Options.Add("Version", "${{ needs.configure.outputs.version }}")
+          ./nightly-publish.package.ps1 `
+          -RepoName ${{ inputs.repo-name }} `
+          -OrgName ${{ inputs.org-name }} `
+          -Branch ${{ github.ref_name }} `
+          -GitHubToken ${{ secrets.token }} `
+          -Options $Options `
+          -GitHubUser ${{ inputs.user }} `
+          -GitHubEmail ${{ inputs.email }} `
+          -DryRun $DryRun
