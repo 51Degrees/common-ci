@@ -17,10 +17,10 @@ git clone --recurse-submodules --shallow-submodules --branch $Branch "https://gi
 
 if ($ForceSwitchTo) {
     Write-Output "Switching to $ForceSwitchTo"
-    git -C b switch --recurse-submodules -C $ForceSwitchTo
+    git -C $tmp switch --recurse-submodules -C $ForceSwitchTo
 }
 
-git -C b log -1
+git -C $tmp log -1
 
 Write-Output "Renaming '$tmp' to '$RepoName'"
 Rename-Item $tmp $RepoName
