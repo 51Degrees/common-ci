@@ -1,13 +1,7 @@
 param (
-    [Parameter(Mandatory=$true)]
-    [string]$RepoName,
-    [Parameter(Mandatory=$true)]
-    [string]$VariableName
+    [Parameter(Mandatory)][string]$RepoName,
+    [string]$VariableName = "Version"
 )
+$ErrorActionPreference = "Stop"
 
-./steps/get-next-package-version.ps1 -RepoName $RepoName -VariableName $VariableName -GitVersionConfigPath (Join-Path node gitversion.yml)
-
-$semVer = (Get-Variable -Name $VariableName).Value.SemVer
-Set-Variable -Name $VariableName -Value $semVer -Scope Global
-
-exit $LASTEXITCODE
+Set-Variable -Scope Global -Name $VariableName -Value (./steps/get-next-package-version.ps1 -RepoName $RepoName)

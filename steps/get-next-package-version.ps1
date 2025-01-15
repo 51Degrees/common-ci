@@ -1,26 +1,19 @@
 param (
-    [Parameter(Mandatory=$true)]
-    [string]$RepoName,
-    [string]$VariableName = "GitVersion",
-    [string]$GitVersionConfigPath
+    [Parameter(Mandatory)][string]$RepoName,
+    [string]$Version
 )
 $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
 
-Write-Output "Entering $RepoName"
-Push-Location $RepoName
-try {
-    Write-Output "Installing gitversion"
-    dotnet tool install --global GitVersion.Tool --version 6.*
-
-    $GitVersionOutput = dotnet-gitversion ($GitVersionConfigPath ? '/config', $GitVersionConfigPath : $null)
-
-    Write-Output "Setting $VariableName to:"
-    Write-Output $GitVersionOutput
-    Set-Variable -Scope 1 -Name $VariableName -Value $($GitVersionOutput | ConvertFrom-Json)
-
-} finally {
-    Write-Output "Leaving $RepoName"
-    Pop-Location
+if (-not $Version) {
+    $Version = git -C $RepoName describe --tags --abbrev=0
 }
 
+# Bump patch version component
+if ($Version -cmatch '(.*)\.(\d+)$') {
+    $newVersion = "$($Matches.1).$([int]$Matches.2 + 1)"
+    Write-Host "Bumping $Version to $newVersion"
+    return $newVersion
+}
+
+Write-Error "Failed to parse version: $Version"
