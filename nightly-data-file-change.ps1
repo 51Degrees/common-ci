@@ -7,7 +7,7 @@ param (
     [string]$GitHubUser,
     [string]$GitHubEmail,
     [string]$DataKey,
-    [string]$DataUrl = $Null,
+    [string]$DataUrl,
     [string]$DataType = "HashV41",
     [string]$Product = "V4TAC",
     [string]$FileName = "TAC-HashV41.hash.gz",
@@ -32,15 +32,21 @@ Write-Output "::group::Clone Tools"
 Write-Output "::endgroup::"
 
 Write-Output "::group::Fetch Assets"
-Write-Output "Downloading $FileName"
-./steps/download-data-file.ps1 -LicenseKey $DataKey -DataType $DataType -Product $Product -FullFilePath $FileName -Url $DataUrl
-
-Write-Output "Extracting $FileName"
-./steps/gunzip-file.ps1 -Source $FileName
+# TODO: support caching data files like language-specific fetch-assets scripts
+./steps/fetch-hash-assets.ps1 `
+    -RepoName tools `
+    -LicenseKey $DataKey `
+    -DataType $DataType `
+    -Product $Product `
+    -ArchiveName $FileName `
+    -Url $DataUrl
 Write-Output "::endgroup::"
 
 Write-Output "::group::Generate Accessors"
-./steps/run-script.ps1 ./$RepoName/ci/generate-accessors.ps1 @{RepoName = 'tools'; TargetRepo = $RepoName}
+./steps/run-script.ps1 ./$RepoName/ci/generate-accessors.ps1 @{
+    RepoName = 'tools'
+    DataFile = "tools/$FileName" -creplace '\.gz$', ''
+}
 Write-Output "::endgroup::"
 
 Write-Output "::group::Has Changed"
