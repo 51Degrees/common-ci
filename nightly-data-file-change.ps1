@@ -32,11 +32,21 @@ Write-Output "::group::Clone Tools"
 Write-Output "::endgroup::"
 
 Write-Output "::group::Fetch Assets"
+$FullFilePath = [IO.Path]::Combine($pwd, "tools", $FileName)
 Write-Output "Downloading $FileName"
-./steps/download-data-file.ps1 -LicenseKey $DataKey -DataType $DataType -Product $Product -FullFilePath $FileName -Url $DataUrl
+./steps/download-data-file.ps1 `
+  -licenseKey $DataKey `
+  -dataType $DataType `
+  -product $Product `
+  -fullFilePath $FullFilePath `
+  -Url $DataUrl
 
-Write-Output "Extracting $FileName"
-./steps/gunzip-file.ps1 -Source $FileName
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Failed to download data file"
+    exit
+}
+Write-Output "Extracting $FullFilePath"
+./steps/gunzip-file.ps1 -Source $FullFilePath
 Write-Output "::endgroup::"
 
 Write-Output "::group::Generate Accessors"
