@@ -1,4 +1,3 @@
-
 param (
     [Parameter(Mandatory=$true)]
     [string]$RepoName,
@@ -7,36 +6,11 @@ param (
     [string]$DataType = "HashV41",
     [string]$Product = "V4TAC",
     [string]$ArchiveName = "TAC-HashV41.hash.gz",
-    [string]$Url = $Null
+    [string]$Url
 )
 
-$CommonPath = $pwd
-$RepoPath = [IO.Path]::Combine($pwd, $RepoName)
+Write-Host "Downloading $DataType data file"
+./steps/download-data-file.ps1 -LicenseKey $LicenseKey -DataType $DataType -Product $Product -FullFilePath $RepoName/$FileName -Url $Url
 
-Write-Output "Entering '$RepoPath'"
-Push-Location $RepoPath
-
-try {
-
-    $FileName = [IO.Path]::Combine($pwd, $ArchiveName)
-    
-    Write-Output "Downloading Hash data file"
-    $Result = $(& $CommonPath\steps\download-data-file.ps1 -licenseKey $LicenseKey -dataType $DataType -product $Product -fullFilePath $FileName -Url $Url)
-
-    if ($Result -eq $False) {
-
-        Write-Error "Failed to download data file"
-        exit 1
-
-    }
-
-    Write-Output "Extracting $FileName"
-    & $CommonPath\steps\gunzip-file.ps1 -Source $FileName
-    
-}
-finally {
-
-    Write-Output "Leaving '$RepoPath'"
-    Pop-Location
-
-}
+Write-Host "Extracting $FileName"
+./steps/gunzip-file.ps1 $RepoName/$FileName
