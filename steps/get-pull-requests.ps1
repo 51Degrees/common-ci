@@ -36,8 +36,15 @@ function Test-Pr {
         return $false
     }
 
-    $WriteApproved = $false # will be true if at least one approver has write access
+    # GitHub returns a history of all reviews that seems to be ordered in time.
+    # We want to consider only the last review of each reviewer.
+    $LastReviews = [ordered]@{}
     foreach ($review in $Reviews) {
+        $LastReviews[$review.user.id] = $review
+    }
+
+    $WriteApproved = $false # will be true if at least one approver has write access
+    foreach ($review in $LastReviews.Values) {
         if ($review.state -ne 'APPROVED') {
             Write-Host "Skipping PR $Id, reason: $($review.state) by $($review.user.login)"
             return $false
