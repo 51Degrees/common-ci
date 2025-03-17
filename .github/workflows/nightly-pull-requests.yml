@@ -25,6 +25,9 @@ on:
         default: ''
       prs: # Comma-separated list of pull request IDs to build
         type: string
+      branch: # Branch to use if not one calling this
+        type: string
+        default: ''
     secrets:
       token:
         required: true
@@ -82,7 +85,7 @@ jobs:
           ./nightly-pull-requests.get-prs.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
-          -Branch ${{ github.ref_name }} `
+          -Branch ${{ inputs.branch != '' && inputs.branch || github.ref_name }} `
           -GitHubToken ${{ secrets.token }} `
           -GitHubOutput $Env:GITHUB_OUTPUT
     outputs:
@@ -106,4 +109,5 @@ jobs:
       dryrun: ${{ inputs.dryrun }}
       cache-assets: ${{ inputs.cache-assets }}
       common-ci-ref: ${{ inputs.common-ci-ref }}
+      branch: ${{ inputs.branch }}
     secrets: inherit
