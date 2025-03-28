@@ -27,6 +27,9 @@ on:
       common-ci-ref:
         type: string
         default: ''
+      branch: # Branch to use if not one calling this
+        type: string
+        default: ''
     secrets:
       token:
         required: true
@@ -93,7 +96,7 @@ jobs:
           ./nightly-pull-request.configure-pr.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
-          -Branch ${{ github.ref_name }} `
+          -Branch ${{ inputs.branch != '' && inputs.branch || github.ref_name }} `
           -GitHubToken ${{ secrets.token }} `
           -GitHubOutput $Env:GITHUB_OUTPUT `
           -PullRequestId ${{ inputs.pull-request-id }} `
@@ -141,7 +144,7 @@ jobs:
           ./nightly-pull-request.build-and-test.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
-          -Branch ${{ github.ref_name }} `
+          -Branch ${{ inputs.branch != '' && inputs.branch || github.ref_name }} `
           -GitHubToken ${{ secrets.token }} `
           -GitHubOutput $Env:GITHUB_OUTPUT `
           -PullRequestId ${{ inputs.pull-request-id }} `
@@ -212,7 +215,7 @@ jobs:
           ./nightly-pull-request.compare-performance.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
-          -Branch ${{ github.ref_name }} `
+          -Branch ${{ inputs.branch != '' && inputs.branch || github.ref_name }} `
           -GitHubToken ${{ secrets.token }} `
           -GitHubOutput $Env:GITHUB_OUTPUT `
           -PullRequestId ${{ inputs.pull-request-id }} `
