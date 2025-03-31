@@ -42,3 +42,12 @@ Write-Output "::endgroup::"
 Write-Output "::group::Run Integration Tests"
 ./steps/run-script.ps1 ./$RepoName/ci/run-integration-tests.ps1 $Options
 Write-Output "::endgroup::"
+
+if ($Options.RunPerformance) {
+    Write-Output "::group::Run Performance Tests"
+    ./steps/run-script.ps1 ./$RepoName/ci/run-performance-tests.ps1 $Options
+    Write-Output "::endgroup::"
+}
+else {
+    Write-Output "Skipping performance tests as they are not configured for '$($Options.Name)'"
+}
