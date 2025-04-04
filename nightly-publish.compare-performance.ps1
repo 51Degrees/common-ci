@@ -21,5 +21,5 @@ Write-Output "::group::Clone $RepoName"
 Write-Output "::endgroup::"
 
 Write-Output "::group::Compare Performance Results"
-./steps/compare-performance.ps1 -RepoName $RepoName -OrgName $OrgName -Branch $Branch -AllOptions $Options -DryRun $DryRun
+./steps/compare-performance.ps1 -RepoName $RepoName -OrgName $OrgName -Branch $Branch -AllOptions $Options -DryRun $DryRun -Publish
 Write-Output "::endgroup::"
