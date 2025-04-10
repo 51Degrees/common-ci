@@ -184,14 +184,20 @@ try {
     }
 
     if ($Publish) {
-        # Commit the images, and change back to the original branch
-        git -C $RepoName add '*.png'
-        git -C $RepoName status
-        git -C $RepoName commit -m "Add performance graphs"
-        if ($DryRun) {
-            Write-Host "Dry run, not pushing graphs."
-        } else {
-            git -C $RepoName push --force-with-lease origin HEAD
+        $pngCount = (Get-ChildItem -filter "*.png" .).count
+        if ($pngCount -ne 0) {
+            # Commit the images, and change back to the original branch
+            git -C $RepoName add '*.png'
+            git -C $RepoName status
+            git -C $RepoName commit -m "Add performance graphs"
+            if ($DryRun) {
+                Write-Host "Dry run, not pushing graphs."
+            } else {
+                git -C $RepoName push --force-with-lease origin HEAD
+            }
+        }
+        else {
+            Write-Host "No PNG files to commit"
         }
     }
 } finally {
