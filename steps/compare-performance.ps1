@@ -161,7 +161,10 @@ try {
         $currentResult.Artifact = @{created_at = Get-Date}
 
         # Get the historic performance results from the artifacts
-        $results = ($artifacts | Sort-Object -Property created_at | ForEach-Object {(Get-Artifact-Result -Artifact $_ -Name $Options.Name) ?? @()}) + $currentResult
+        $results = ($artifacts | Sort-Object -Property created_at | ForEach-Object {
+            Write-Host "Getting $_.name"
+            (Get-Artifact-Result -Artifact $_ -Name $Options.Name) ?? @()
+        }) + $currentResult
 
         # Generate the performance results for all metrics
         $higherIsBetterResults = $results.Where({$null -ne $_.HigherIsBetter})
@@ -192,5 +195,7 @@ try {
         }
     }
 } finally {
-    Remove-Item -Recurse -Force $plotTmp
+    # Fails on Windows :(
+    # Remove-Item -Recurse -Force $plotTmp
+    Write-Host "Please remove '$plotTmp' manually 🙂"
 }
