@@ -1,302 +1,196 @@
-
 param (
-    [Parameter(Mandatory=$true)]
-    [string]$RepoName,
-    [Parameter(Mandatory=$true)]
-    $AllOptions,
-    [Parameter(Mandatory=$true)]
-    [string]$OrgName,
-    [string]$RunId,
-    [string]$PullRequestId,
-    [bool]$DryRun = $False
+    [Parameter(Mandatory)][string]$RepoName,
+    [Parameter(Mandatory)][string]$OrgName,
+    [Parameter(Mandatory)]$AllOptions,
+    [string]$Branch = "main",
+    [switch]$Publish,
+    [bool]$DryRun = $false
 )
+$ErrorActionPreference = "Stop"
+$PSNativeCommandUseErrorActionPreference = $true
+$ProgressPreference = "SilentlyContinue" # Disable progress bars
 
-# Disable progress bars
-$ProgressPreference = "SilentlyContinue"
+Set-StrictMode -Version 1.0
 
 function Get-Artifact-Result {
     param (
-        [Parameter(Mandatory=$true)]
-        $Artifact,
-        [Parameter(Mandatory=$true)]
-        [string]$Name
+        [Parameter(Mandatory)]$Artifact,
+        [Parameter(Mandatory)][string]$Name
     )
+    $result = $null
     try {
         Invoke-WebRequest -Uri $Artifact.archive_download_url -Headers @{"Authorization" = "Bearer $($env:GITHUB_TOKEN)"} -Outfile "$($Artifact.id).zip"
         Expand-Archive -Path "$($Artifact.id).zip" -DestinationPath $Artifact.id -Force
-        $TargetFile = [IO.Path]::Combine($Artifact.id, "results_$Name.json")
-        if (Test-Path -Path $TargetFile) {
-            $Result = Get-Content $TargetFile | ConvertFrom-Json -AsHashtable
-            $Result.Artifact = $Artifact
-        }
-        else {
-            $Result = $Null
+        $resultsFile = "$($Artifact.id)/results_$Name.json"
+        if (Test-Path $resultsFile) {
+            $result = Get-Content $resultsFile | ConvertFrom-Json -AsHashtable
+            $result.Artifact = $Artifact
         }
     } catch {
-        Write-Warning "Can't get artifact[$($Artifact.id)] result: $($_.Exception.Message)"
-        $Result = $Null
+        Write-Warning "Can't get artifact[$($Artifact.id)] result: $_"
     }
-
-    return $Result
+    return $result
 }
 
-function Generate-Performance-Results {
+function Generate-PerformanceResults {
     param(
-        $Results,
-        $CurrentResult,
-        $Artifacts,
-        $CurrentArtifact,
-        [string]$Metric,
-        [bool]$HigherIsBetter,
-        $Options
+        [Parameter(Mandatory)][double[]]$Dates,
+        [Parameter(Mandatory)][double[]]$Values,
+        [string]$Name,
+        [string]$MetricName,
+        [switch]$HigherIsBetter
     )
 
     # Calculate the stats
-    $Stats = $Results | Measure-Object -Average -StandardDeviation
-    $MaxDiff = (($Stats.Average*0.1), ($Stats.StandardDeviation*2) | Measure-Object -Maximum).Maximum
-    $LowerBound = $Stats.Average - $MaxDiff
-    $HigherBound = $Stats.Average + $MaxDiff
+    $stats = $Values | Measure-Object -Average -StandardDeviation
+    $maxDiff = (($stats.Average*0.1), ($stats.StandardDeviation*2) | Measure-Object -Maximum).Maximum
+    $lowerBound = $stats.Average - $maxDiff
+    $higherBound = $stats.Average + $maxDiff
 
-    Write-Output "Acceptable values: $($HigherIsBetter ? ">$LowerBound" : "<$HigherBound")"
-    Write-Output "Current result: $CurrentResult"
+    $currentResult = $Values[-1]
+    Write-Host "Acceptable values: $($HigherIsBetter ? ">$lowerBound" : "<$higherBound")"
+    Write-Host "Current result: $currentResult"
 
-    Push-Location $RepoName
+    if ($Publish) {
+        Write-Host "Generating graph..."
 
-    try {
+        $plot = [ScottPlot.Plot]::new()
+        [void] $plot.ShowLegend([ScottPlot.Alignment]::UpperLeft)
+        [void] $plot.Title("Config: '$Name'")
+        [void] $plot.XLabel("Date of Performance Test")
+        [void] $plot.YLabel($MetricName)
+        [void] $plot.Axes.Margins(0.2, 0.5)
+        [void] $plot.Axes.DateTimeTicksBottom()
+        [void] $plot.Add.VerticalSpan($lowerBound, $higherBound) # Acceptable variation
 
-        # Check out the gh-images branch so we're ready to commit images.
-        git fetch origin
-        $branches = $(git branch -a --format "%(refname)")
-        $CurrentBranch = $(git rev-parse --abbrev-ref HEAD)
-        $ImagesBranch = "gh-images"
-        if ($branches.Contains("refs/remotes/origin/$ImagesBranch")) {
-            Write-Output "Checking out branch '$ImagesBranch'"
-            git checkout $ImagesBranch -f --recurse-submodules
-        }
-        else {
-            Write-Output "Creating new branch '$ImagesBranch'"
-            git checkout --orphan $ImagesBranch
-            git rm -rf .
-        }
+        # Circle around current performance figure
+        $current = $plot.Add.Marker($Dates[-1], $Values[-1], [ScottPlot.MarkerShape]::OpenCircle, 15)
+        $current.LegendText = "current"
 
-        # Construct all the points on the graph
-        $Xs = @()
-        $Ys = @()
-        foreach ($i in 0..$($Results.Length - 1)) {
-            $Artifact = $Artifacts[$i]
-            $Result = $Results[$i]
-            $Xs += $Artifact.created_at.ToOADate()
-            $Ys += $Result
-        }
-        $Xs += $CurrentArtifact.created_at.ToOADate()
-        $Ys += $CurrentResult
+        # Historic figures
+        $historic = $plot.Add.Scatter($Dates, $Values)
+        $historic.MarkerShape = [ScottPlot.MarkerShape]::FilledCircle
+        $historic.MarkerSize = 5
+        $historic.LegendText = "historic"
 
-        # Set up the graph
-        $Plot = [ScottPlot.Plot]::new(400, 300)
-        $Plot.AxisAuto(0.2, 0.5)
-        #$Plot.AxisZoom(0.5, 1)
-        $Plot.Legend($True, [ScottPlot.Alignment]::UpperLeft)
-        $Plot.Title("Config : '$($Options.Name)'", $Null, $Null, $Null, $Null)
-        $Plot.XLabel("Date of Performance Test")
-        $Plot.YLabel($Metric)
-        $Plot.XAxis.DateTimeFormat($True)
-
-        # Add the current performance figure
-        $Plot.AddPoint($CurrentArtifact.created_at.ToOADate(), $CurrentResult, $Null, 15, [ScottPlot.MarkerShape]::openCircle, "current")
-        # Add the historic figures
-        $Plot.AddScatter($Xs, $Ys, $Null, 1, 5, [ScottPlot.MarkerShape]::filledCircle, [ScottPlot.LineStyle]::Solid, "historic")
-        # Add the acceptable variation
-        $Plot.AddVerticalSpan($LowerBound, $HigherBound)
-
-        # Output the graph
-        $Plot.SaveFig("$pwd/perf-graph-$RunId-$PullRequestId-$($Options.Name)-$Metric.png")
-        Copy-Item `
-            -Path "$pwd/perf-graph-$RunId-$PullRequestId-$($Options.Name)-$Metric.png" `
-            -Destination "$pwd/perf-graph-$($Options.Name)-$Metric-latest.png"
-
-        # Remove any old images
-        foreach ($Png in $(Get-ChildItem -Path $pwd -Filter *.png)) {
-            try {
-                $DateString = git log -n 1 --pretty=format:%aD -- $Png.Name
-                $Date = [DateTime]::Parse($DateString)
-                if ($([DateTime]::Now - $Date).TotalDays -gt 30) {
-                    Write-Output "Image '$($Png.Name)' is older than 30 days, removing"
-                    git rm $Png.Name
-                }
-            }
-            catch {
-                Write-Output "Not able to parse age of '$($Png.Name)': $_"
-            }
-        }
-
-        # Commit the image, and change back to the original branch
-        git add "$pwd/perf-graph-$RunId-$PullRequestId-$($Options.Name)-$Metric.png"
-        git add "$pwd/perf-graph-$($Options.Name)-$Metric-latest.png"
-        git commit -m "Added performance graph for for $RunId-$PullRequestId-$($Options.Name)-$Metric"
-        $Command = "git push origin $ImagesBranch"
-        if ($DryRun -eq $False) {
-            Invoke-Expression $Command
-        }
-        else {
-            Write-Output "Dry run - not executing the following: $Command"
-        }
-        
-        git checkout $CurrentBranch
-    }
-    finally {
-        Pop-Location
+        # Write to the output image
+        $plot.SavePng("$RepoName/perf-graph-$Name-$MetricName-latest.png", 400, 300)
+    } else {
+        Write-Host "Not publishing graphs, skipping graph generation"
     }
 
     # Write out the summary for GitHub actions
     if ($env:CI) {
-        Write-Output "## Performance Figures - $($Options.Name) - $Metric" >> $env:GITHUB_STEP_SUMMARY
-        if ($DryRun -eq $False) {
-            Write-Output "![Historic Performance Figures](https://raw.githubusercontent.com/$OrgName/$RepoName/gh-images/perf-graph-$RunId-$PullRequestId-$($Options.Name)-$Metric.png)" >> $env:GITHUB_STEP_SUMMARY
-        }
-        else {
-            Write-Output "No image - Images weren't pushed in this dryrun" >> $env:GITHUB_STEP_SUMMARY
-        }
-        Write-Output "| Date | $Metric |" >> $env:GITHUB_STEP_SUMMARY
-        Write-Output "| ---- | ---------------- |" >> $env:GITHUB_STEP_SUMMARY
-        foreach ($i in 0..$($Results.Length - 1)) {
-            $Artifact = $Artifacts[$i]
-            $Result = $Results[$i]
-            Write-Output "| $($Artifact.created_at) | $Result |" >> $env:GITHUB_STEP_SUMMARY
+        Write-Output "## Performance Figures - $Name - $MetricName" >> $env:GITHUB_STEP_SUMMARY
+
+        # TODO: Embedded ASCII graph
+        
+        Write-Output "| Date | $MetricName |" >> $env:GITHUB_STEP_SUMMARY
+        Write-Output "| --- | --- |" >> $env:GITHUB_STEP_SUMMARY
+        for ($i=0; $i -lt $Dates.Length; ++$i) {
+            Write-Output "| $($Dates[$i]) | $($Values[$i]) |" >> $env:GITHUB_STEP_SUMMARY
         }
     }
 
     # Check if current result is within acceptable bounds
     $Passed = $False
     if ($HigherIsBetter) {
-        Write-Output "Checking '$CurrentResult' > '$LowerBound'"
-        $Passed = $CurrentResult -ge $LowerBound
+        Write-Output "Checking '$currentResult' > '$LowerBound'"
+        $Passed = $currentResult -ge $lowerBound
+    } else {
+        Write-Output "Checking '$currentResult' < '$HigherBound'"
+        $Passed = $currentResult -le $higherBound
     }
-    else {
-        Write-Output "Checking '$CurrentResult' < '$HigherBound'"
-        $Passed = $CurrentResult -le $HigherBound
-    }
-    if ($Passed -eq $False) {
-        Write-Warning "The performance of '$Metric' is outside of the acceptable limits relative to the mean for '$($Options.Name)'"
-        if ($Results.Length -lt 10) {
-            Write-Warning "There are only '$($Results.Length)' historic results, so this will not be considered a failure"
-        }
-        else {
+    if (-not $Passed) {
+        Write-Warning "The performance of '$MetricName' is outside of the acceptable limits relative to the mean for '$Name'"
+        if ($Values.Count -lt 10) {
+            Write-Warning "There are only '$($Values.Count - 1)' historic results, so this will not be considered a failure"
+        } else {
             exit 1
         }
     }
 }
 
-
-# Install ScottPlot if it is not already installed
-$PlotReady = $False
+$plotTmp = [System.IO.Path]::GetTempPath() + "plot." + (New-Guid)
+New-Item -ItemType directory -Force -Path $plotTmp
 try {
-    $Plot = [ScottPlot.Plot]::new(400, 300)
-    $PlotReady = $True
-} catch {}
-if ($PlotReady -eq $False) {
-    $PlotPath = [IO.Path]::Combine($pwd, "plot")        
-    if ($(Test-Path -Path $PlotPath)) {
-        Remove-Item -Recurse -Force -Path $PlotPath
-    }
-    mkdir $PlotPath
-    Push-Location $PlotPath
-    try {
-        dotnet new console
-        dotnet add package scottplot -v 4.1.70
-        dotnet build -o bin
-    }
-    finally {
-        Pop-Location
-    }
-    Add-Type -Path $([IO.Path]::Combine($PlotPath, "bin", "ScottPlot.dll"))
-}
+    if ($Publish) {
+        Write-Host "Installing ScottPlot..."
+        dotnet new classlib -o $plotTmp
+        dotnet add $plotTmp package ScottPlot --version 5.0.55
+        dotnet dotnet publish $plotTmp --output $plotTmp/scottplot
+        $arch = [System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString().ToLower()
+        $skia = `
+            $IsLinux   ? "linux-$arch/native/libSkiaSharp.so" :
+            $IsWindows ? "win-$arch/native/libSkiaSharp.dll"  :
+            $IsMacOS   ? "osx/native/libSkiaSharp.dylib"      :
+            (Write-Error "Unsupported OS")
+        New-Item -ItemType SymbolicLink -Force -Target "$plotTmp/scottplot/runtimes/$skia" -Path "$plotTmp/scottplot/$(Split-Path -Leaf $skia)"
+        Add-Type -Path $plotTmp/scottplot/ScottPlot.dll
 
-# Get all the artifactrs
-$AllArtifacts = $(gh api -X GET -f per_page=100 /repos/$OrgName/$RepoName/actions/artifacts | ConvertFrom-Json).artifacts
+        # gh-images is used for main for compatibility, other branches use
+        # perf-images/ prefix instead of gh-images/ to avoid collisions with
+        # the gh-images branch
+        $imagesBranch = $Branch -ceq 'main' ? 'gh-images' : "perf-images/$Branch"
+        Write-Host "(Re)creating $imagesBranch branch..."
+        git -C $RepoName update-ref -d refs/heads/$imagesBranch # delete local $imagesBranch if exists
+        git -C $RepoName switch --orphan $imagesBranch
+        git -C $RepoName rm -rf --ignore-unmatch .
+    } else {
+        Write-Host "Not publishing graphs"
+    }
 
-foreach ($Options in $AllOptions) {
-    if ($Options.RunPerformance -eq $True) {
-        Write-Output "Running for ''$($Options.Name)'"
+    Write-Host "Getting artifacts..."
+    $artifactName = "publish_performance_results@$($Branch -replace '[":<>|*?/\\\r\n]', '-')"
+    $artifacts = $(gh api -X GET -f per_page=9 -f "name=$artifactName" /repos/$OrgName/$RepoName/actions/artifacts | ConvertFrom-Json).artifacts
+
+    foreach ($options in $AllOptions) {
+        if (-not $Options.RunPerformance) {
+            continue
+        }
+        Write-Host "Running for '$($options.Name)'"
 
         # Get the artifact for the current run
-        $ResultsPath = [IO.Path]::Combine($pwd, "results_$($Options.Name).json")
-        if ($ResultsPath -ne "") {
-            if ($(Test-Path -Path $ResultsPath) -eq $False) {
-                Write-Warning "The file '$ResultsPath' did not exist"
-                exit 0
-            }
-            # Get the result for the current artifact
-            $CurrentResult = Get-Content $ResultsPath | ConvertFrom-Json -AsHashtable
-            $CurrentResult.Artifact = @{}
-            $CurrentResult.Artifact.created_at = Get-Date
+        $currentResultsPath = "results_$($options.Name).json"
+        if (!(Test-Path $currentResultsPath)) {
+            Write-Warning "The file '$currentResultsPath' did not exist"
+            exit 0
         }
-        else {
-            # Get the result for the current artifact
-            $CurrentArtifact = $AllArtifacts | Where-Object { $_.workflow_run.id -eq $RunId -and $_.name -eq "performance_results_$PullRequestId" }
-            $CurrentResult = Get-Artifact-Result -Artifact $CurrentArtifact -Name $Options.Name
-        }
-
-        if ($CurrentResult -eq 0) {
-            Write-Error "Results for the workflow run '$RunId' were not found"
-            exit 1
-        }
-
-        # Filter the artifacts so we only have ones that have passed the performance tests
-        # TODO: replace the branch filtering logic with getting results from the server only for the relevant branch
-        $Artifacts = $AllArtifacts | Where-Object { $_.name.StartsWith("performance_results_passed") -and ($env:GITHUB_REF_NAME ? $_.workflow_run.head_branch -ceq $env:GITHUB_REF_NAME : $true) }
-        Write-Output "Found $($Artifacts.Length) artifacts"
-
-        # Sort by date
-        $Artifacts = $Artifacts | Sort-Object -Property created_at
+        # Get the result for the current artifact
+        $currentResult = Get-Content $currentResultsPath | ConvertFrom-Json -AsHashtable
+        $currentResult.Artifact = @{created_at = Get-Date}
 
         # Get the historic performance results from the artifacts
-        $Results = @()
-        foreach ($Artifact in $Artifacts) {
-            $Result = Get-Artifact-Result -Artifact $Artifact -Name $Options.Name
-            if ($Null -ne $Result) {
-                $Results += $Result
-            }
-        }
-        $Results += $CurrentResult
+        $results = ($artifacts | Sort-Object -Property created_at | ForEach-Object {(Get-Artifact-Result -Artifact $_ -Name $Options.Name) ?? @()}) + $currentResult
 
         # Generate the performance results for all metrics
-        foreach ($Metric in $CurrentResult.HigherIsBetter.Keys) {
-            Write-Output "Checking '$Metric' (HigherIsBetter)"
-            $MetricResults = @()
-            $MetricArtifacts = @()
-            foreach ($Result in $Results) {
-                if ($Null -ne $Result.HigherIsBetter -and $Null -ne $Result.HigherIsBetter[$Metric]) {
-                    $MetricResults += $Result.HigherIsBetter[$Metric]
-                    $MetricArtifacts += $Result.Artifact
-                }
-            }
-            Generate-Performance-Results `
-                -Results $MetricResults `
-                -CurrentResult $CurrentResult.HigherIsBetter[$Metric] `
-                -Artifacts $MetricArtifacts `
-                -CurrentArtifact $CurrentResult.Artifact `
-                -Metric $Metric `
-                -Options $Options `
-                -HigherIsBetter $True
+        $higherIsBetterResults = $results.Where({$null -ne $_.HigherIsBetter})
+        foreach ($metric in $currentResult.HigherIsBetter.Keys) {
+            Write-Host "Checking '$metric' (HigherIsBetter)"
+            [double[]]$dates = foreach ($_ in $higherIsBetterResults) { $_.Artifact.created_at.ToOADate() }
+            [double[]]$values = foreach ($_ in $higherIsBetterResults) { $_.HigherIsBetter[$metric] }
+            Generate-PerformanceResults -Name $Options.Name -MetricName $metric -Dates $dates -Values $values -HigherIsBetter
         }
-        foreach ($Metric in $CurrentResult.LowerIsBetter.Keys) {
-            Write-Output "Checking '$Metric' (LowerIsBetter)"
-            $MetricResults = @()
-            $MetricArtifacts = @()
-            foreach ($Result in $Results) {
-                if ($Null -ne $Result.LowerIsBetter -and $Null -ne $Result.LowerIsBetter[$Metric]) {
-                    $MetricResults += $Result.LowerIsBetter[$Metric]
-                    $MetricArtifacts += $Result.Artifact
-                }
-            }
-            Generate-Performance-Results `
-                -Results $MetricResults `
-                -CurrentResult $CurrentResult.LowerIsBetter[$Metric] `
-                -Artifacts $MetricArtifacts `
-                -CurrentArtifact $CurrentResult.Artifact `
-                -Metric $Metric `
-                -Options $Options `
-                -HigherIsBetter $False
+        $lowerIsBetterResults = $results.Where({$null -ne $_.LowerIsBetter})
+        foreach ($metric in $CurrentResult.LowerIsBetter.Keys) {
+            Write-Host "Checking '$metric' (LowerIsBetter)"
+            [double[]]$dates = foreach ($_ in $lowerIsBetterResults) { $_.Artifact.created_at.ToOADate() }
+            [double[]]$values = foreach ($_ in $lowerIsBetterResults) { $_.LowerIsBetter[$metric] }
+            Generate-PerformanceResults -Name $Options.Name -MetricName $metric -Dates $dates -Values $values
         }
     }
+
+    if ($Publish) {
+        # Commit the images, and change back to the original branch
+        git -C $RepoName add '*.png'
+        git -C $RepoName status
+        git -C $RepoName commit -m "Add performance graphs"
+        if ($DryRun) {
+            Write-Host "Dry run, not pushing graphs."
+        } else {
+            git -C $RepoName push --force-with-lease origin HEAD
+        }
+    }
+} finally {
+    Remove-Item -Recurse -Force $plotTmp
 }

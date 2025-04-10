@@ -215,21 +215,11 @@ jobs:
           -Branch ${{ github.ref_name }} `
           -GitHubToken ${{ secrets.token }} `
           -GitHubOutput $Env:GITHUB_OUTPUT `
-          -PullRequestId ${{ inputs.pull-request-id }} `
           -Options $Options `
           -RunId ${{ github.run_id }} `
           -GitHubUser ${{ inputs.user }} `
           -GitHubEmail ${{ inputs.email }} `
           -DryRun $DryRun
-
-      - name: Upload Successful Performance Results Artifact
-        if: ${{ success()}}
-        uses: actions/upload-artifact@v4
-        with:
-          name: performance_results_passed_${{ inputs.pull-request-id }}
-          path: ${{ github.workspace }}/common/results_*.json
-          if-no-files-found: ignore
-          include-hidden-files: true
 
   Complete:
     runs-on: ubuntu-latest

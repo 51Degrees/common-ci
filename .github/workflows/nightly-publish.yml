@@ -282,6 +282,13 @@ jobs:
           key: ${{ needs.configure.outputs.asset_cache_key }}
           path: ${{ github.workspace }}/common/assets
 
+      - name: Upload Performance Results Artifact
+        uses: actions/upload-artifact@v4
+        if: ${{ matrix.options.RunPerformance }}
+        with:
+          name: performance_results-publish-${{ matrix.options.name }}
+          path: common/${{ inputs.repo-name }}/test-results/performance-summary/results_*.json
+
       - name: Publish Test Results
         if: ${{ always() && matrix.options.packagerequirement }}
         uses: ./common/.github/actions/publish_test_results
@@ -291,9 +298,54 @@ jobs:
           skip-unit: true
           skip-performance: true
 
+  ComparePerformance:
+    runs-on: ${{ inputs.build-platform }}
+    needs: [Configure, Test]
+    steps:
+      - name: Checkout Common
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.org-name }}/common-ci
+          path: common
+          ref: ${{ inputs.common-ci-ref }}
+
+      - name: Download Performance Results Artifact
+        uses: actions/download-artifact@v4
+        with:
+          pattern: performance_results-publish-*
+          path: ${{ github.workspace }}/common
+          merge-multiple: true
+
+      - name: Compare Performance
+        run: |
+          ./nightly-publish.compare-performance.ps1 `
+          -RepoName '${{ inputs.repo-name }}' `
+          -OrgName '${{ inputs.org-name }}' `
+          -Branch '${{ github.ref_name }}' `
+          -GitHubToken '${{ secrets.token }}' `
+          -GitHubOutput $Env:GITHUB_OUTPUT `
+          -Options (ConvertFrom-Json -AsHashtable '${{ needs.Configure.outputs.options }}') `
+          -RunId '${{ github.run_id }}' `
+          -GitHubUser '${{ inputs.user }}' `
+          -GitHubEmail '${{ inputs.email }}' `
+          -DryRun ([bool]::Parse('${{ inputs.dryrun }}'))
+
+      - name: Escape Branch Name
+        id: escape_branch
+        run: |
+          "name=" + $env:GITHUB_REF_NAME -replace '[":<>|*?/\\\r\n]', '-' | Out-File $env:GITHUB_OUTPUT -Append
+
+      - name: Upload Performance Results Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: publish_performance_results@${{ steps.escape_branch.outputs.name }} # https://github.com/actions/upload-artifact/issues/22
+          path: ${{ github.workspace }}/common/results_*.json
+          if-no-files-found: ignore
+          include-hidden-files: true
+
   Package:
     runs-on: ${{ inputs.build-platform }}
-    needs: [ Test, Configure ]
+    needs: [Configure, ComparePerformance]
     if: ${{ success() && needs.configure.outputs.update_required == 'true' }}
     steps:
 
