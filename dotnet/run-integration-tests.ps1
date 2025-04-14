@@ -13,5 +13,9 @@ param(
     [string]$Filter
 )
 
+# DEBUG: print files
+Write-Host 'FINDING TESTS!'
+find device-detection-dotnet-examples/Tests
+
 ./dotnet/run-unit-tests.ps1 -RepoName $RepoName -ProjectDir $ProjectDir -Name $Name -Configuration $Configuration -Arch $Arch -BuildMethod $BuildMethod -Filter $Filter -OutputFolder "integration" -DirNameFormatForDotnet $DirNameFormatForDotnet -DirNameFormatForNotDotnet $DirNameFormatForNotDotnet
 
