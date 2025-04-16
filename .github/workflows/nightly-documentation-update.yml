@@ -10,6 +10,9 @@ on:
         required: false
         type: string
         default: 51degrees
+      branch:
+        type: string
+        default: main
       user:
         required: false
         type: string
@@ -56,6 +59,7 @@ jobs:
           -GitHubToken ${{ secrets.token }} `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
+          -Branch '${{ inputs.branch }}' `
           -GitHubUser ${{ inputs.user }} `
           -GitHubEmail ${{ inputs.email }} `
           -DryRun $DryRun `

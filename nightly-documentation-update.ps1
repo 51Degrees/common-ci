@@ -3,6 +3,7 @@ param (
     [string]$RepoName,
     [Parameter(Mandatory=$true)]
     [string]$OrgName,
+    [string]$Branch = "main",
     [string]$GitHubUser,
     [string]$GitHubEmail,
     [string]$GitHubToken,
@@ -14,6 +15,7 @@ $ErrorActionPreference = "Stop"
 ./generate-documentation.ps1 `
     -RepoName $RepoName `
     -OrgName $OrgName `
+    -Branch $Branch, `
     -GitHubUser $GitHubUser `
     -GitHubEmail $GitHubEmail `
     -GitHubToken $GitHubToken `
@@ -32,7 +34,7 @@ Write-Output "::endgroup::"
 
 if ($LASTEXITCODE -eq 0) {
     Write-Output "::group::Commit Changes"
-    ./steps/commit-changes.ps1 -RepoName $RepoName -Message "Update documentation"
+    ./steps/commit-changes.ps1 -RepoName $RepoName -Message "Update documentation from $Branch"
     Write-Output "::endgroup::"
 
     Write-Output "::group::Push Changes"
