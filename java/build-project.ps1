@@ -1,7 +1,5 @@
 param(
-    [Parameter(Mandatory=$true)]
-    [string]$RepoName,
-    [string]$ProjectDir = ".",
+    [Parameter(Mandatory)][string]$RepoName,
     [string]$Name
 )
 $ErrorActionPreference = "Stop"
@@ -10,7 +8,7 @@ $PSNativeCommandUseErrorActionPreference = $true
 Push-Location $RepoName
 try {
     Write-Host "Building $Name..."
-    mvn -B install -f pom.xml -DXmx2048m -DskipTests --no-transfer-progress '-Dhttps.protocols=TLSv1.2' -DfailIfNoTests=false
+    mvn install --batch-mode --no-transfer-progress -DskipTests 
 } finally {
     Pop-Location
 }

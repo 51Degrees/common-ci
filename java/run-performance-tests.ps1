@@ -1,50 +1,29 @@
-
 param(
-    [Parameter(Mandatory=$true)]
-    [string]$RepoName,
-    [string]$ProjectDir = ".",
+    [Parameter(Mandatory)][string]$RepoName,
     [string]$Name,
     [string]$TestName
 )
 
-$RepoPath = [IO.Path]::Combine($pwd, $RepoName, $ProjectDir)
-
-Write-Output "Entering '$RepoPath'"
-Push-Location $RepoPath
-
 $ok = $true
 
+Write-Host "Entering '$RepoName'"
+Push-Location $RepoName
 try {
+    Write-Host "Testing $Name"
+    mvn test --batch-mode --no-transfer-progress -Dtest="*$TestName*" || $($ok = $false)
 
-    Write-Output "Testing $Name"
-    mvn -B test -Dtest="*$TestName*" -DfailIfNoTests=false || $($ok = $false) 
     # Copy the test results into the test-results folder
-    Get-ChildItem -Path . -Directory -Depth 1 | 
-    Where-Object { Test-Path "$($_.FullName)\pom.xml" } | 
-    ForEach-Object { 
-        $targetDir = "$($_.FullName)\target\surefire-reports"
-        $destDir = "..\$RepoName\test-results\performance"
-        $destDirSummary = "..\$RepoName\test-results\performance-summary"
-
-        if(!(Test-Path $destDir)) { New-Item -ItemType Directory -Path $destDir }
-        if(Test-Path $targetDir) {
-            Get-ChildItem -Path $targetDir | 
-            Where-Object { $_.Name -like "*$TestName*" } |
-            ForEach-Object {
-                Copy-Item -Path $_.FullName -Destination $destDir
-            }
+    $destDir = New-Item -ItemType directory -Force -Path "test-results/performance"
+    Get-ChildItem -Directory -Depth 1 -Filter 'pom.xml' | ForEach-Object {
+        $targetDir = "$($_.DirectoryName)/target/surefire-reports"
+        if (Test-Path $targetDir) {
+            Copy-Item -Filter "*$TestName*" $targetDir/* $destDir
         }
     }
-
-    Copy-Item -Path $destDir -Destination $destDirSummary -Recurse
-
-}
-
-finally {
-
-    Write-Output "Leaving '$RepoPath'"
+    Copy-Item -Recurse $destDir "test-results/performance-summary"
+} finally {
+    Write-Host "Leaving '$RepoPath'"
     Pop-Location
-
 }
 
 exit $ok ? 0 : 1

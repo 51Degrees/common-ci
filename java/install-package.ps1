@@ -1,60 +1,26 @@
-
 param(
-    [Parameter(Mandatory=$true)]
-    [string]$RepoName,
-    [string]$ProjectDir = ".",
+    [Parameter(Mandatory)][string]$RepoName,
     [string]$Name
 )
+$ErrorActionPreference = "Stop"
+$PSNativeCommandUseErrorActionPreference = $true
 
-# Combine the current working directory with the repository name
-$RepoPath = [IO.Path]::Combine($pwd, $RepoName)
-$PackagePath = [IO.Path]::Combine($pwd, "package")
+$packagePath = "$PWD/package"
 
-# Get version of the package 
-$Version = mvn help:evaluate "-Dexpression=project.version" -q -DforceStdout
+$mvnLocalRepo = mvn help:evaluate -Dexpression="settings.localRepository" -q -DforceStdout
 
-if ($($Version.EndsWith("SNAPSHOT"))) {
-    $NexusSubFolder = "deferred"
-}
-else{
-    $NexusSubFolder = "staging"
-}
-
-# Get the Maven local repository path
-$MavenLocalRepoPath = mvn help:evaluate -Dexpression="settings.localRepository" -q -DforceStdout
-
-# Define the path for the local 51degrees Maven repository
-$MavenLocal51DPath = Join-Path -Path $MavenLocalRepoPath -ChildPath "com\51degrees"
-
-# Define the path for the local Nexus staging repository
-$NexusLocalStaging51DPath = Join-Path (Split-Path $MavenLocalRepoPath -Parent) $NexusSubFolder
-
-# Display the repository path and enter it
-Write-Output "Entering '$RepoPath'"
-Push-Location $RepoPath
-
+Write-Host "Entering '$RepoName'"
+Push-Location $RepoName
 try {
+    Write-Host "Copying packages to the local repository"
+    Copy-Item -Recurse "$packagePath/51degrees" "$mvnLocalRepo/com/51degrees"
 
-    Write-Output "Copying packages to the local repository"
-    # Copy the content of the package path to the Maven local repository
-    Copy-Item -Path "$PackagePath/local" -Destination (Join-Path -Path $MavenLocalRepoPath -ChildPath "com") -Recurse
+    Write-Host "Copying packages to the local staging repository"
+    Copy-Item -Recurse "$packagePath/target" .
 
-    Write-Output "Copying packages to the local staging repository"
-    # Copy the content of the package path to the Nexus local staging repository
-    Copy-Item -Path "$PackagePath/nexus" -Destination $NexusLocalStaging51DPath -Recurse
-
-    # Rename the folder in the Maven local repository
-    Rename-Item -Path (Join-Path -Path $MavenLocalRepoPath -ChildPath "com\local") -NewName "51degrees"
-
-    # Display the content of the local 51degrees Maven repository
-    Write-Output "Content of the local 51d Maven Repository: "
+    Write-Host "Local 51d maven repository contents:"
     Get-ChildItem $MavenLocal51DPath
-}
-finally {
-    # Leave the repository path and display it
-    Write-Output "Leaving '$RepoPath'"
+} finally {
+    Write-Host "Leaving '$RepoName'"
     Pop-Location
 }
-
-# Exit the script with the last exit code
-exit $LASTEXITCODE
