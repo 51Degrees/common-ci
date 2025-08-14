@@ -36,6 +36,7 @@ runs:
       with:
         check_name: Unit Tests - ${{ inputs.name }}
         commit: ${{ inputs.commit }}
+        action_fail: true
         files: |
           common/${{ inputs.repo-name }}/test-results/unit/**/*.xml
           common/${{ inputs.repo-name }}/test-results/unit/**/*.trx
@@ -47,6 +48,7 @@ runs:
       with:
         check_name: Unit Tests - ${{ inputs.name }}
         commit: ${{ inputs.commit }}
+        action_fail: true
         files: |
           common/${{ inputs.repo-name }}/test-results/unit/**/*.xml
           common/${{ inputs.repo-name }}/test-results/unit/**/*.trx
@@ -58,6 +60,7 @@ runs:
       with:
         check_name: Unit Tests - ${{ inputs.name }}
         commit: ${{ inputs.commit }}
+        action_fail: true
         files: |
           common/${{ inputs.repo-name }}/test-results/unit/**/*.xml
           common/${{ inputs.repo-name }}/test-results/unit/**/*.trx
@@ -70,6 +73,7 @@ runs:
       with:
         check_name: Integration Tests - ${{ inputs.name }}
         commit: ${{ inputs.commit }}
+        action_fail: true
         files: |
           common/${{ inputs.repo-name }}/test-results/integration/**/*.xml
           common/${{ inputs.repo-name }}/test-results/integration/**/*.trx
@@ -81,6 +85,7 @@ runs:
       with:
         check_name: Integration Tests - ${{ inputs.name }}
         commit: ${{ inputs.commit }}
+        action_fail: true
         files: |
           common/${{ inputs.repo-name }}/test-results/integration/**/*.xml
           common/${{ inputs.repo-name }}/test-results/integration/**/*.trx
@@ -92,6 +97,7 @@ runs:
       with:
         check_name: Integration Tests - ${{ inputs.name }}
         commit: ${{ inputs.commit }}
+        action_fail: true
         files: |
           common/${{ inputs.repo-name }}/test-results/integration/**/*.xml
           common/${{ inputs.repo-name }}/test-results/integration/**/*.trx
@@ -104,6 +110,7 @@ runs:
       with:
         check_name: Performance Tests - ${{ inputs.name }}
         commit: ${{ inputs.commit }}
+        action_fail: true
         files: |
           common/${{ inputs.repo-name }}/test-results/performance/**/*.xml
           common/${{ inputs.repo-name }}/test-results/performance/**/*.trx
@@ -115,6 +122,7 @@ runs:
       with:
         check_name: Performance Tests - ${{ inputs.name }}
         commit: ${{ inputs.commit }}
+        action_fail: true
         files: |
           common/${{ inputs.repo-name }}/test-results/performance/**/*.xml
           common/${{ inputs.repo-name }}/test-results/performance/**/*.trx
@@ -126,6 +134,7 @@ runs:
       with:
         check_name: Performance Tests - ${{ inputs.name }}
         commit: ${{ inputs.commit }}
+        action_fail: true
         files: |
           common/${{ inputs.repo-name }}/test-results/performance/**/*.xml
           common/${{ inputs.repo-name }}/test-results/performance/**/*.trx
