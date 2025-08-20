@@ -13,9 +13,6 @@ param(
     [string]$OutputFolder = "unit"
 )
 
-$SkipPlatformArgs = (($Arch -eq "Any CPU") -or ($Filter.Contains("dll")))
-Write-Output "SkipPlatformArgs = $SkipPlatformArgs"
-
 $RepoPath = [IO.Path]::Combine($pwd, $RepoName)
 $TestResultPath = [IO.Path]::Combine($RepoPath, "test-results", $OutputFolder, $Name)
 
@@ -36,7 +33,6 @@ try {
     $LASTEXITCODE = 0
     if ($BuildMethod -eq "dotnet"){
         Write-Output "[dotnet] => Looking for '$Filter' in directories like '$DirNameFormatForDotnet'"
-        $PlatformParams = $SkipPlatformArgs ? @() : @("-p:Platform=$Arch")
         foreach ($NextFile in (Get-ChildItem -Path $RepoPath -Recurse -File)) {
             $NextDirName = $NextFile.DirectoryName
             $NextFileName = $NextFile.Name
@@ -50,9 +46,6 @@ try {
             } else {
                 Write-Output "Testing Assembly: '$NextFile'"
                 dotnet test $NextFile.FullName `
-                    --no-build `
-                    --configuration $Configuration `
-                    @PlatformParams `
                     --results-directory $TestResultPath `
                     --blame-crash --blame-hang-timeout 5m -l "trx" $verbose
                 Write-Output "dotnet test LastExitCode=$LASTEXITCODE"
@@ -64,7 +57,6 @@ try {
         }
     } else {
         Write-Output "[$BuildMethod] ~> Looking for '$Filter' in directories like '$DirNameFormatForNotDotnet'"
-        $PlatformParams = $SkipPlatformArgs ? @() : @("/Platform:$Arch")
         foreach ($NextFile in (Get-ChildItem -Path $RepoPath -Recurse -File)) {
             $NextDirName = $NextFile.DirectoryName
             $NextFileName = $NextFile.Name
@@ -78,7 +70,6 @@ try {
             } else {
                 Write-Output "Testing Assembly: '$NextFile'"
                 & vstest.console.exe $NextFile.FullName `
-                    @PlatformParams `
                     /Logger:trx `
                     /ResultsDirectory:$TestResultPath
                 Write-Output "vstest.console LastExitCode=$LASTEXITCODE"
