@@ -39,6 +39,7 @@ runs:
         action_fail: true
         files: |
           common/${{ inputs.repo-name }}/test-results/unit/**/*.xml
+          !common/${{ inputs.repo-name }}/test-results/unit/**/*Sequence*.xml
           common/${{ inputs.repo-name }}/test-results/unit/**/*.trx
           common/${{ inputs.repo-name }}/test-results/unit/**/*.json
 
@@ -51,6 +52,7 @@ runs:
         action_fail: true
         files: |
           common/${{ inputs.repo-name }}/test-results/unit/**/*.xml
+          !common/${{ inputs.repo-name }}/test-results/unit/**/*Sequence*.xml
           common/${{ inputs.repo-name }}/test-results/unit/**/*.trx
           common/${{ inputs.repo-name }}/test-results/unit/**/*.json
 
@@ -63,6 +65,7 @@ runs:
         action_fail: true
         files: |
           common/${{ inputs.repo-name }}/test-results/unit/**/*.xml
+          !common/${{ inputs.repo-name }}/test-results/unit/**/*Sequence*.xml
           common/${{ inputs.repo-name }}/test-results/unit/**/*.trx
           common/${{ inputs.repo-name }}/test-results/unit/**/*.json
 
@@ -76,6 +79,7 @@ runs:
         action_fail: true
         files: |
           common/${{ inputs.repo-name }}/test-results/integration/**/*.xml
+          !common/${{ inputs.repo-name }}/test-results/integration/**/*Sequence*.xml
           common/${{ inputs.repo-name }}/test-results/integration/**/*.trx
           common/${{ inputs.repo-name }}/test-results/integration/**/*.json
 
@@ -88,6 +92,7 @@ runs:
         action_fail: true
         files: |
           common/${{ inputs.repo-name }}/test-results/integration/**/*.xml
+          !common/${{ inputs.repo-name }}/test-results/integration/**/*Sequence*.xml
           common/${{ inputs.repo-name }}/test-results/integration/**/*.trx
           common/${{ inputs.repo-name }}/test-results/integration/**/*.json
 
@@ -100,6 +105,7 @@ runs:
         action_fail: true
         files: |
           common/${{ inputs.repo-name }}/test-results/integration/**/*.xml
+          !common/${{ inputs.repo-name }}/test-results/integration/**/*Sequence*.xml
           common/${{ inputs.repo-name }}/test-results/integration/**/*.trx
           common/${{ inputs.repo-name }}/test-results/integration/**/*.json
 
@@ -113,6 +119,7 @@ runs:
         action_fail: true
         files: |
           common/${{ inputs.repo-name }}/test-results/performance/**/*.xml
+          !common/${{ inputs.repo-name }}/test-results/performance/**/*Sequence*.xml
           common/${{ inputs.repo-name }}/test-results/performance/**/*.trx
           common/${{ inputs.repo-name }}/test-results/performance/**/*.json
 
@@ -125,6 +132,7 @@ runs:
         action_fail: true
         files: |
           common/${{ inputs.repo-name }}/test-results/performance/**/*.xml
+          !common/${{ inputs.repo-name }}/test-results/performance/**/*Sequence*.xml
           common/${{ inputs.repo-name }}/test-results/performance/**/*.trx
           common/${{ inputs.repo-name }}/test-results/performance/**/*.json
 
@@ -137,5 +145,6 @@ runs:
         action_fail: true
         files: |
           common/${{ inputs.repo-name }}/test-results/performance/**/*.xml
+          !common/${{ inputs.repo-name }}/test-results/performance/**/*Sequence*.xml
           common/${{ inputs.repo-name }}/test-results/performance/**/*.trx
           common/${{ inputs.repo-name }}/test-results/performance/**/*.json
