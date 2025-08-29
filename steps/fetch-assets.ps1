@@ -1,7 +1,8 @@
 param (
     [Parameter(Mandatory)][string[]]$Assets,
     [string]$DeviceDetection,
-    [string]$DeviceDetectionUrl
+    [string]$DeviceDetectionUrl,
+    [string]$IpIntelligenceUrl
 )
 $ErrorActionPreference = "Stop"
 
@@ -20,6 +21,11 @@ foreach ($asset in $Assets) {
         }
         "51Degrees-LiteV4.1.hash" {
             Invoke-WebRequest -Uri "https://github.com/51Degrees/device-detection-data/raw/main/51Degrees-LiteV4.1.hash" -OutFile $cache/$_
+        }
+        "51Degrees-EnterpriseIpiV41.ipi" {
+            # Only uses URL because IPI doesn't support specifying DataType and Product for now
+            & $PSScriptRoot/fetch-hash-assets.ps1 -RepoName . -Url $IpIntelligenceUrl
+            Move-Item -Path $_ -Destination $cache
         }
         "20000 Evidence Records.yml" {
             Invoke-WebRequest -Uri "https://media.githubusercontent.com/media/51Degrees/device-detection-data/main/20000%20Evidence%20Records.yml" -OutFile $cache/$_
