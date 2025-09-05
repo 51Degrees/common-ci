@@ -27,6 +27,11 @@ foreach ($asset in $Assets) {
             & $PSScriptRoot/fetch-hash-assets.ps1 -RepoName . -ArchiveName "$_.gz" -Url $IpIntelligenceUrl
             Move-Item -Path $_ -Destination $cache
         }
+        "51Degrees-EnterpriseIpiV41-AllProperties.ipi" {
+            # Only uses URL because IPI doesn't support specifying DataType and Product for now
+            & $PSScriptRoot/fetch-hash-assets.ps1 -RepoName . -ArchiveName "$_.gz" -Url $IpIntelligenceUrl
+            Move-Item -Path $_ -Destination $cache
+        }
         "20000 Evidence Records.yml" {
             Invoke-WebRequest -Uri "https://media.githubusercontent.com/media/51Degrees/device-detection-data/main/20000%20Evidence%20Records.yml" -OutFile $cache/$_
         }
