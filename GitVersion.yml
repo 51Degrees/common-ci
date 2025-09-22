@@ -11,5 +11,9 @@ branches:
     # https://gitversion.net/docs/reference/modes/continuous-deployment
     mode: ContinuousDeployment
   alpha:
-    regex: ^version/
-    label: alpha
+    # Match anything after a '-' and add this to the label.
+    # For example, the branch 'version/1.2.3-description' would become
+    # the version '1.2.3-alpha.description.1'.
+    regex: ^version/[\d\.]+(-(?<Name>.+))?
+    label: alpha.{Name}
+    
