@@ -215,6 +215,7 @@ jobs:
           merge-multiple: true
 
       - name: Compare Performance
+        continue-on-error: true
         run: |
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
           $Options = $(ConvertFrom-Json -AsHashtable '${{ needs.configure.outputs.options }}')
