@@ -49,6 +49,8 @@ on:
       CsvUrl:
       DeviceDetection:
       DeviceDetectionUrl:
+      IpIntelligence:
+      IpIntelligenceUrl:
       JavaGpgKeyPassphrase:
       JavaPGP:
       MavenSettings:
