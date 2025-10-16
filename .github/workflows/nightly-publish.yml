@@ -49,6 +49,8 @@ on:
       CsvUrl:
       DeviceDetection:
       DeviceDetectionUrl:
+      IpIntelligence:
+      IpIntelligenceUrl:
       JavaGpgKeyPassphrase:
       JavaPGP:
       MavenSettings:
@@ -322,6 +324,7 @@ jobs:
           merge-multiple: true
 
       - name: Compare Performance
+        continue-on-error: true
         run: |
           ./nightly-publish.compare-performance.ps1 `
           -RepoName '${{ inputs.repo-name }}' `

@@ -262,3 +262,9 @@
 
 ### [device-detection-examples-go](https://github.com/51Degrees/device-detection-examples-go)
 [![Nightly PRs to Main](https://github.com/51Degrees/device-detection-examples-go/actions/workflows/nightly-prs-to-main.yml/badge.svg)](https://github.com/51Degrees/device-detection-examples-go/actions/workflows/nightly-prs-to-main.yml) [![Nightly Package Update](https://github.com/51Degrees/device-detection-examples-go/actions/workflows/nightly-package-update.yml/badge.svg)](https://github.com/51Degrees/device-detection-examples-go/actions/workflows/nightly-package-update.yml)
+
+### [ip-intelligence-go](https://github.com/51Degrees/ip-intelligence-go)
+[![Nightly Pipeline](https://github.com/51Degrees/ip-intelligence-go/actions/workflows/nightly-pipeline.yml/badge.svg)](https://github.com/51Degrees/ip-intelligence-go/actions/workflows/nightly-pipeline.yml)
+
+### [ip-intelligence-go-examples](https://github.com/51Degrees/ip-intelligence-go-examples)
+[![Nightly Pipeline](https://github.com/51Degrees/ip-intelligence-go-examples/actions/workflows/nightly-pipeline.yml/badge.svg)](https://github.com/51Degrees/ip-intelligence-go-examples/actions/workflows/nightly-pipeline.yml)
