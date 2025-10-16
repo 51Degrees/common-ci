@@ -10,10 +10,14 @@ branches:
     # include prerelease tags/labels.
     # https://gitversion.net/docs/reference/modes/continuous-deployment
     mode: ContinuousDeployment
-  alpha:
+  alpha-named:
     # Match anything after a '-' and add this to the label.
     # For example, the branch 'version/1.2.3-description' would become
     # the version '1.2.3-alpha.description.1'.
-    regex: ^version/[\d\.]+(-(?<Name>.+))?
-    label: alpha.{Name}
+    regex: '^version[\/-].*-(?<Name>.+)'
+      #regex: ^releases?[\/-](?<BranchName>.+)
+    label: 'alpha.{Name}'
+  alpha:
+    regex: ^version/
+    label: alpha
     
