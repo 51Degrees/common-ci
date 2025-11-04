@@ -237,7 +237,10 @@ jobs:
     runs-on: ubuntu-latest
     name: Complete ${{ inputs.pull-request-id }}
     needs: [ BuildAndTest, ComparePerformance ]
-    if: ${{ !failure() && !cancelled() }}
+    if: >
+      !cancelled() &&
+      needs.BuildAndTest.result == 'success' &&
+      (needs.ComparePerformance.result == 'success' || needs.ComparePerformance.result == 'skipped')
     steps:
       - name: Checkout Common
         uses: actions/checkout@v4

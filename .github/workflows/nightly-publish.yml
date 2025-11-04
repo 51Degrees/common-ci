@@ -354,7 +354,10 @@ jobs:
   Package:
     runs-on: ${{ inputs.build-platform }}
     needs: [Configure, Test, ComparePerformance]
-    if: ${{ !failure() && !cancelled() && needs.configure.outputs.update_required == 'true' }}
+    if: >
+      !cancelled() && needs.Configure.outputs.update_required == 'true' &&
+      needs.Test.result == 'success' &&
+      (needs.ComparePerformance.result == 'success' || needs.ComparePerformance.result == 'skipped')
     steps:
       - name: Checkout Common
         uses: actions/checkout@v4
