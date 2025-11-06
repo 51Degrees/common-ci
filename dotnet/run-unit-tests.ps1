@@ -7,6 +7,7 @@ param(
     [string]$Configuration = "Release",
     [string]$Arch = "x64",
     [string]$BuildMethod="dotnet",
+    [string]$BlameHangTimeout="5m",
     [string]$DirNameFormatForDotnet = "*bin*",
     [string]$DirNameFormatForNotDotnet = "*\bin\*",
     [string]$Filter,
@@ -54,7 +55,7 @@ try {
                     --configuration $Configuration `
                     @PlatformParams `
                     --results-directory $TestResultPath `
-                    --blame-crash --blame-hang-timeout 5m -l "trx" $verbose
+                    --blame-crash --blame-hang-timeout $BlameHangTimeout -l "trx" $verbose
                 Write-Output "dotnet test LastExitCode=$LASTEXITCODE"
                 if ($LASTEXITCODE -ne 0) {
                     Write-Output "Setting ok=false due to dotnet test exit code $LASTEXITCODE for $NextFile"
