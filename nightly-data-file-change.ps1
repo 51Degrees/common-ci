@@ -32,14 +32,7 @@ Write-Output "::group::Clone Tools"
 Write-Output "::endgroup::"
 
 Write-Output "::group::Fetch Assets"
-# TODO: support caching data files like language-specific fetch-assets scripts
-./steps/fetch-hash-assets.ps1 `
-    -RepoName tools `
-    -LicenseKey $DataKey `
-    -DataType $DataType `
-    -Product $Product `
-    -ArchiveName $FileName `
-    -Url $DataUrl
+./steps/clone-repo.ps1 -RepoName "common-metadata" -OrgName $OrgName
 Write-Output "::endgroup::"
 
 Write-Output "::group::Setup Environment"
@@ -49,7 +42,8 @@ Write-Output "::endgroup::"
 Write-Output "::group::Generate Accessors"
 ./steps/run-script.ps1 ./$RepoName/ci/generate-accessors.ps1 @{
     RepoName = 'tools'
-    DataFile = "$PWD/tools/$FileName" -creplace '\.gz$', ''
+    MetaDataPath = "$PWD/common-metadata"
+    DataType = $DataType
 }
 Write-Output "::endgroup::"
 
