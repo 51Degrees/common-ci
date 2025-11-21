@@ -26,7 +26,14 @@ $FetchVersions = {
     }
 }
 
-$IncludePrereleaseParams = $IncludePrerelease ? @("-IncludePrerelease") : @()
-./dotnet/run-update-dependencies.ps1 -RepoName $RepoName -ProjectDir $ProjectDir -Name $Name -Filter $Filter -FetchVersions $FetchVersions @IncludePrereleaseParams
+$UpdateArguments = @{
+    RepoName = $RepoName
+    ProjectDir = $ProjectDir
+    Name = $Name
+    Filter = $Filter
+    FetchVersions = $FetchVersions
+    IncludePrerelease = $IncludePrerelease
+}
+./dotnet/run-update-dependencies.ps1 @UpdateArguments
 
 exit $LASTEXITCODE
