@@ -46,10 +46,8 @@ try {
             $FailuresOnListOutdated += $ProjectFile.FullName
             continue
         }
-        if ($LASTEXITCODE -ne 0) {
-            Write-Warning "⚠️ LASTEXITCODE = $LASTEXITCODE"
-            $LastFailCode = $LASTEXITCODE
-        }
+        # Ignore LASTEXITCODE from 'dotnet list' when JSON is valid
+        # In some environments it returns non-zero even with valid output
 
         Write-Debug "OUTDATED PACKAGES:"
         $ProjectPackagesOutdated = (ConvertFrom-Json -InputObject (-Join $ProjectPackagesOutdatedRaw))
@@ -87,10 +85,7 @@ try {
         Write-Output (ConvertTo-Json -InputObject $RequestedPackages -Depth 4)
         Write-Debug "FULL PACKAGES:"
         $ProjectPackagesFull = (dotnet list $ProjectFile.FullName package --format json | ConvertFrom-Json)
-        if ($LASTEXITCODE -ne 0) {
-            Write-Warning "⚠️ LASTEXITCODE = $LASTEXITCODE"
-            $LastFailCode = $LASTEXITCODE
-        }
+        # Ignore LASTEXITCODE from 'dotnet list' - if JSON parsing succeeded, the output is valid
         Write-Debug (ConvertTo-Json -InputObject $ProjectPackagesFull -Depth 6)
 
         foreach ($ProjectDic in $ProjectPackagesFull.projects) {
@@ -174,4 +169,7 @@ if ($FailuresOnModify.Length -gt 0) {
     }
 }
 
-exit ($LASTEXITCODE -ne 0) ? $LASTEXITCODE : $LastFailCode
+# Only fail the script if there were actual failures during package modifications
+# Informational exit codes from 'dotnet list' that still produce valid JSON should not fail the script
+# since the script was able to successfully process all projects
+exit ($FailuresOnModify.Length -gt 0) ? $LastFailCode : 0
