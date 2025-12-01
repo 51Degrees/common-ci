@@ -1,0 +1,49 @@
+name: Prefetch assets
+inputs:
+  secrets:
+    required: true # should be converted with toJSON()
+  repo:
+    default: .
+outputs:
+  cache-key:
+    value: ${{ steps.hash-assets.outputs.key }}
+runs:
+  using: "composite"
+  steps:
+      - name: Hash assets
+        id: hash-assets
+        shell: pwsh
+        env:
+          secrets: ${{ inputs.secrets }}
+        run: |
+          $sha1 = [Security.Cryptography.SHA1Managed]::new()
+          $key = ($env:secrets | ConvertFrom-Json -AsHashtable | Select-Object -ExcludeProperty github_token).Values | Sort-Object | Join-String -Separator `n
+          $hash = [Convert]::ToHexString($sha1.ComputeHash([Text.Encoding]::Utf8.GetBytes($key)))
+          "key=$(Get-Date -Format FileDate)-$hash" >> $env:GITHUB_OUTPUT
+
+      - name: Check if cached
+        id: check-cache
+        uses: actions/cache/restore@v5
+        with:
+          key: ${{ steps.hash-assets.outputs.key }}
+          path: assets
+          lookup-only: true
+
+      - name: Prefetch assets
+        id: prefetch-assets
+        shell: pwsh
+        if: ${{ !steps.check-cache.outputs.cache-hit }}
+        env:
+          repo: ${{ inputs.repo }}
+          secrets:  ${{ inputs.secrets }}
+        run: |
+          $secrets = $env:secrets | ConvertFrom-Json -AsHashtable
+          & "$env:repo/ci/fetch-assets.ps1" @secrets
+
+      - name: Cache assets
+        if: steps.prefetch-assets.conclusion == 'success'
+        uses: actions/cache/save@v5
+        with:
+          key: ${{ steps.hash-assets.outputs.key }}
+          path: assets
+          enableCrossOsArchive: true

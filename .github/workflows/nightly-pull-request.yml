@@ -74,7 +74,6 @@ on:
 defaults:
   run:
     shell: pwsh
-    working-directory: ./common
 
 jobs:
   Configure:
@@ -82,25 +81,13 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       options: ${{ steps.configure.outputs.options }}
-      asset_cache_key: ${{ steps.hash_asset_cache_key.outputs.hash }}
+      asset_cache_key: ${{ steps.prefetch-assets.outputs.cache-key }}
     steps:
       - name: Checkout Common
         uses: actions/checkout@v6
         with:
           repository: ${{ inputs.org-name }}/common-ci
-          path: common
           ref: ${{ inputs.common-ci-ref }}
-
-      - name: Hash the Asset Cache Key
-        id: hash_asset_cache_key
-        if: inputs.cache-assets
-        env:
-          KEY: ${{ toJSON(secrets) }}
-        run: |
-          $sha1 = [Security.Cryptography.SHA1Managed]::new()
-          $key = ($env:KEY | ConvertFrom-Json -AsHashtable).Values | Sort-Object | Join-String -Separator `0
-          $hash = [Convert]::ToHexString($sha1.ComputeHash([Text.Encoding]::Utf8.GetBytes($key)))
-          "hash=$(Get-Date -Format FileDate)-$hash" | Out-File $env:GITHUB_OUTPUT -Append
 
       - name: Configure
         id: configure
@@ -115,6 +102,14 @@ jobs:
           -GitHubUser ${{ inputs.user }} `
           -GitHubEmail ${{ inputs.email }}
 
+      - name: Prefetch assets
+        id: prefetch-assets
+        if: inputs.cache-assets
+        uses: ./.github/actions/prefetch_assets
+        with:
+          repo: ${{ inputs.repo-name }}
+          secrets: ${{ toJSON(secrets) }}
+
   BuildAndTest:
     needs: Configure
     strategy:
@@ -128,22 +123,22 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: ${{ inputs.org-name }}/common-ci
-          path: common
           ref: ${{ inputs.common-ci-ref }}
 
       - name: Install Runtime
         if: matrix.options.Language != '' && matrix.options.LanguageVersion != ''
-        uses: ./common/.github/actions/install_runtime
+        uses: ./.github/actions/install_runtime
         with:
           language: ${{ matrix.options.Language }}
           version: ${{ matrix.options.LanguageVersion }}
 
       - name: Restore Asset Cache
-        if: inputs.cache-assets
+        if: needs.configure.outputs.asset_cache_key
         uses: actions/cache/restore@v5
         with:
           key: ${{ needs.configure.outputs.asset_cache_key }}
-          path: ${{ github.workspace }}/common/assets
+          path: assets
+          enableCrossOsArchive: true
 
       - name: Build and Test
         id: build-and-test
@@ -167,16 +162,9 @@ jobs:
           -DryRun $DryRun `
           -SkipLiteTests $SkipLiteTests
 
-      - name: Save Asset Cache
-        if: inputs.cache-assets && always()
-        uses: actions/cache/save@v5
-        with:
-          key: ${{ needs.configure.outputs.asset_cache_key }}
-          path: ${{ github.workspace }}/common/assets
-
       - name: Publish Test Results
         if: ${{ !cancelled() }}
-        uses: ./common/.github/actions/publish_test_results
+        uses: ./.github/actions/publish_test_results
         with:
           repo-name: ${{ inputs.repo-name }}
           name: ${{ matrix.options.name }}
@@ -188,7 +176,7 @@ jobs:
         if: ${{ matrix.options.runperformance }}
         with:
           name: performance_results-${{ inputs.pull-request-id }}-${{ matrix.options.name }}
-          path: ${{ github.workspace }}/common/${{ inputs.repo-name }}/test-results/performance-summary/results_*.json
+          path: ${{ github.workspace }}/${{ inputs.repo-name }}/test-results/performance-summary/results_*.json
           if-no-files-found: ignore
           include-hidden-files: true
 
@@ -196,7 +184,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: artifacts-${{ inputs.pull-request-id }}-${{ matrix.options.name }}
-          path: ${{ github.workspace }}/common/${{ inputs.repo-name }}/artifacts/*
+          path: ${{ github.workspace }}/${{ inputs.repo-name }}/artifacts/*
           if-no-files-found: ignore
           include-hidden-files: true
           overwrite: true
@@ -211,7 +199,6 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: ${{ inputs.org-name }}/common-ci
-          path: common
           ref: ${{ inputs.common-ci-ref }}
 
       - name: Download Performance Results Artifact
@@ -219,7 +206,6 @@ jobs:
         continue-on-error: true
         with:
           pattern: performance_results-${{ inputs.pull-request-id }}-*
-          path: ${{ github.workspace }}/common
           merge-multiple: true
 
       - name: Compare Performance
@@ -252,7 +238,6 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: ${{ inputs.org-name }}/common-ci
-          path: common
           ref: ${{ inputs.common-ci-ref }}
 
       - name: Complete
