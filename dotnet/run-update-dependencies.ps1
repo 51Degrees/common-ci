@@ -33,7 +33,7 @@ try {
         Write-Output "========= ========= ========="
         Write-Output $ProjectFile.FullName
 
-        $ProjectPackagesOutdatedRaw = (dotnet list $ProjectFile.FullName package --format json --outdated --highest-patch @IncludePrereleaseParams)
+        $ProjectPackagesOutdatedRaw = (dotnet list $ProjectFile.FullName package --format json --outdated --highest-patch --no-restore @IncludePrereleaseParams)
         if ($ProjectPackagesOutdatedRaw[0][0] -ne '{') {
             Write-Warning "----- RAW OUTPUT START -----"
             Write-Warning ($ProjectPackagesOutdatedRaw -Join "`n")
@@ -86,7 +86,7 @@ try {
         Write-Output "NECESSARY UPDATES:"
         Write-Output (ConvertTo-Json -InputObject $RequestedPackages -Depth 4)
         Write-Debug "FULL PACKAGES:"
-        $ProjectPackagesFull = (dotnet list $ProjectFile.FullName package --format json | ConvertFrom-Json)
+        $ProjectPackagesFull = (dotnet list $ProjectFile.FullName package --format json --no-restore | ConvertFrom-Json)
         if ($LASTEXITCODE -ne 0) {
             Write-Warning "⚠️ LASTEXITCODE = $LASTEXITCODE"
             $LastFailCode = $LASTEXITCODE
