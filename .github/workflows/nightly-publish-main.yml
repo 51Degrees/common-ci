@@ -71,6 +71,9 @@ on:
       TestResourceKey:
       TestSuperResourceKey:
       UsePublishTests:
+      WordpressSvnUrl:
+      WordpressSvnUser:
+      WordpressSvnPassword:
       DockerPassword:
       DockerContainer:
       DockerRegistry:
@@ -80,13 +83,12 @@ on:
 defaults:
   run:
     shell: pwsh
-    working-directory: ./common
 
 jobs:
   Configure:
     runs-on: ubuntu-latest
     outputs:
-      asset_cache_key: ${{ steps.hash_asset_cache_key.outputs.hash }}
+      asset_cache_key: ${{ steps.prefetch-assets.outputs.cache-key }}
       options: ${{ steps.configure.outputs.options }}
       runperformance: ${{ steps.configure.outputs.runperformance }}
       version: ${{ steps.configure.outputs.version }}
@@ -96,19 +98,7 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: ${{ inputs.org-name }}/common-ci
-          path: common
           ref: ${{ inputs.common-ci-ref }}
-
-      - name: Hash the Asset Cache Key
-        id: hash_asset_cache_key
-        if: inputs.cache-assets
-        env:
-          KEY: ${{ toJSON(secrets) }}
-        run: |
-          $sha1 = [Security.Cryptography.SHA1Managed]::new()
-          $key = ($env:KEY | ConvertFrom-Json -AsHashtable).Values | Sort-Object | Join-String -Separator `0
-          $hash = [Convert]::ToHexString($sha1.ComputeHash([Text.Encoding]::Utf8.GetBytes($key)))
-          "hash=$(Get-Date -Format FileDate)-$hash" | Out-File $env:GITHUB_OUTPUT -Append
 
       - name: Install GitVersion
         run: |
@@ -132,6 +122,14 @@ jobs:
           -GitHubEmail ${{ inputs.email }} `
           -BuildPlatform ${{ inputs.build-platform }}
 
+      - name: Prefetch assets
+        id: prefetch-assets
+        if: inputs.cache-assets
+        uses: ./.github/actions/prefetch_assets
+        with:
+          repo: ${{ inputs.repo-name }}
+          secrets: ${{ toJSON(secrets) }}
+
   PreBuild:
     needs: Configure
     strategy:
@@ -145,12 +143,11 @@ jobs:
         if: ${{ matrix.options.packagerequirement }}
         with:
           repository: ${{ inputs.org-name }}/common-ci
-          path: common
           ref: ${{ inputs.common-ci-ref }}
 
       - name: Install Runtime
         if: matrix.options.Language != '' && matrix.options.LanguageVersion != ''
-        uses: ./common/.github/actions/install_runtime
+        uses: ./.github/actions/install_runtime
         with:
           language: ${{ matrix.options.Language }}
           version: ${{ matrix.options.LanguageVersion }}
@@ -178,7 +175,7 @@ jobs:
         if: ${{ success() && matrix.options.packagerequirement }}
         with:
           name: package_${{ matrix.options.name }}
-          path: ${{ github.workspace }}/common/package-files
+          path: ${{ github.workspace }}/package-files
           if-no-files-found: ignore
           include-hidden-files: true
 
@@ -191,14 +188,13 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: ${{ inputs.org-name }}/common-ci
-          path: common
           ref: ${{ inputs.common-ci-ref }}
 
       - name: Download Package Artifacts
         if: ${{ success() }}
         uses: actions/download-artifact@v8
         with:
-          path: ${{ github.workspace }}/common/package-files
+          path: ${{ github.workspace }}/package-files
 
       - name: Build
         env:
@@ -223,7 +219,7 @@ jobs:
         if: ${{ success() }}
         with:
           name: package
-          path: ${{ github.workspace }}/common/package
+          path: ${{ github.workspace }}/package
           if-no-files-found: ignore
           include-hidden-files: true
 
@@ -243,7 +239,6 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: ${{ inputs.org-name }}/common-ci
-          path: common
           ref: ${{ inputs.common-ci-ref }}
 
       - name: Download Package Artifact
@@ -251,21 +246,22 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: package
-          path: ${{ github.workspace }}/common/package
+          path: ${{ github.workspace }}/package
 
       - name: Install Runtime
         if: matrix.options.Language != '' && matrix.options.LanguageVersion != ''
-        uses: ./common/.github/actions/install_runtime
+        uses: ./.github/actions/install_runtime
         with:
           language: ${{ matrix.options.Language }}
           version: ${{ matrix.options.LanguageVersion }}
 
       - name: Restore Asset Cache
-        if: inputs.cache-assets
+        if: needs.configure.outputs.asset_cache_key
         uses: actions/cache/restore@v5
         with:
           key: ${{ needs.configure.outputs.asset_cache_key }}
-          path: ${{ github.workspace }}/common/assets
+          path: assets
+          enableCrossOsArchive: true
 
       - name: Test
         if: ${{ success() && matrix.options.packagerequirement }}
@@ -285,23 +281,16 @@ jobs:
           -GitHubEmail ${{ inputs.email }} `
           -DryRun $DryRun
 
-      - name: Save Asset Cache
-        if: inputs.cache-assets && always()
-        uses: actions/cache/save@v5
-        with:
-          key: ${{ needs.configure.outputs.asset_cache_key }}
-          path: ${{ github.workspace }}/common/assets
-
       - name: Upload Performance Results Artifact
         uses: actions/upload-artifact@v7
         if: ${{ matrix.options.RunPerformance }}
         with:
           name: performance_results-publish-${{ matrix.options.name }}
-          path: common/${{ inputs.repo-name }}/test-results/performance-summary/results_*.json
+          path: ${{ inputs.repo-name }}/test-results/performance-summary/results_*.json
 
       - name: Publish Test Results
         if: ${{ !cancelled() && matrix.options.packagerequirement }}
-        uses: ./common/.github/actions/publish_test_results
+        uses: ./.github/actions/publish_test_results
         with:
           repo-name: ${{ inputs.repo-name }}
           name: ${{ matrix.options.name }}
@@ -317,14 +306,12 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: ${{ inputs.org-name }}/common-ci
-          path: common
           ref: ${{ inputs.common-ci-ref }}
 
       - name: Download Performance Results Artifact
         uses: actions/download-artifact@v8
         with:
           pattern: performance_results-publish-*
-          path: ${{ github.workspace }}/common
           merge-multiple: true
 
       - name: Compare Performance
@@ -351,7 +338,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: publish_performance_results@${{ steps.escape_branch.outputs.name }} # https://github.com/actions/upload-artifact/issues/22
-          path: ${{ github.workspace }}/common/results_*.json
+          path: ${{ github.workspace }}/results_*.json
           if-no-files-found: ignore
           include-hidden-files: true
 
@@ -367,7 +354,6 @@ jobs:
         uses: actions/checkout@v6
         with:
           repository: ${{ inputs.org-name }}/common-ci
-          path: common
           ref: ${{ inputs.common-ci-ref }}
 
       - name: Download Package Artifact
@@ -375,7 +361,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: package
-          path: ${{ github.workspace }}/common/package
+          path: ${{ github.workspace }}/package
 
       - name: Package
         if: ${{ success() }}
