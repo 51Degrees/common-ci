@@ -1,0 +1,46 @@
+name: Prefetch assets
+inputs:
+  repo-name:
+    required: true
+  secrets:
+    required: true # should be converted with toJSON()
+outputs:
+  cache-key:
+    value: ${{ steps.hash-assets.key }}
+runs:
+  using: "composite"
+  steps:
+      - name: Hash assets
+        id: hash-assets
+        env:
+          repo_name: ${{ inputs.repo-name }}
+          secrets: ${{ inputs.secrets }}
+        run: |
+          $sha1 = [Security.Cryptography.SHA1Managed]::new()
+          $hash = [Convert]::ToHexString($sha1.ComputeHash([Text.Encoding]::Utf8.GetBytes($env:secrets + (Get-Content -Raw $env:repo_name/ci/fetch-assets.ps1)))
+          "key=$(Get-Date -Format FileDate)-$hash" >> $env:GITHUB_OUTPUT
+
+      - name: Check if cached
+        id: check-cache
+        uses: actions/cache/restore@v4
+        with:
+          key: ${{ steps.hash-asset-list.outputs.key }}
+          path: ${{ github.workspace }}/common/assets
+          lookup-only: true
+
+      - name: Prefetch assets
+        id: prefetch-assets
+        if: ${{ !steps.check-cache.outputs.cache-hit }}
+        env:
+          repo_name: ${{ inputs.repo-name }}
+          secrets:  ${{ inputs.secrets }}
+        run: |
+          foreach ($kv in ($env:secrets | ConvertFrom-Json).GetEnumerator()) { $PSDefaultParameterValues["*.ps1:$($kv.Key)"] = $kv.Value }
+          & "$env:repo_name/ci/fetch-assets.ps1"
+
+      - name: Cache assets
+        if: steps.prefetch-assets.conclusion == 'success'
+        uses: actions/cache/save@v4
+        with:
+          key: ${{ needs.hash_asset_list.outputs.key }}
+          path: ${{ github.workspace }}/common/assets

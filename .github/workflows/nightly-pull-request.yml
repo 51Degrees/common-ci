@@ -79,7 +79,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       options: ${{ steps.configure.outputs.options }}
-      asset_cache_key: ${{ steps.hash_asset_cache_key.outputs.hash }}
+      asset_cache_key: ${{ steps.prefetch-assets.outputs.cache-key }}
     steps:
       - name: Checkout Common
         uses: actions/checkout@v4
@@ -87,16 +87,6 @@ jobs:
           repository: ${{ inputs.org-name }}/common-ci
           path: common
           ref: ${{ inputs.common-ci-ref }}
-
-      - name: Hash the Asset Cache Key
-        id: hash_asset_cache_key
-        if: inputs.cache-assets
-        env:
-          KEY: ${{ toJSON(secrets) }}
-        run: |
-          $sha1 = [Security.Cryptography.SHA1Managed]::new()
-          $hash = [Convert]::ToHexString($sha1.ComputeHash([Text.Encoding]::Utf8.GetBytes($env:KEY)))
-          "hash=$(Get-Date -Format FileDate)-$hash" | Out-File $env:GITHUB_OUTPUT -Append
 
       - name: Configure
         id: configure
@@ -110,6 +100,14 @@ jobs:
           -PullRequestId ${{ inputs.pull-request-id }} `
           -GitHubUser ${{ inputs.user }} `
           -GitHubEmail ${{ inputs.email }}
+
+      - name: Prefetch assets
+        id: prefetch-assets
+        if: inputs.cache-assets
+        uses: ./common/.github/actions/install_runtime
+        with:
+          repo-name: ${{ inputs.repo-name }}
+          secrets: ${{ toJSON(secrets) }}
 
   BuildAndTest:
     needs: Configure
@@ -135,7 +133,7 @@ jobs:
           version: ${{ matrix.options.LanguageVersion }}
 
       - name: Restore Asset Cache
-        if: inputs.cache-assets
+        if: needs.configure.outputs.asset_cache_key
         uses: actions/cache/restore@v4
         with:
           key: ${{ needs.configure.outputs.asset_cache_key }}
@@ -160,13 +158,6 @@ jobs:
           -GitHubUser ${{ inputs.user }} `
           -GitHubEmail ${{ inputs.email }} `
           -DryRun $DryRun
-
-      - name: Save Asset Cache
-        if: inputs.cache-assets && always()
-        uses: actions/cache/save@v4
-        with:
-          key: ${{ needs.configure.outputs.asset_cache_key }}
-          path: ${{ github.workspace }}/common/assets
 
       - name: Publish Test Results
         if: ${{ !cancelled() }}
