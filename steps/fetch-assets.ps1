@@ -2,7 +2,9 @@ param (
     [Parameter(Mandatory)][string[]]$Assets,
     [string]$DeviceDetection,
     [string]$DeviceDetectionUrl,
-    [string]$IpIntelligenceUrl
+    [string]$IpIntelligenceUrl,
+    [string]$CsvUrl,
+    [switch]$FullCsv
 )
 $ErrorActionPreference = "Stop"
 
@@ -42,6 +44,16 @@ foreach ($asset in $Assets) {
         }
         "20000 User Agents.csv" {
             Invoke-WebRequest -Uri "https://media.githubusercontent.com/media/51Degrees/device-detection-data/main/20000%20User%20Agents.csv" -OutFile $cache/$_
+        }
+        "51Degrees.csv" {
+            & $PSScriptRoot/download-data-file.ps1 -LicenseKey:$DeviceDetection -DataType 'CSV' -Product 'V4TAC' -Url:$CsvUrl -FullFilePath "$_.zip"
+            Expand-Archive -DestinationPath . "$_.zip"
+            if ($FullCsv) {
+                Move-Item -Path '51Degrees-Tac-All.csv' -Destination $cache/$_
+            } else {
+                Get-Content -TotalCount 1 '51Degrees-Tac-All.csv' > $cache/$_ # Most repos only need the header
+            }
+            Remove-Item -Force "$_.zip", '51Degrees-Tac-All.csv'
         }
         default { Write-Error "Unknown asset: $_" }
     }
