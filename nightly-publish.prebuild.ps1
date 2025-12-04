@@ -27,10 +27,6 @@ Write-Output "::group::Clone $RepoName"
 ./steps/clone-repo.ps1 -RepoName $RepoName -OrgName $OrgName -Branch $Branch
 Write-Output "::endgroup::"
 
-Write-Output "::group::Fetch Assets"
-./steps/run-script.ps1 ./$RepoName/ci/fetch-assets.ps1 $Options
-Write-Output "::endgroup::"
-
 Write-Output "::group::Setup Environment"
 ./steps/run-script.ps1 ./$RepoName/ci/setup-environment.ps1 $Options
 Write-Output "::endgroup::"
