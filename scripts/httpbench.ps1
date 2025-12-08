@@ -21,7 +21,6 @@ Write-Host "Generating $($uas.Count) requests..."
 1..$uas.Count | ForEach-Object {
     "next"
     "url = $HostPort$Endpoint"
-    "header = `"Connection: close`"" # use a fresh connection for each request
     "header = `"User-Agent: $($uas[$Random.Next($uas.Count)])`""
     "header = `"$($xStockDevice[$Random.Next($xStockDevice.Count)]): $($uas[$Random.Next($uas.Count)])`""
     "output = $devNull"
@@ -47,6 +46,9 @@ function Measure-HttpPerf {
 }
 $calibrateErrors, $calibrateHttpErrors, $calibrateTotalSeconds = Measure-HttpPerf -Endpoint $CalibrateEndpoint
 $errors, $httpErrors, $totalSeconds = Measure-HttpPerf -Endpoint $Endpoint
+
+Write-Host "Calibrate errors = $calibrateTotalSeconds; HTTP errors = $calibrateHttpErrors; total seconds = $calibrateTotalSeconds"
+Write-Host "Errors = $errors; HTTP errors = $httpErrors; total seconds = $totalSeconds"
 
 @{
     'overhead_ms' = ($totalSeconds - $calibrateTotalSeconds) / $uas.Count * 1000
