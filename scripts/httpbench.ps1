@@ -8,6 +8,7 @@ $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
 
 Write-Host "Waiting for the server..."
+$devNull = $IsWindows ? 'nul' : '/dev/null'
 # with the default backoff algorithm 5 retries should take approximately 30s
 curl -sS -o $devNull --retry 5 --retry-connrefused "$HostPort$CalibrateEndpoint"
 
@@ -17,7 +18,6 @@ $xStockDevice = "Device-Stock-UA", "X-Device-User-Agent", "X-OperaMini-Phone-UA"
 function Measure-HttpPerf {
     param ([string]$Endpoint)
     $random = New-Object System.Random -ArgumentList 42 # Get-Random is super slow, use seeded C# Random
-    $devNull = $IsWindows ? 'nul' : '/dev/null'
     Write-Host "Benchmarking $HostPort$Endpoint with $($uas.Count) requests..."
     $results = 1..$uas.Count | ForEach-Object {
         "next"
