@@ -7,30 +7,26 @@ param (
 $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
 
-$Random = New-Object System.Random # Get-Random is super slow
-$devNull = $IsWindows ? 'nul' : '/dev/null'
-
 Write-Host "Waiting for the server..."
 # with the default backoff algorithm 5 retries should take approximately 30s
-curl -sS -o $devNull --retry 5 --retry-connrefused "$HostPort$Endpoint"
+curl -sS -o $devNull --retry 5 --retry-connrefused "$HostPort$CalibrateEndpoint"
 
 $uas = Get-Content $UaFile
 $xStockDevice = "Device-Stock-UA", "X-Device-User-Agent", "X-OperaMini-Phone-UA"
 
-Write-Host "Generating $($uas.Count) requests..."
-1..$uas.Count | ForEach-Object {
-    "next"
-    "url = $HostPort$Endpoint"
-    "header = `"User-Agent: $($uas[$Random.Next($uas.Count)])`""
-    "header = `"$($xStockDevice[$Random.Next($xStockDevice.Count)]): $($uas[$Random.Next($uas.Count)])`""
-    "output = $devNull"
-    "write-out = `"%{exitcode} %{http_code} %{time_total}\n`""
-} > requests.txt
-
 function Measure-HttpPerf {
     param ([string]$Endpoint)
-    Write-Host "Benchmarking $HostPort$Endpoint"
-    $results = curl -sS --config requests.txt
+    $random = New-Object System.Random -ArgumentList 42 # Get-Random is super slow, use seeded C# Random
+    $devNull = $IsWindows ? 'nul' : '/dev/null'
+    Write-Host "Benchmarking $HostPort$Endpoint with $($uas.Count) requests..."
+    $results = 1..$uas.Count | ForEach-Object {
+        "next"
+        "url = $HostPort$Endpoint"
+        "header = `"User-Agent: $($uas[$random.Next($uas.Count)])`""
+        "header = `"$($xStockDevice[$random.Next($xStockDevice.Count)]): $($uas[$random.Next($uas.Count)])`""
+        "output = $devNull"
+        "write-out = `"%{exitcode} %{http_code} %{time_total}\n`""
+    } | curl -sS --config -
     [int]$errors = 0
     [int]$httpErrors = 0
     [double]$totalSeconds = 0.0
@@ -47,7 +43,7 @@ function Measure-HttpPerf {
 $calibrateErrors, $calibrateHttpErrors, $calibrateTotalSeconds = Measure-HttpPerf -Endpoint $CalibrateEndpoint
 $errors, $httpErrors, $totalSeconds = Measure-HttpPerf -Endpoint $Endpoint
 
-Write-Host "Calibrate errors = $calibrateTotalSeconds; HTTP errors = $calibrateHttpErrors; total seconds = $calibrateTotalSeconds"
+Write-Host "Calibrate errors = $calibrateErrors; HTTP errors = $calibrateHttpErrors; total seconds = $calibrateTotalSeconds"
 Write-Host "Errors = $errors; HTTP errors = $httpErrors; total seconds = $totalSeconds"
 
 @{
