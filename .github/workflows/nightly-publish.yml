@@ -296,7 +296,7 @@ jobs:
           path: common/${{ inputs.repo-name }}/test-results/performance-summary/results_*.json
 
       - name: Publish Test Results
-        if: ${{ always() && matrix.options.packagerequirement }}
+        if: ${{ !cancelled() && matrix.options.packagerequirement }}
         uses: ./common/.github/actions/publish_test_results
         with:
           repo-name: ${{ inputs.repo-name }}

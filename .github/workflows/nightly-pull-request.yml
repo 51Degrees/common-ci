@@ -169,7 +169,7 @@ jobs:
           path: ${{ github.workspace }}/common/assets
 
       - name: Publish Test Results
-        if: always()
+        if: ${ !cancelled() }
         uses: ./common/.github/actions/publish_test_results
         with:
           repo-name: ${{ inputs.repo-name }}
