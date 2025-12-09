@@ -1,3 +1,8 @@
+# Alternative to https://github.com/51Degrees/ApacheBench/ (not fully, but to
+# what was actually used by projects) that doesn't depend on Apache libraries
+# which recently stopped being available for Windows on the website and caused
+# CI failures across all projects that used ApacheBench in their tests. This
+# script only depends on the curl binary.
 param (
     [Parameter(Mandatory)][string]$HostPort,
     [Parameter(Mandatory)][string]$UaFile,
