@@ -1,6 +1,7 @@
 param (
     [Parameter(Mandatory)][string[]]$Repositories,
-    [Parameter(Mandatory)][string]$NewVersion = "4.5",
+    [string]$NewVersion = "4.5",
+    [string]$OldVersion,
     [string]$BaseUri = "git@github.com:51Degrees",
     [string]$User = "Automation51D",
     [string]$Email = "51DCI@51Degrees.com"
@@ -17,7 +18,7 @@ function Test-PromotedVersion {
 foreach ($repo in $Repositories) {
     Write-Host "Cloning $repo..."
     git clone --quiet --bare --filter=tree:0 "$BaseUri/$repo" $repo
-    $version = (git -C "$repo" describe --tags --abbrev=0) -replace '\.\d+$', ''
+    $version = $OldVersion ? $OldVersion : (git -C "$repo" describe --tags --abbrev=0) -replace '\.\d+$', ''
     Write-Host "  saving main to release/$version"
     git -C $repo branch "release/$version"
     if (Test-PromotedVersion) {
