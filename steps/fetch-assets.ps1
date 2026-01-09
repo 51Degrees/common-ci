@@ -55,6 +55,9 @@ foreach ($asset in $Assets) {
             }
             Remove-Item -Force "$_.zip", '51Degrees-Tac-All.csv'
         }
+        "51Degrees-Tac.zip" {  # same as the CSV above, without extracting
+            & $PSScriptRoot/download-data-file.ps1 -LicenseKey:$DeviceDetection -DataType 'CSV' -Product 'V4TAC' -Url:$CsvUrl -FullFilePath "$cache/$_"
+        }
         default { Write-Error "Unknown asset: $_" }
     }
 }
