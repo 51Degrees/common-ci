@@ -198,7 +198,7 @@ jobs:
   ComparePerformance:
     runs-on: ubuntu-latest
     needs: [ Configure, BuildAndTest ]
-    if: ${{ !inputs.skip-compare-performance }}
+    if: ${{ !inputs.skip-compare-performance && contains(fromJSON(needs.Configure.outputs.options).*.RunPerformance, true) }}
     name: Compare Performance - ${{ inputs.pull-request-id }}
     steps:
       - name: Checkout Common
