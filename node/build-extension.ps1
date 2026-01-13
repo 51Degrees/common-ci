@@ -41,9 +41,9 @@ $nodeMajorVersion = $nodeVersion.TrimStart('v').Split('.')[0]
 # Creating folder for binaries artifacts
 New-Item -ItemType Directory -Path "../../package-files" | Out-Null
 
-# Storing binary artifact (needs to be in both of these places for different tests)
-Move-Item './build/Release/FiftyOneDeviceDetectionHashV4.node' './build/'
-Copy-Item './build/FiftyOneDeviceDetectionHashV4.node'  "../../package-files/FiftyOneDeviceDetectionHashV4-$os-$arch-$nodeMajorVersion.node"
+# Storing binary artifact (needs to be in both of these places for different tests, and packaging)
+Copy-Item './build/Release/FiftyOneDeviceDetectionHashV4.node' "./build/FiftyOneDeviceDetectionHashV4-$os-$arch-$nodeMajorVersion.node"
+Move-Item './build/Release/FiftyOneDeviceDetectionHashV4.node'  "../../package-files/FiftyOneDeviceDetectionHashV4-$os-$arch-$nodeMajorVersion.node"
 
 # Installing package for some examples
 npm install n-readlines
