@@ -1,12 +1,13 @@
 param (
-    [Parameter(Mandatory=$true)]
-    [string]$PackageName
+    [Parameter(Mandatory)][string]$PackageName
 )
+$ErrorActionPreference = "Stop"
+$PSNativeCommandUseErrorActionPreference = $true
 
 Write-Output "Building extension for $PackageName"
 
 # Installing binary builder
-npm i -g node-gyp@11.0.0 || $(throw "ERROR: Failed to install node-gyp")
+npm i -g node-gyp@11.0.0
 
 # Determine the operating system
 if ($IsMacOS) {
@@ -19,35 +20,30 @@ if ($IsMacOS) {
 } else {
     $os = "unknown"
 }
+$arch = [Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString().ToLower()
 
 # Creating folder for future build
 New-Item -ItemType Directory -Path build | Out-Null
 
 # Renaming buiding config file
-Rename-Item -Path binding.51d -NewName binding.gyp
+Copy-Item binding.51d binding.gyp
 
 # Run configuration
-node-gyp configure || $(throw "ERROR: Failed to configure node-gyp")
+node-gyp configure
 
 # Build configuration
-node-gyp build || $(throw "ERROR: Failed build with node-gyp")
-
-# Move build result from release folder to lower level (build folder)
-Move-Item -Path ./build/Release/FiftyOneDeviceDetectionHashV4.node -Destination ./build/
+node-gyp build
 
 # Getting major node version
-$nodeVersion = node --version  || $(throw "ERROR: Failed to get node version")
+$nodeVersion = node --version
 $nodeMajorVersion = $nodeVersion.TrimStart('v').Split('.')[0]
-
-# Renaming building config file
-$fileName = "FiftyOneDeviceDetectionHashV4-$os-$nodeMajorVersion.node"
-Rename-Item -Path "./build/FiftyOneDeviceDetectionHashV4.node" -NewName $fileName
 
 # Creating folder for binaries artifacts
 New-Item -ItemType Directory -Path "../../package-files" | Out-Null
 
-# Storing binary artifact
-Copy-Item -Path "./build/$fileName" -Destination "../../package-files"
+# Storing binary artifact (needs to be in both of these places for different tests)
+Move-Item './build/Release/FiftyOneDeviceDetectionHashV4.node' './build/'
+Copy-Item './build/FiftyOneDeviceDetectionHashV4.node'  "../../package-files/FiftyOneDeviceDetectionHashV4-$os-$arch-$nodeMajorVersion.node"
 
 # Installing package for some examples
-npm install n-readlines || $(throw "ERROR: Failed to install n-readlines")
+npm install n-readlines
