@@ -1,15 +1,11 @@
 param (
-    [Parameter(Mandatory=$true)]
-    [string]$RepoName,
-    [Parameter(Mandatory=$true)]
-    [string]$OrgName,
+    [Parameter(Mandatory)][string]$RepoName,
+    [Parameter(Mandatory)][string]$OrgName,
+    [Parameter(Mandatory)][string]$GitHubToken,
+    [Parameter(Mandatory)][Hashtable]$Options,
     [string]$Branch = "main",
-    [Parameter(Mandatory=$true)]
-    [string]$GitHubToken,
     [string]$GitHubUser,
     [string]$GitHubEmail,
-    [Parameter(Mandatory=$true)]
-    [Hashtable]$Options,
     [bool]$DryRun
 )
 $ErrorActionPreference = "Stop"
@@ -19,18 +15,23 @@ if ($Options.Keys) {
     $Options += $Options.Keys # Expand keys into options
 }
 
-Write-Output "::group::Configure Git"
+Write-Host "::group::Configure Git"
 ./steps/configure-git.ps1 -GitHubToken $GitHubToken -GitHubUser $GitHubUser -GitHubEmail $GitHubEmail
-Write-Output "::endgroup::"
+Write-Host "::endgroup::"
 
-Write-Output "::group::Clone $RepoName"
+Write-Host "::group::Clone $RepoName"
 ./steps/clone-repo.ps1 -RepoName $RepoName -OrgName $OrgName -Branch $Branch
-Write-Output "::endgroup::"
+Write-Host "::endgroup::"
 
-Write-Output "::group::Setup Environment"
+if ($Options.CI) {
+    & "./$RepoName/$($Options.CI)/prebuild.ps1" @Options
+    exit
+}
+
+Write-Host "::group::Setup Environment"
 ./steps/run-script.ps1 ./$RepoName/ci/setup-environment.ps1 $Options
-Write-Output "::endgroup::"
+Write-Host "::endgroup::"
 
-Write-Output "::group::Build Package Requirements"
+Write-Host "::group::Build Package Requirements"
 ./steps/run-script.ps1 ./$RepoName/ci/build-package-requirements.ps1 $Options
-Write-Output "::endgroup::"
+Write-Host "::endgroup::"
