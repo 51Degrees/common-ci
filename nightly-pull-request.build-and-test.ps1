@@ -1,19 +1,13 @@
 param (
-    [Parameter(Mandatory=$true)]
-    [string]$RepoName,
-    [Parameter(Mandatory=$true)]
-    [string]$OrgName,
+    [Parameter(Mandatory)][string]$RepoName,
+    [Parameter(Mandatory)][string]$OrgName,
+    [Parameter(Mandatory)][string]$GitHubToken,
+    [Parameter(Mandatory)][string]$GitHubOutput,
+    [Parameter(Mandatory)][string]$PullRequestId,
+    [Parameter(Mandatory)][hashtable]$Options,
     [string]$Branch = "main",
-    [Parameter(Mandatory=$true)]
-    [string]$GitHubToken,
     [string]$GitHubUser,
     [string]$GitHubEmail,
-    [Parameter(Mandatory=$true)]
-    [string]$GitHubOutput,
-    [Parameter(Mandatory=$true)]
-    [string]$PullRequestId,
-    [Parameter(Mandatory=$true)]
-    [hashtable]$Options,
     [bool]$DryRun
 )
 $ErrorActionPreference = "Stop"
@@ -23,44 +17,49 @@ if ($Options.Keys) {
     $Options += $Options.Keys # Expand keys into options
 }
 
-Write-Output "::group::Configure Git"
+Write-Host "::group::Configure Git"
 ./steps/configure-git.ps1 -GitHubToken $GitHubToken -GitHubUser $GitHubUser -GitHubEmail $GitHubEmail
-Write-Output "::endgroup::"
+Write-Host "::endgroup::"
 
-Write-Output "::group::Clone $RepoName"
+Write-Host "::group::Clone $RepoName"
 ./steps/clone-repo.ps1 -RepoName $RepoName -OrgName $OrgName -Branch $Branch
-Write-Output "::endgroup::"
+Write-Host "::endgroup::"
 
-Write-Output "::group::Checkout PR"
+Write-Host "::group::Checkout PR"
 ./steps/checkout-pr.ps1 -RepoName $RepoName -Branch $Branch -PullRequestId $PullRequestId -SetVariable PullRequestSha
-Write-Output "pr-sha=$PullRequestSha" | Out-File $GitHubOutput -Append
-Write-Output "::endgroup::"
+Write-Host "pr-sha=$PullRequestSha" | Out-File $GitHubOutput -Append
+Write-Host "::endgroup::"
 
-Write-Output "::group::Fetch Assets"
+if ($Options.CI) {
+    & "./$RepoName/$($Options.CI)/build-and-test.ps1" @Options
+    exit
+}
+
+Write-Host "::group::Fetch Assets"
 ./steps/run-script.ps1 ./$RepoName/ci/fetch-assets.ps1 $Options
-Write-Output "::endgroup::"
+Write-Host "::endgroup::"
 
-Write-Output "::group::Setup Environment"
+Write-Host "::group::Setup Environment"
 ./steps/run-script.ps1 ./$RepoName/ci/setup-environment.ps1 $Options
-Write-Output "::endgroup::"
+Write-Host "::endgroup::"
 
-Write-Output "::group::Build Project"
+Write-Host "::group::Build Project"
 ./steps/run-script.ps1 ./$RepoName/ci/build-project.ps1 $Options
-Write-Output "::endgroup::"
+Write-Host "::endgroup::"
 
-Write-Output "::group::Run Unit Tests"
+Write-Host "::group::Run Unit Tests"
 ./steps/run-script.ps1 ./$RepoName/ci/run-unit-tests.ps1 $Options
-Write-Output "::endgroup::"
+Write-Host "::endgroup::"
 
-Write-Output "::group::Run Integration Tests"
+Write-Host "::group::Run Integration Tests"
 ./steps/run-script.ps1 ./$RepoName/ci/run-integration-tests.ps1 $Options
-Write-Output "::endgroup::"
+Write-Host "::endgroup::"
 
 if ($Options.RunPerformance -eq $True) {
-    Write-Output "::group::Run Performance Tests"
+    Write-Host "::group::Run Performance Tests"
     ./steps/run-script.ps1 ./$RepoName/ci/run-performance-tests.ps1 $Options
-    Write-Output "::endgroup::"
+    Write-Host "::endgroup::"
 }
 else {
-    Write-Output "Skipping performance tests as they are not configured for '$($Options.Name)'"
+    Write-Host "Skipping performance tests as they are not configured for '$($Options.Name)'"
 }
