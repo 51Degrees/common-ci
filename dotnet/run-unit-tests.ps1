@@ -32,12 +32,15 @@ try {
     Write-Output "BuildMethod: $BuildMethod"
     Write-Output "Initial ok value: $($script:ok)"
     Write-Output "Initial LASTEXITCODE: $LASTEXITCODE"
-    
+
     # Reset LASTEXITCODE to ensure clean state
     $LASTEXITCODE = 0
     if ($BuildMethod -eq "dotnet"){
         Write-Output "[dotnet] => Looking for '$Filter' in directories like '$DirNameFormatForDotnet'"
+
         $PlatformParams = $SkipPlatformArgs ? @() : @("-p:Platform=$Arch")
+        $testRunsettings = [IO.Path]::Exists('test.runsettings') ? '--settings', 'test.runsettings' : $null
+
         foreach ($NextFile in (Get-ChildItem -Path $RepoPath -Recurse -File)) {
             $NextDirName = $NextFile.DirectoryName
             $NextFileName = $NextFile.Name
@@ -54,6 +57,7 @@ try {
                     --no-build `
                     --configuration $Configuration `
                     @PlatformParams `
+                    @testRunsettings `
                     --results-directory $TestResultPath `
                     --blame-crash --blame-hang-timeout $BlameHangTimeout -l "trx" $verbose
                 Write-Output "dotnet test LastExitCode=$LASTEXITCODE"
