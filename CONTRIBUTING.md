@@ -111,9 +111,11 @@ Pull requests should be made into the `main` branch on GitHub.
 
 ## Merging Policy
 
-PRs created by members of the 51Degrees team will automatically be tested and completed by CI. As will those created by collaborators.
+The merging policy should adhere to the following rules: 
+- All PRs created by a 51degrees contributor should require review and approval from a trusted 51Degrees contributor or 51degrees Engineering member.
+- All PRs created by a Github Workflow should be automatically tested and merged *without* need for review.
 
-PRs created by external users will need approval from a 51Degrees user before the automation will be carried out. This will be assessed weekly.
+The implementation of the merge policy currently exists in [Get-pull-requests.ps1](https://github.com/51Degrees/common-ci/blob/main/steps/get-pull-requests.ps1#L62) and should reflect the rules above. 
 
 ## Pull Request Message
 
