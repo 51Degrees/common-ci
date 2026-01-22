@@ -23,12 +23,6 @@ Write-Host "::group::Clone $RepoName"
 ./steps/clone-repo.ps1 -RepoName $RepoName -OrgName $OrgName -Branch $Branch
 Write-Host "::endgroup::"
 
-Write-Host $Options
-if ($Options.CI) {
-    & "./$RepoName/$($Options.CI)/build.ps1" @Options
-    exit
-}
-
 Write-Host "::group::Build Package"
 ./steps/run-script.ps1 ./$RepoName/ci/build-package.ps1 $Options
 Write-Host "::endgroup::"

@@ -25,17 +25,13 @@ Write-Host "::group::Clone $RepoName"
 Write-Host "::endgroup::"
 
 if ($Branch -ceq "main" -or $Branch -clike "version/*") {
-    if ($Options.CI) {
-        & "./$RepoName/$($Options.CI)/publish.ps1" @Options
-    } else {
-        Write-Host "::group::Install Package From Artifact"
-        ./steps/run-script.ps1 ./$RepoName/ci/install-package.ps1 $Options
-        Write-Host "::endgroup::"
+    Write-Host "::group::Install Package From Artifact"
+    ./steps/run-script.ps1 ./$RepoName/ci/install-package.ps1 $Options
+    Write-Host "::endgroup::"
 
-        Write-Host "::group::Publish Packages"
-        ./steps/run-script.ps1 ./$RepoName/ci/publish-package.ps1 $Options
-        Write-Host "::endgroup::"
-    }
+    Write-Host "::group::Publish Packages"
+    ./steps/run-script.ps1 ./$RepoName/ci/publish-package.ps1 $Options
+    Write-Host "::endgroup::"
 } else {
     Write-Host "Not on the main branch, skipping publishing"
 }
