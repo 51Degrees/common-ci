@@ -24,7 +24,7 @@ Write-Host "::group::Clone $RepoName"
 ./steps/clone-repo.ps1 -RepoName $RepoName -OrgName $OrgName -Branch $Branch
 Write-Host "::endgroup::"
 
-if ($Branch -ceq "main" -or $Branch -clike "version/*") {
+if ($Branch -ceq "main" -or $Branch -clike "version/*" -or $Branch -eq "pearl-api-ci") { # TODO: remove pearl-api-ci
     Write-Host "::group::Install Package From Artifact"
     ./steps/run-script.ps1 ./$RepoName/ci/install-package.ps1 $Options
     Write-Host "::endgroup::"
