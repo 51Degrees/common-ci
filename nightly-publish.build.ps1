@@ -15,19 +15,20 @@ if ($Options.Keys) {
     $Options += $Options.Keys # Expand keys into options
 }
 
-Write-Output "::group::Configure Git"
+Write-Host "::group::Configure Git"
 ./steps/configure-git.ps1 -GitHubToken $GitHubToken -GitHubUser $GitHubUser -GitHubEmail $GitHubEmail
-Write-Output "::endgroup::"
+Write-Host "::endgroup::"
 
-Write-Output "::group::Clone $RepoName"
+Write-Host "::group::Clone $RepoName"
 ./steps/clone-repo.ps1 -RepoName $RepoName -OrgName $OrgName -Branch $Branch
-Write-Output "::endgroup::"
+Write-Host "::endgroup::"
 
+Write-Host $Options
 if ($Options.CI) {
     & "./$RepoName/$($Options.CI)/build.ps1" @Options
     exit
 }
 
-Write-Output "::group::Build Package"
+Write-Host "::group::Build Package"
 ./steps/run-script.ps1 ./$RepoName/ci/build-package.ps1 $Options
-Write-Output "::endgroup::"
+Write-Host "::endgroup::"
