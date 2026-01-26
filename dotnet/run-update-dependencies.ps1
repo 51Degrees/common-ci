@@ -17,8 +17,7 @@ $RepoPath = [IO.Path]::Combine($pwd, $RepoName)
 Write-Output "Entering '$RepoPath'"
 Push-Location $RepoPath
 
-$FailuresOnListOutdated = @()
-$FailuresOnModify = @()
+$Failures = @()
 $LastFailCode = 0
 
 try {
@@ -43,7 +42,10 @@ try {
                 Write-Warning "⚠️ LASTEXITCODE = $LASTEXITCODE"
                 $LastFailCode = $LASTEXITCODE
             }
-            $FailuresOnListOutdated += $ProjectFile.FullName
+            $Failures += [PSCustomObject]@{
+                Path = $ProjectFile.FullName
+                Message = "Failed to list outdated packages"
+            }
             continue
         }
         if ($LASTEXITCODE -ne 0) {
@@ -135,7 +137,10 @@ try {
                 if ($LASTEXITCODE -ne 0) {
                     Write-Warning "⚠️ LASTEXITCODE = $LASTEXITCODE"
                     $LastFailCode = $LASTEXITCODE
-                    $FailuresOnModify += "$ProjectFilePath -- remove $PackageId -- exit code $LASTEXITCODE"
+                    $Failures += [PSCustomObject]@{
+                        Path = $ProjectFilePath
+                        Message = "remove $PackageId -- exit code $LASTEXITCODE"
+                    }
                 }
                 $PackageVersionUpdates = $ProjectFileUpdates[$PackageId]
                 foreach ($NextFramework in $PackageVersionUpdates.keys) {
@@ -146,7 +151,10 @@ try {
                     if ($LASTEXITCODE -ne 0) {
                         Write-Warning "⚠️ LASTEXITCODE = $LASTEXITCODE"
                         $LastFailCode = $LASTEXITCODE
-                        $FailuresOnModify += "$ProjectFilePath -- add $PackageId -v ${$NextPackageUpdate.Latest}  -- exit code $LASTEXITCODE"
+                        $Failures += [PSCustomObject]@{
+                            Path = $ProjectFilePath
+                            Message = "add $PackageId -v $($NextPackageUpdate.Latest) -- exit code $LASTEXITCODE"
+                        }
                     }
                 }
             }
@@ -161,17 +169,27 @@ finally {
 
 }
 
-if ($FailuresOnListOutdated.Length -gt 0) {
-    Write-Warning "Failures to list outdated packages:"
-    foreach ($NextFailure in $FailuresOnListOutdated) {
-        Write-Warning "- ⚠️ $NextFailure"
-    }
-}
-if ($FailuresOnModify.Length -gt 0) {
-    Write-Warning "Failures to modify projects:"
-    foreach ($NextFailure in $FailuresOnModify) {
-        Write-Warning "- ⚠️ $NextFailure"
+$LastNonRestoreCode = $LASTEXITCODE
+
+if ($Failures.Length -gt 0) {
+    Write-Warning "Failures during package operations:"
+    foreach ($NextFailure in $Failures) {
+        Write-Warning "- ⚠️ $($NextFailure.Path) -- $($NextFailure.Message)"
     }
 }
 
-exit ($LASTEXITCODE -ne 0) ? $LASTEXITCODE : $LastFailCode
+# Attempt to restore projects that had failures
+Write-Output "Attempting to restore projects with failures..."
+
+# Process all failures
+foreach ($Failure in $Failures) {
+    Write-Output "Attempting to restore: $($Failure.Path)"
+    dotnet restore $Failure.Path
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "❌ $($Failure.Path) -- Re-restore failed with exit code $LASTEXITCODE"
+        exit $LASTEXITCODE
+    }
+}
+
+# If we get here, no restore failures occurred, so use the original exit code logic
+exit ($LastNonRestoreCode -ne 0) ? $LastNonRestoreCode : $LastFailCode
