@@ -14,8 +14,8 @@ $PSNativeCommandUseErrorActionPreference = $true
 
 Write-Host "Waiting for the server..."
 $devNull = $IsWindows ? 'nul' : '/dev/null'
-# with the default backoff algorithm 5 retries should take approximately 30s
-curl -sS -o $devNull --retry 5 --retry-connrefused "$HostPort$CalibrateEndpoint"
+# with the default backoff algorithm 6 retries should take approximately 1m
+curl -sS -o $devNull --retry 6 --retry-connrefused "$HostPort$CalibrateEndpoint"
 
 $uas = Get-Content $UaFile
 $xStockDevice = "Device-Stock-UA", "X-Device-User-Agent", "X-OperaMini-Phone-UA"
