@@ -95,7 +95,8 @@ jobs:
           KEY: ${{ toJSON(secrets) }}
         run: |
           $sha1 = [Security.Cryptography.SHA1Managed]::new()
-          $hash = [Convert]::ToHexString($sha1.ComputeHash([Text.Encoding]::Utf8.GetBytes($env:KEY)))
+          $key = ($env:KEY | ConvertFrom-Json -AsHashtable).Values | Sort-Object | Join-String -Separator `0
+          $hash = [Convert]::ToHexString($sha1.ComputeHash([Text.Encoding]::Utf8.GetBytes($key)))
           "hash=$(Get-Date -Format FileDate)-$hash" | Out-File $env:GITHUB_OUTPUT -Append
 
       - name: Configure
