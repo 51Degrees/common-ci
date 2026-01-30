@@ -7,6 +7,7 @@ param (
     [switch]$FullCsv
 )
 $ErrorActionPreference = "Stop"
+$PSNativeCommandUseErrorActionPreference = $true
 
 $cache = New-Item -ItemType Directory -Path assets -Force
 
@@ -22,7 +23,7 @@ foreach ($asset in $Assets) {
             Move-Item -Path $_ -Destination $cache
         }
         "51Degrees-LiteV4.1.hash" {
-            Invoke-WebRequest -Uri "https://github.com/51Degrees/device-detection-data/raw/main/51Degrees-LiteV4.1.hash" -OutFile $cache/$_
+            curl -Lo $cache/$_ "https://github.com/51Degrees/device-detection-data/raw/main/51Degrees-LiteV4.1.hash"
         }
         "51Degrees-EnterpriseIpiV41.ipi" {
             # Only uses URL because IPI doesn't support specifying DataType and Product for now
@@ -40,10 +41,10 @@ foreach ($asset in $Assets) {
 
         }
         "20000 Evidence Records.yml" {
-            Invoke-WebRequest -Uri "https://media.githubusercontent.com/media/51Degrees/device-detection-data/main/20000%20Evidence%20Records.yml" -OutFile $cache/$_
+            curl -Lo $cache/$_ "https://media.githubusercontent.com/media/51Degrees/device-detection-data/main/20000%20Evidence%20Records.yml"
         }
         "20000 User Agents.csv" {
-            Invoke-WebRequest -Uri "https://media.githubusercontent.com/media/51Degrees/device-detection-data/main/20000%20User%20Agents.csv" -OutFile $cache/$_
+            curl -Lo $cache/$_ "https://media.githubusercontent.com/media/51Degrees/device-detection-data/main/20000%20User%20Agents.csv"
         }
         "51Degrees.csv" {
             & $PSScriptRoot/download-data-file.ps1 -LicenseKey:$DeviceDetection -DataType 'CSV' -Product 'V4TAC' -Url:$CsvUrl -FullFilePath "$_.zip"
