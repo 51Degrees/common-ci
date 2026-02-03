@@ -1,0 +1,6 @@
+$SubModuleUpdateBranch = "nightly-submodule-update"
+$PackageUpdateBranch = "nightly-package-update"
+$PropertiesUpdateBranch = "property-update"
+$CopyrightUpdateBranch = "copyright-update"
+$DefaultGitUser = "Automation51D"
+$DefaultGitEmail = "CI@51Degrees.com"
