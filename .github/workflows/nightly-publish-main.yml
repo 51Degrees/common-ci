@@ -163,6 +163,7 @@ jobs:
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
           $Options = $(ConvertFrom-Json -AsHashtable '${{ toJSON(matrix.options) }}')
           $Options.Add("Keys", $(ConvertFrom-Json -AsHashtable $env:SECRETS))
+          $Options.Add("Version", "${{ needs.configure.outputs.version }}")
           ./nightly-publish.prebuild.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
