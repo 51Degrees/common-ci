@@ -104,6 +104,7 @@ jobs:
     needs: GetPullRequests
     strategy:
       fail-fast: false
+      max-parallel: 1 # run each PR sequentially
       matrix:
         id: ${{ fromJSON(needs.GetPullRequests.outputs.pull_request_ids) }}
     name: Nightly PR - ${{ matrix.id }}
