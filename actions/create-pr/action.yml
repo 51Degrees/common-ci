@@ -1,0 +1,26 @@
+name: Create PR
+inputs:
+  title:
+    type: string
+    required: true
+  to:
+    type: string
+    default: ''
+  force:
+    type: boolean
+    default: false
+  token:
+    type: string
+    default: ${{ github.token }}
+runs:
+  using: "composite"
+  steps:
+    - shell: pwsh
+      env:
+        action_path: ${{ github.action_path }}
+        title: ${{ inputs.title }}
+        to: ${{ inputs.to }}
+        force: ${{ inputs.force }}
+        gh_token: ${{ inputs.token }}
+      run: . $env:action_path/create-pr.ps1
+
