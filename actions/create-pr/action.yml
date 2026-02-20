@@ -1,0 +1,36 @@
+name: Create PR
+inputs:
+  title:
+    type: string
+    required: true
+  to:
+    type: string
+    default: ''
+  force:
+    type: boolean
+    default: false
+  token:
+    type: string
+    default: ${{ github.token }}
+runs:
+  using: "composite"
+  steps:
+    - env:
+        TITLE: ${{ inputs.title }}
+        TO: ${{ inputs.to }}
+        FORCE: ${{ inputs.force && 'y' || '' }}
+        GH_TOKEN: ${{ inputs.token }}
+      run: |
+        set -x
+        status=$(git status --porcelain)
+        : $"Changes:\n$status"
+        [[ $status ]] || exit 0 # no changes
+
+        git -c 'user.name=github-actions[bot]' -c 'user.email=41898282+github-actions[bot]@users.noreply.github.com' commit -am "$TITLE"
+        git push ${FORCE:+--force-with-lease} origin HEAD
+
+        from=$(git branch --show-current)
+        [[ $TO ]] || TO=$(git rev-parse --abbrev-ref origin/HEAD | cut -d/ -f2-)
+        prs=$(gh pr list -H "$from" -B "$TO" --json number --jq length)
+        [[ $prs != 0 ]] || gh pr create -H "$from" -B "$TO" -t "$TITLE" -b "$TITLE"
+
