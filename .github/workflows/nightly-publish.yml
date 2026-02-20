@@ -68,6 +68,9 @@ on:
       TestResourceKey:
       TestSuperResourceKey:
       UsePublishTests:
+      WordpressSvnUrl:
+      WordpressSvnUser:
+      WordpressSvnPassword:
       DockerPassword:
       DockerContainer:
       DockerRegistry:
