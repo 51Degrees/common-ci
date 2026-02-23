@@ -35,10 +35,3 @@ runs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ inputs.version }}
-
-    # Used as a cross-compiler for C/C++ to target older glibc versions
-    - name: Install Zig
-      if: inputs.language == 'zig'
-      uses: mlugg/setup-zig@v1
-      with:
-        version: ${{ inputs.version }}
