@@ -24,6 +24,7 @@ runs:
       uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ inputs.version }}
+        coverage: none # we don't use it, and Xdebug conflicts with JIT that we need in some repos
         tools: phpunit:9.6.22
     - name: Install Go
       if: inputs.language == 'go'
