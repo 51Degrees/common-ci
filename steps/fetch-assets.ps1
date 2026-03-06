@@ -59,6 +59,9 @@ foreach ($asset in $Assets) {
         "51Degrees-Tac.zip" {  # same as the CSV above, without extracting
             & $PSScriptRoot/download-data-file.ps1 -LicenseKey:$DeviceDetection -DataType 'CSV' -Product 'V4TAC' -Url:$CsvUrl -FullFilePath "$cache/$_"
         }
+        "ip-intelligence-evidence.yml" {
+            curl -Lo $cache/$_ "https://raw.githubusercontent.com/51Degrees/ip-intelligence-data/main/evidence.yml"
+        }
         default { Write-Error "Unknown asset: $_" }
     }
 }
