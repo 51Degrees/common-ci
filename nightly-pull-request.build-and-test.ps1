@@ -8,7 +8,8 @@ param (
     [string]$Branch = "main",
     [string]$GitHubUser,
     [string]$GitHubEmail,
-    [bool]$DryRun
+    [bool]$DryRun,
+    [bool]$SkipLiteTests
 )
 $ErrorActionPreference = "Stop"
 

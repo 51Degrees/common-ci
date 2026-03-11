@@ -36,6 +36,9 @@ on:
       skip-compare-performance:
         type: boolean
         default: false
+      skip-lite-tests:
+        type: boolean
+        default: false
     secrets:
       token:
         required: true
@@ -150,6 +153,7 @@ jobs:
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
           $Options = $(ConvertFrom-Json -AsHashtable '${{ toJSON(matrix.options) }}')
           $Options.Add("Keys", $(ConvertFrom-Json -AsHashtable $env:SECRETS))
+          $SkipLiteTests = [bool]::Parse("${{ inputs.skip-lite-tests }}")
           ./nightly-pull-request.build-and-test.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
@@ -160,7 +164,8 @@ jobs:
           -Options $Options `
           -GitHubUser ${{ inputs.user }} `
           -GitHubEmail ${{ inputs.email }} `
-          -DryRun $DryRun
+          -DryRun $DryRun `
+          -SkipLiteTests $SkipLiteTests
 
       - name: Save Asset Cache
         if: inputs.cache-assets && always()
