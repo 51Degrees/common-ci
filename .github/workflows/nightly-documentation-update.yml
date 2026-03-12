@@ -43,7 +43,7 @@ jobs:
     if: ${{ github.ref_name == 'main' }} # main only, for now
     steps:
       - name: Checkout Common
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ inputs.org-name }}/common-ci
           path: common

@@ -85,7 +85,7 @@ jobs:
       asset_cache_key: ${{ steps.hash_asset_cache_key.outputs.hash }}
     steps:
       - name: Checkout Common
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ inputs.org-name }}/common-ci
           path: common
@@ -125,7 +125,7 @@ jobs:
     timeout-minutes: ${{ inputs.build-test-timeout-minutes }}
     steps:
       - name: Checkout Common
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ inputs.org-name }}/common-ci
           path: common
@@ -140,7 +140,7 @@ jobs:
 
       - name: Restore Asset Cache
         if: inputs.cache-assets
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           key: ${{ needs.configure.outputs.asset_cache_key }}
           path: ${{ github.workspace }}/common/assets
@@ -169,7 +169,7 @@ jobs:
 
       - name: Save Asset Cache
         if: inputs.cache-assets && always()
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           key: ${{ needs.configure.outputs.asset_cache_key }}
           path: ${{ github.workspace }}/common/assets
@@ -184,7 +184,7 @@ jobs:
           skip-performance: ${{ !matrix.options.runperformance }}
 
       - name: Upload Performance Results Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: ${{ matrix.options.runperformance }}
         with:
           name: performance_results-${{ inputs.pull-request-id }}-${{ matrix.options.name }}
@@ -193,7 +193,7 @@ jobs:
           include-hidden-files: true
 
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: artifacts-${{ inputs.pull-request-id }}-${{ matrix.options.name }}
           path: ${{ github.workspace }}/common/${{ inputs.repo-name }}/artifacts/*
@@ -208,14 +208,14 @@ jobs:
     name: Compare Performance - ${{ inputs.pull-request-id }}
     steps:
       - name: Checkout Common
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ inputs.org-name }}/common-ci
           path: common
           ref: ${{ inputs.common-ci-ref }}
 
       - name: Download Performance Results Artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         continue-on-error: true
         with:
           pattern: performance_results-${{ inputs.pull-request-id }}-*
@@ -249,7 +249,7 @@ jobs:
       (needs.ComparePerformance.result == 'success' || needs.ComparePerformance.result == 'skipped')
     steps:
       - name: Checkout Common
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ inputs.org-name }}/common-ci
           path: common

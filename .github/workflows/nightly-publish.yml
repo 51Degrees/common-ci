@@ -93,7 +93,7 @@ jobs:
       update_required: ${{ steps.configure.outputs.update_required }}
     steps:
       - name: Checkout Common
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ inputs.org-name }}/common-ci
           path: common
@@ -141,7 +141,7 @@ jobs:
     runs-on: ${{ matrix.options.image }}
     steps:
       - name: Checkout Common
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         if: ${{ matrix.options.packagerequirement }}
         with:
           repository: ${{ inputs.org-name }}/common-ci
@@ -174,7 +174,7 @@ jobs:
           -DryRun $DryRun
 
       - name: Upload Package Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: ${{ success() && matrix.options.packagerequirement }}
         with:
           name: package_${{ matrix.options.name }}
@@ -188,7 +188,7 @@ jobs:
     needs: [ PreBuild, Configure ]
     steps:
       - name: Checkout Common
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ inputs.org-name }}/common-ci
           path: common
@@ -196,7 +196,7 @@ jobs:
 
       - name: Download Package Artifacts
         if: ${{ success() }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: ${{ github.workspace }}/common/package-files
 
@@ -219,7 +219,7 @@ jobs:
           -DryRun $DryRun
 
       - name: Upload Package Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: ${{ success() }}
         with:
           name: package
@@ -240,7 +240,7 @@ jobs:
     steps:
       - name: Checkout Common
         if: ${{ matrix.options.packagerequirement }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ inputs.org-name }}/common-ci
           path: common
@@ -248,7 +248,7 @@ jobs:
 
       - name: Download Package Artifact
         if: ${{ success() && matrix.options.packagerequirement }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: package
           path: ${{ github.workspace }}/common/package
@@ -262,7 +262,7 @@ jobs:
 
       - name: Restore Asset Cache
         if: inputs.cache-assets
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           key: ${{ needs.configure.outputs.asset_cache_key }}
           path: ${{ github.workspace }}/common/assets
@@ -287,13 +287,13 @@ jobs:
 
       - name: Save Asset Cache
         if: inputs.cache-assets && always()
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         with:
           key: ${{ needs.configure.outputs.asset_cache_key }}
           path: ${{ github.workspace }}/common/assets
 
       - name: Upload Performance Results Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: ${{ matrix.options.RunPerformance }}
         with:
           name: performance_results-publish-${{ matrix.options.name }}
@@ -314,14 +314,14 @@ jobs:
     needs: [Configure, Test]
     steps:
       - name: Checkout Common
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ inputs.org-name }}/common-ci
           path: common
           ref: ${{ inputs.common-ci-ref }}
 
       - name: Download Performance Results Artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: performance_results-publish-*
           path: ${{ github.workspace }}/common
@@ -348,7 +348,7 @@ jobs:
           "name=" + $env:GITHUB_REF_NAME -replace '[":<>|*?/\\\r\n]', '-' | Out-File $env:GITHUB_OUTPUT -Append
 
       - name: Upload Performance Results Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: publish_performance_results@${{ steps.escape_branch.outputs.name }} # https://github.com/actions/upload-artifact/issues/22
           path: ${{ github.workspace }}/common/results_*.json
@@ -364,7 +364,7 @@ jobs:
       (needs.ComparePerformance.result == 'success' || needs.ComparePerformance.result == 'skipped')
     steps:
       - name: Checkout Common
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ inputs.org-name }}/common-ci
           path: common
@@ -372,7 +372,7 @@ jobs:
 
       - name: Download Package Artifact
         if: ${{ success() }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: package
           path: ${{ github.workspace }}/common/package

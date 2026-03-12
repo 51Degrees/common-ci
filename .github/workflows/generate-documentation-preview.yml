@@ -40,10 +40,10 @@ jobs:
 
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         
       - name: Checkout reusable workflow dir
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: ${{ inputs.org-name }}/common-ci
           path: common
@@ -63,7 +63,7 @@ jobs:
           -SeparateExamples $SeparateExamples
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: docs_${{ inputs.pull-request-id }}
           path: ${{ github.workspace }}/common/${{ inputs.repo-name }}/*

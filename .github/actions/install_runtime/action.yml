@@ -11,12 +11,12 @@ runs:
   steps:
     - name: Install Python
       if: inputs.language == 'python'
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ inputs.version }}
     - name: Install Node
       if: inputs.language == 'node'
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
         node-version: ${{ inputs.version }}
     - name: Install PHP
@@ -28,11 +28,11 @@ runs:
         tools: phpunit:9.6.22
     - name: Install Go
       if: inputs.language == 'go'
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version: ${{ inputs.version }}
     - name: Install Dotnet
       if: inputs.language == 'dotnet'
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v5
       with:
         dotnet-version: ${{ inputs.version }}
