@@ -191,6 +191,7 @@ jobs:
         if: ${{ success() }}
         uses: actions/download-artifact@v8
         with:
+          pattern: package_*
           path: ${{ github.workspace }}/package-files
 
       - name: Build
