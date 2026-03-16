@@ -22,6 +22,15 @@ Write-Host "::group::Configure Git"
 ./steps/configure-git.ps1 -GitHubToken $GitHubToken -GitHubUser $GitHubUser -GitHubEmail $GitHubEmail
 Write-Host "::endgroup::"
 
+# On Windows, map the workspace to a short drive letter to avoid MAX_PATH (260 char)
+# issues with deeply nested build output paths (e.g. native DLL loading failures).
+if ($IsWindows) {
+    $WorkspacePath = (Get-Location).Path
+    Write-Host "Mapping '$WorkspacePath' to W:\ to shorten paths"
+    subst W: $WorkspacePath
+    Set-Location W:\
+}
+
 Write-Host "::group::Clone $RepoName"
 ./steps/clone-repo.ps1 -RepoName $RepoName -OrgName $OrgName -Branch $Branch
 Write-Host "::endgroup::"
