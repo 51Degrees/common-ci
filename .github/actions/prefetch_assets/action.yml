@@ -37,8 +37,11 @@ runs:
           repo: ${{ inputs.repo }}
           secrets:  ${{ inputs.secrets }}
         run: |
-          $secrets = $env:secrets | ConvertFrom-Json -AsHashtable
-          & "$env:repo/ci/fetch-assets.ps1" @secrets
+          $ErrorActionPreference = 'Stop'
+          $accepted = (Get-Command "$env:repo/ci/fetch-assets.ps1").Parameters
+          $params = @{}
+          ($env:secrets | ConvertFrom-Json -AsHashtable).GetEnumerator().Where({$accepted.ContainsKey($_.Key)}).ForEach({$params[$_.Key]=$_.Value})
+          & "$env:repo/ci/fetch-assets.ps1" @params
 
       - name: Cache assets
         if: steps.prefetch-assets.conclusion == 'success'
