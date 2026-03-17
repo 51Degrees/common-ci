@@ -37,6 +37,9 @@ on:
       skip-compare-performance:
         type: boolean
         default: false
+      skip-lite-tests:
+        type: boolean
+        default: false
     secrets:
       token:
         required: true
@@ -107,6 +110,8 @@ jobs:
     needs: GetPullRequests
     strategy:
       fail-fast: false
+      continue-on-error: true
+      max-parallel: 1 # run each PR sequentially
       matrix:
         id: ${{ fromJSON(needs.GetPullRequests.outputs.pull_request_ids) }}
     name: Nightly PR - ${{ matrix.id }}
@@ -123,4 +128,5 @@ jobs:
       branch: ${{ inputs.branch }}
       build-test-timeout-minutes: ${{ inputs.build-test-timeout-minutes }}
       skip-compare-performance: ${{ inputs.skip-compare-performance }}
+      skip-lite-tests: ${{ inputs.skip-lite-tests }}
     secrets: inherit
