@@ -38,10 +38,10 @@ runs:
         commit: ${{ inputs.commit }}
         action_fail: true
         files: |
-          common/${{ inputs.repo-name }}/test-results/unit/**/*.xml
-          !common/${{ inputs.repo-name }}/test-results/unit/**/*Sequence*.xml
-          common/${{ inputs.repo-name }}/test-results/unit/**/*.trx
-          common/${{ inputs.repo-name }}/test-results/unit/**/*.json
+          ${{ inputs.repo-name }}/test-results/unit/**/*.xml
+          !${{ inputs.repo-name }}/test-results/unit/**/*Sequence*.xml
+          ${{ inputs.repo-name }}/test-results/unit/**/*.trx
+          ${{ inputs.repo-name }}/test-results/unit/**/*.json
 
     - name: Unit Test Results
       uses: EnricoMi/publish-unit-test-result-action/windows@v2
@@ -51,10 +51,10 @@ runs:
         commit: ${{ inputs.commit }}
         action_fail: true
         files: |
-          common/${{ inputs.repo-name }}/test-results/unit/**/*.xml
-          !common/${{ inputs.repo-name }}/test-results/unit/**/*Sequence*.xml
-          common/${{ inputs.repo-name }}/test-results/unit/**/*.trx
-          common/${{ inputs.repo-name }}/test-results/unit/**/*.json
+          ${{ inputs.repo-name }}/test-results/unit/**/*.xml
+          !${{ inputs.repo-name }}/test-results/unit/**/*Sequence*.xml
+          ${{ inputs.repo-name }}/test-results/unit/**/*.trx
+          ${{ inputs.repo-name }}/test-results/unit/**/*.json
 
     - name: Unit Test Results
       uses: EnricoMi/publish-unit-test-result-action/macos@v2
@@ -64,10 +64,10 @@ runs:
         commit: ${{ inputs.commit }}
         action_fail: true
         files: |
-          common/${{ inputs.repo-name }}/test-results/unit/**/*.xml
-          !common/${{ inputs.repo-name }}/test-results/unit/**/*Sequence*.xml
-          common/${{ inputs.repo-name }}/test-results/unit/**/*.trx
-          common/${{ inputs.repo-name }}/test-results/unit/**/*.json
+          ${{ inputs.repo-name }}/test-results/unit/**/*.xml
+          !${{ inputs.repo-name }}/test-results/unit/**/*Sequence*.xml
+          ${{ inputs.repo-name }}/test-results/unit/**/*.trx
+          ${{ inputs.repo-name }}/test-results/unit/**/*.json
 
     # Integration
     - name: Integration Test Results
@@ -78,10 +78,10 @@ runs:
         commit: ${{ inputs.commit }}
         action_fail: true
         files: |
-          common/${{ inputs.repo-name }}/test-results/integration/**/*.xml
-          !common/${{ inputs.repo-name }}/test-results/integration/**/*Sequence*.xml
-          common/${{ inputs.repo-name }}/test-results/integration/**/*.trx
-          common/${{ inputs.repo-name }}/test-results/integration/**/*.json
+          ${{ inputs.repo-name }}/test-results/integration/**/*.xml
+          !${{ inputs.repo-name }}/test-results/integration/**/*Sequence*.xml
+          ${{ inputs.repo-name }}/test-results/integration/**/*.trx
+          ${{ inputs.repo-name }}/test-results/integration/**/*.json
 
     - name: Integration Test Results
       uses: EnricoMi/publish-unit-test-result-action/windows@v2
@@ -91,10 +91,10 @@ runs:
         commit: ${{ inputs.commit }}
         action_fail: true
         files: |
-          common/${{ inputs.repo-name }}/test-results/integration/**/*.xml
-          !common/${{ inputs.repo-name }}/test-results/integration/**/*Sequence*.xml
-          common/${{ inputs.repo-name }}/test-results/integration/**/*.trx
-          common/${{ inputs.repo-name }}/test-results/integration/**/*.json
+          ${{ inputs.repo-name }}/test-results/integration/**/*.xml
+          !${{ inputs.repo-name }}/test-results/integration/**/*Sequence*.xml
+          ${{ inputs.repo-name }}/test-results/integration/**/*.trx
+          ${{ inputs.repo-name }}/test-results/integration/**/*.json
 
     - name: Integration Test Results
       uses: EnricoMi/publish-unit-test-result-action/macos@v2
@@ -104,10 +104,10 @@ runs:
         commit: ${{ inputs.commit }}
         action_fail: true
         files: |
-          common/${{ inputs.repo-name }}/test-results/integration/**/*.xml
-          !common/${{ inputs.repo-name }}/test-results/integration/**/*Sequence*.xml
-          common/${{ inputs.repo-name }}/test-results/integration/**/*.trx
-          common/${{ inputs.repo-name }}/test-results/integration/**/*.json
+          ${{ inputs.repo-name }}/test-results/integration/**/*.xml
+          !${{ inputs.repo-name }}/test-results/integration/**/*Sequence*.xml
+          ${{ inputs.repo-name }}/test-results/integration/**/*.trx
+          ${{ inputs.repo-name }}/test-results/integration/**/*.json
 
     # Performance
     - name: Performance Test Results
@@ -118,10 +118,10 @@ runs:
         commit: ${{ inputs.commit }}
         action_fail: true
         files: |
-          common/${{ inputs.repo-name }}/test-results/performance/**/*.xml
-          !common/${{ inputs.repo-name }}/test-results/performance/**/*Sequence*.xml
-          common/${{ inputs.repo-name }}/test-results/performance/**/*.trx
-          common/${{ inputs.repo-name }}/test-results/performance/**/*.json
+          ${{ inputs.repo-name }}/test-results/performance/**/*.xml
+          !${{ inputs.repo-name }}/test-results/performance/**/*Sequence*.xml
+          ${{ inputs.repo-name }}/test-results/performance/**/*.trx
+          ${{ inputs.repo-name }}/test-results/performance/**/*.json
 
     - name: Performance Test Results
       uses: EnricoMi/publish-unit-test-result-action/windows@v2
@@ -131,10 +131,10 @@ runs:
         commit: ${{ inputs.commit }}
         action_fail: true
         files: |
-          common/${{ inputs.repo-name }}/test-results/performance/**/*.xml
-          !common/${{ inputs.repo-name }}/test-results/performance/**/*Sequence*.xml
-          common/${{ inputs.repo-name }}/test-results/performance/**/*.trx
-          common/${{ inputs.repo-name }}/test-results/performance/**/*.json
+          ${{ inputs.repo-name }}/test-results/performance/**/*.xml
+          !${{ inputs.repo-name }}/test-results/performance/**/*Sequence*.xml
+          ${{ inputs.repo-name }}/test-results/performance/**/*.trx
+          ${{ inputs.repo-name }}/test-results/performance/**/*.json
 
     - name: Performance Test Results
       uses: EnricoMi/publish-unit-test-result-action/macos@v2
@@ -144,7 +144,7 @@ runs:
         commit: ${{ inputs.commit }}
         action_fail: true
         files: |
-          common/${{ inputs.repo-name }}/test-results/performance/**/*.xml
-          !common/${{ inputs.repo-name }}/test-results/performance/**/*Sequence*.xml
-          common/${{ inputs.repo-name }}/test-results/performance/**/*.trx
-          common/${{ inputs.repo-name }}/test-results/performance/**/*.json
+          ${{ inputs.repo-name }}/test-results/performance/**/*.xml
+          !${{ inputs.repo-name }}/test-results/performance/**/*Sequence*.xml
+          ${{ inputs.repo-name }}/test-results/performance/**/*.trx
+          ${{ inputs.repo-name }}/test-results/performance/**/*.json
