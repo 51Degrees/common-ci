@@ -12,6 +12,7 @@ param (
     [string]$Product = "V4TAC",
     [string]$FileName = "TAC-HashV41.hash.gz",
     [string]$GitHubToken,
+    [string]$MetadataBranch = "main",
     [bool]$DryRun = $False
 )
 $ErrorActionPreference = "Stop"
@@ -32,7 +33,7 @@ Write-Output "::group::Clone Tools"
 Write-Output "::endgroup::"
 
 Write-Output "::group::Fetch Assets"
-./steps/clone-repo.ps1 -RepoName "common-metadata" -OrgName $OrgName
+./steps/clone-repo.ps1 -RepoName "common-metadata" -OrgName $OrgName -Branch $MetadataBranch
 Write-Output "::endgroup::"
 
 Write-Output "::group::Setup Environment"

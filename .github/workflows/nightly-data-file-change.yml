@@ -34,6 +34,9 @@ on:
         required: false
         type: string
         default: false
+      metadata-branch:
+        type: string
+        default: 'main'
       common-ci-ref:
         type: string
         default: ''
@@ -77,4 +80,5 @@ jobs:
           -DataType ${{ inputs.data-type }} `
           -Product ${{ inputs.data-product }} `
           -FileName ${{ inputs.data-filename }} `
+          -MetadataBranch ${{ inputs.metadata-branch }} `
           -DryRun $DryRun
