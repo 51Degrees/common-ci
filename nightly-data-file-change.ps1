@@ -13,6 +13,7 @@ param (
     [string]$FileName = "TAC-HashV41.hash.gz",
     [string]$GitHubToken,
     [string]$MetadataBranch = "main",
+    [string]$ToolsBranch = "main",
     [bool]$DryRun = $False
 )
 $ErrorActionPreference = "Stop"
@@ -29,7 +30,7 @@ Write-Output "::group::Clone $RepoName - $Branch"
 Write-Output "::endgroup::"
 
 Write-Output "::group::Clone Tools"
-./steps/clone-repo.ps1 -RepoName "tools" -OrgName $OrgName
+./steps/clone-repo.ps1 -RepoName "tools" -OrgName $OrgName -Branch $ToolsBranch
 Write-Output "::endgroup::"
 
 Write-Output "::group::Fetch Assets"
