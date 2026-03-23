@@ -1,8 +1,6 @@
 param (
-    [Parameter(Mandatory=$true)]
-    [string]$RepoName,
-    [Parameter(Mandatory=$true)]
-    [string]$OrgName,
+    [Parameter(Mandatory)][string]$RepoName,
+    [Parameter(Mandatory)][string]$OrgName,
     [string]$Branch = "main",
     [string]$SetVariable = "PullRequestIds"
 )
@@ -11,64 +9,38 @@ $PSNativeCommandUseErrorActionPreference = $true
 
 $Collaborators = gh api /repos/$OrgName/$RepoName/collaborators | ConvertFrom-Json
 
-function Test-WriteAccess {
-    param (
-        [Parameter(Mandatory, Position=0)]
-        [int]$UserId
-    )
-    $permissions = ($Collaborators | Where-Object id -EQ $UserId).permissions
+function Test-WriteAccess ([Parameter(Mandatory,Position=0)][string]$User) {
+    $permissions = ($Collaborators | Where-Object login -EQ $User).permissions
     return $permissions.admin -or $permissions.maintain -or $permissions.push
 }
 
-function Test-Pr {
-    param (
-        [Parameter(Mandatory, Position=0)]
-        [string]$RepoName,
-        [Parameter(Mandatory, Position=1)]
-        [string]$Id
-    )
+function Test-Pr ([Parameter(Mandatory,Position=0)][string]$Id) {
+    $Pr = gh pr view -R $OrgName/$RepoName $Id --json author,reviewRequests,latestReviews
 
-    $Pr = gh api /repos/$OrgName/$RepoName/pulls/$Id | ConvertFrom-Json
-    $Reviews = gh api /repos/$OrgName/$RepoName/pulls/$Id/reviews | ConvertFrom-Json
-
-    if ($Pr.requested_reviewers) {
-        Write-Host "Skipping PR ${Id}: needs review from: $($Pr.requested_reviewers.login)"
+    if ($Pr.reviewRequests) {
+        Write-Host "Skipping PR ${Id}: needs review from: $($Pr.reviewRequests.login)"
         return $false
     }
 
-    # GitHub returns a history of all reviews that seems to be ordered in time.
-    # We want to consider only the last review of each reviewer. COMMENTED
-    # reviews without a body are ignored, as they're usually just comments on
-    # review threads, not reviews themselves. Even PR author or unrelated users
-    # can produce them which leads to false negatives unless they're ignored.
-    # This, however, requires reviewers to not leave empty "Comment" reviews, as
-    # they will be indistinguishable from non-review comments.
-    $LastReviews = [ordered]@{}
-    foreach ($review in $Reviews) {
-        if ($review.state -cne 'COMMENTED' -or $review.body) {
-            $LastReviews[$review.user.id] = $review
-        }
-    }
-
     $WriteApproved = $false # will be true if at least one approver has write access
-    foreach ($review in $LastReviews.Values) {
+    foreach ($review in $Pr.latestReviews) {
         if ($review.state -ne 'APPROVED') {
-            Write-Host "Skipping PR $Id, reason: $($review.state) by $($review.user.login)"
+            Write-Host "Skipping PR $Id, reason: $($review.state) by $($review.author.login)"
             return $false
-        } elseif (Test-WriteAccess $review.user.id) {
-            Write-Host "PR $Id has been approved by $($review.user.login), who has write access"
+        } elseif (Test-WriteAccess $review.author.login) {
+            Write-Host "PR $Id has been approved by $($review.author.login), who has write access"
             $WriteApproved = $true
         }
     }
 
     if ($WriteApproved) {
         return $true
-    } elseif (Test-WriteAccess $Pr.user.id) {
-        Write-Host "PR $Id author ($($Pr.user.login)) has write access"
+    } elseif (Test-WriteAccess $Pr.author.login) {
+        Write-Host "PR $Id author ($($Pr.author.login)) has write access"
         return $true
     }
 
-    Write-Host "PR $Id author ($($Pr.user.login)) doesn't have write access, and the pull request is not approved by anyone with write access to the repository"
+    Write-Host "PR $Id author ($($Pr.author.login)) doesn't have write access, and the pull request is not approved by anyone with write access to the repository"
     return $false
 }
 
@@ -79,7 +51,7 @@ if ($Ids) {
     foreach ($Id in $Ids) {
         # Only select PRs which are eligeble for automation.
         Write-Output "Checking PR #$Id"
-        if (Test-Pr $RepoName $Id) {
+        if (Test-Pr $Id) {
             $ValidIds += $Id
         }
     }
