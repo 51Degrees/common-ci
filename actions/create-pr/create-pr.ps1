@@ -13,15 +13,15 @@ if (-not $status) {
     Write-Host "No changes"
     exit 0
 }
-Write-Host "Changes:`n$status"
+Write-Host -Separator `n 'Changes:' $status
 
 Write-Host "Committing..."
 git -c 'user.name=github-actions[bot]' -c 'user.email=41898282+github-actions[bot]@users.noreply.github.com' commit -am $Title
 Write-Host "Pushing..."
-git push ($Force ? '--force-with-lease' : $null) origin HEAD
+git push ($Force ? '--force' : $null) origin HEAD
 
 $from = git branch --show-current
-$to = $To ? $To : (git rev-parse --abbrev-ref origin/HEAD) -replace '^[^/]+/'
+$to = $To ? $To : (git rev-parse --abbrev-ref '@{-1}') # @{-1} means previous branch
 
 if ((gh pr list -H $from -B $to --json number --jq length) -lt 1) {
     Write-Host "Creating PR..."
