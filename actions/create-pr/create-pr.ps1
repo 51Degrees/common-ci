@@ -1,7 +1,8 @@
 param (
     [string]$Title = $env:title,
     [string]$To = $env:to,
-    [switch]$Force = ($env:force -eq 'true')
+    [switch]$Force = ($env:force -eq 'true'),
+    [switch]$AutoMerge = ($env:auto_merge -eq 'true')
 )
 $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
@@ -25,7 +26,12 @@ $to = $To ? $To : (git rev-parse --abbrev-ref '@{-1}') # @{-1} means previous br
 
 if ((gh pr list -H $from -B $to --json number --jq length) -lt 1) {
     Write-Host "Creating PR..."
-    gh pr create -H $from -B $to -t $Title -b $Title
+    $pr = gh pr create -H $from -B $to -t $Title -b $Title
+    Write-Host $pr
+    if ($AutoMerge) {
+        Write-Host "Enabling auto-merge..."
+        gh pr merge --auto --squash $pr
+    }
 } else {
     Write-Host 'PR already exists'
 }
