@@ -74,6 +74,4 @@
 | Repo | Branch | Status |
 | ---- | ------ | ------ |
 | [device-detection-go](https://github.com/51Degrees/device-detection-go) | `main` | [![Nightly Pipeline](https://github.com/51Degrees/device-detection-go/actions/workflows/nightly-pipeline.yml/badge.svg)](https://github.com/51Degrees/device-detection-go/actions/workflows/nightly-pipeline.yml) |
-| [device-detection-examples-go](https://github.com/51Degrees/device-detection-examples-go) | `main` | [![Nightly Pipeline](https://github.com/51Degrees/device-detection-examples-go/actions/workflows/nightly-pipeline.yml/badge.svg)](https://github.com/51Degrees/device-detection-examples-go/actions/workflows/nightly-pipeline.yml) |
 | [ip-intelligence-go](https://github.com/51Degrees/ip-intelligence-go) | `main` | [![Nightly Pipeline](https://github.com/51Degrees/ip-intelligence-go/actions/workflows/nightly-pipeline.yml/badge.svg)](https://github.com/51Degrees/ip-intelligence-go/actions/workflows/nightly-pipeline.yml) |
-| [ip-intelligence-go-examples](https://github.com/51Degrees/ip-intelligence-go-examples) | `main` | [![Nightly Pipeline](https://github.com/51Degrees/ip-intelligence-go-examples/actions/workflows/nightly-pipeline.yml/badge.svg)](https://github.com/51Degrees/ip-intelligence-go-examples/actions/workflows/nightly-pipeline.yml) |
