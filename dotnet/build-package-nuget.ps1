@@ -25,7 +25,6 @@ $PSNativeCommandUseErrorActionPreference = $true
 
 $RepoPath = [IO.Path]::Combine($pwd, $RepoName)
 $PackagesFolder = New-Item -ItemType directory -Force "$PWD/package"
-$CodeSigningCertFile = "51Degrees Private Code Signing Certificate.pfx"
 
 Write-Output "Entering '$RepoPath'"
 Push-Location $RepoPath
@@ -33,19 +32,23 @@ Push-Location $RepoPath
 try {
     Write-Output "Building package for '$Name'"
 
-    $Projects = Get-Content "$SolutionName" |
-    Select-String $SearchPattern |
-        ForEach-Object {
-            $projectParts = $_ -Split '[,=]' | ForEach-Object { $_.Trim('[ "{}]') };
-            New-Object PSObject -Property @{
-                Name = $projectParts[1];
-                File = $projectParts[2];
-                Guid = $projectParts[3]
-            }
-    }
+    $packArgs = @(
+        "--output=$PackagesFolder"
+        "--configuration=$Configuration"
+        "/p:PackageVersion=$Version"
+        "/p:Version=$Version"
+        "/p:BuiltOnCI=true"
+        "/p:ContinuousIntegrationBuild=true"
+    )
     $env:Version = $Version
-    foreach($Project in $Projects){
-        dotnet pack $Project.File -o "$PackagesFolder" -c $Configuration /p:PackageVersion=$Version /p:Version=$Version /p:BuiltOnCI=true /p:ContinuousIntegrationBuild=true
+    if ($SolutionName -and $SearchPattern) {
+        Get-Content $SolutionName | Select-String $SearchPattern | ForEach-Object {
+            $projectParts = $_ -Split '[,=]' | ForEach-Object { $_.Trim('[ "{}]') };
+            $file = $projectParts[2];
+            dotnet pack $packArgs $file || $(throw "package packing failed")
+        }
+    } else {
+        dotnet pack $packArgs || $(throw "package packing failed")
     }
 
     Write-Output "Installing NuGetKeyVaultSignTool"
