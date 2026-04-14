@@ -1,0 +1,50 @@
+name: Publish Dotnet Packages
+inputs:
+  keyvault-url:
+    required: true
+  keyvault-client-id:
+    required: true
+  keyvault-tenant-id:
+    required: true
+  keyvault-client-secret:
+    required: true
+  keyvault-cert-name:
+    required: true
+  dir:
+    default: .
+  config:
+    default: ''
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install NuGetKeyVaultSignTool
+      shell: bash
+      run: dotnet tool install -g NuGetKeyVaultSignTool
+
+    - name: Sign Packages
+      shell: bash
+      env:
+        KEYVAULT_URL: ${{ inputs.keyvault-url }}
+        KEYVAULT_CLIENT_ID: ${{ inputs.keyvault-client-id }}
+        KEYVAULT_TENANT_ID: ${{ inputs.keyvault-tenant-id }}
+        KEYVAULT_CLIENT_SECRET: ${{ inputs.keyvault-client-secret }}
+        KEYVAULT_CERT_NAME: ${{ inputs.keyvault-cert-name }}
+        DIR: ${{ inputs.dir }}
+      run: >
+        NuGetKeyVaultSignTool sign -f "$dir/*.nupkg"
+            --file-digest sha256
+            --timestamp-digest sha256
+            --timestamp-rfc3161 http://rfc3161timestamp.globalsign.com/advanced
+            --azure-key-vault-url "$KEYVAULT_URL"
+            --azure-key-vault-client-id "$KEYVAULT_CLIENT_ID"
+            --azure-key-vault-tenant-id "$KEYVAULT_TENANT_ID"
+            --azure-key-vault-client-secret "$KEYVAULT_CLIENT_SECRET"
+            --azure-key-vault-certificate "$KEYVAULT_CERT_NAME"
+
+    - name: Push Packages
+      shell: bash
+      env:
+        DIR: ${{ inputs.dir }}
+        CONFIG: ${{ inputs.config }}
+      run: dotnet nuget push ${CONFIG+:--configfile "$CONFIG"} "$dir/*.nupkg"
