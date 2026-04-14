@@ -7,7 +7,7 @@ param(
     [string]$Configuration = "Release",
     [string]$Version,
     [string]$SolutionName,
-    # Regex pattern to filter out projects that will not be published as a package 
+    # Regex pattern to filter out projects that will not be published as a package
     [string]$SearchPattern = "^(?!.*(Test|GenerateConfig))Project\(.*csproj",
     [Parameter(Mandatory=$true)]
     [string]$CodeSigningKeyVaultUrl,
@@ -24,7 +24,7 @@ $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
 
 $RepoPath = [IO.Path]::Combine($pwd, $RepoName)
-$PackagesFolder = [IO.Path]::Combine($pwd, "package")
+$PackagesFolder = New-Item -ItemType directory -Force "$PWD/package"
 $CodeSigningCertFile = "51Degrees Private Code Signing Certificate.pfx"
 
 Write-Output "Entering '$RepoPath'"
@@ -32,7 +32,7 @@ Push-Location $RepoPath
 
 try {
     Write-Output "Building package for '$Name'"
-   
+
     $Projects = Get-Content "$SolutionName" |
     Select-String $SearchPattern |
         ForEach-Object {
