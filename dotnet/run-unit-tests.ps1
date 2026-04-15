@@ -11,10 +11,11 @@ param(
     [string]$DirNameFormatForDotnet = "*bin*",
     [string]$DirNameFormatForNotDotnet = "*\bin\*",
     [string]$Filter,
-    [string]$OutputFolder = "unit"
+    [string]$OutputFolder = "unit",
+    [switch]$KeepPlatformArgs
 )
 
-$SkipPlatformArgs = (($Arch -eq "Any CPU") -or ($Filter.Contains("dll")))
+$SkipPlatformArgs = (-not $KeepPlatformArgs) -and (($Arch -eq "Any CPU") -or ($Filter.Contains("dll")))
 Write-Output "SkipPlatformArgs = $SkipPlatformArgs"
 
 $RepoPath = [IO.Path]::Combine($pwd, $RepoName)
