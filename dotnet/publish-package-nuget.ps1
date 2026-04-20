@@ -18,7 +18,7 @@ try {
 
     Write-Output "Releasing package for '$Name'"
     
-    dotnet nuget push "*.nupkg" --source $Source --api-key $ApiKey
+    dotnet nuget push "*.nupkg" --source $Source --api-key $ApiKey --skip-duplicate
 
 }
 finally {
