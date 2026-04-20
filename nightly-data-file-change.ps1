@@ -12,7 +12,7 @@ param (
     [string]$Product = "V4TAC",
     [string]$FileName = "TAC-HashV41.hash.gz",
     [string]$GitHubToken,
-    [string]$MetadataBranch = "main",
+    [string]$MetadataBranch = "main", # unused, kept for compatibility
     [string]$ToolsBranch = "main",
     [bool]$DryRun = $False
 )
@@ -33,10 +33,6 @@ Write-Output "::group::Clone Tools"
 ./steps/clone-repo.ps1 -RepoName "tools" -OrgName $OrgName -Branch $ToolsBranch
 Write-Output "::endgroup::"
 
-Write-Output "::group::Fetch Assets"
-./steps/clone-repo.ps1 -RepoName "common-metadata" -OrgName $OrgName -Branch $MetadataBranch
-Write-Output "::endgroup::"
-
 Write-Output "::group::Setup Environment"
 ./tools/ci/setup-environment.ps1 -NugetUser $GitHubUser -NugetPassword $GitHubToken
 Write-Output "::endgroup::"
@@ -44,7 +40,6 @@ Write-Output "::endgroup::"
 Write-Output "::group::Generate Accessors"
 ./steps/run-script.ps1 ./$RepoName/ci/generate-accessors.ps1 @{
     RepoName = 'tools'
-    MetaDataPath = "$PWD/common-metadata"
     DataType = $DataType
 }
 Write-Output "::endgroup::"
