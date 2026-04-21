@@ -1,0 +1,147 @@
+name: Pack-and-Consume Smoke
+
+# Reusable workflow: builds a matrix of minimal consumer projects that
+# reference a just-packed .nupkg and asserts the right native DLL lands at
+# the right place with the right magic bytes. Gates against two classes of
+# regression in the package's .targets file:
+#   - wrong-platform native DLL on cross-RID publish
+#   - missing native DLL on SDK-style multi-target net48/modern
+#
+# The caller is responsible for producing a `package` artifact that contains
+# at least the .nupkg under test. See nightly-publish.yml for how that
+# artifact is shaped.
+
+on:
+  workflow_call:
+    inputs:
+      org-name:
+        type: string
+        default: 51Degrees
+      common-ci-ref:
+        type: string
+        default: ''
+      package-id:
+        description: NuGet package id under test.
+        type: string
+        required: true
+      package-version:
+        description: Version that the consumer will reference. Must match the .nupkg file.
+        type: string
+        required: true
+      nupkg-artifact-name:
+        description: Name of the workflow artifact that contains the .nupkg (produced by an upstream job).
+        type: string
+        default: package
+      nupkg-artifact-subpath:
+        description: Optional subpath inside the downloaded artifact that contains the .nupkg files.
+        type: string
+        default: ''
+      modern-tfm:
+        description: Modern TFM to use for the SDK-style consumer cells (e.g. net10.0, net8.0).
+        type: string
+        default: net10.0
+      native-asset-name:
+        description: Expected native asset file name. Defaults to '<package-id>.Native.dll'.
+        type: string
+        default: ''
+      dotnet-version:
+        description: .NET SDK version for setup-dotnet.
+        type: string
+        default: '10.0'
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  Smoke:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # SDK-style publish cells. Each OS covers its native RID plus two
+          # cross-publish RIDs — cross-publish bugs only surface when the
+          # host OS differs from the target RID, so we exercise each RID
+          # from each host.
+          - { os: ubuntu-latest,  cell: sdk-modern-linux-x64  }
+          - { os: ubuntu-latest,  cell: sdk-modern-win-x64    }
+          - { os: ubuntu-latest,  cell: sdk-modern-osx-arm64  }
+          - { os: windows-latest, cell: sdk-modern-win-x64    }
+          - { os: windows-latest, cell: sdk-modern-linux-x64  }
+          - { os: windows-latest, cell: sdk-modern-osx-arm64  }
+          - { os: macos-latest,   cell: sdk-modern-osx-arm64  }
+          - { os: macos-latest,   cell: sdk-modern-linux-x64  }
+          - { os: macos-latest,   cell: sdk-modern-win-x64    }
+          # net48 + legacy cells require .NET Framework targeting packs and
+          # msbuild.exe / nuget.exe, so they only run on the Windows runner.
+          - { os: windows-latest, cell: sdk-net48             }
+          - { os: windows-latest, cell: sdk-multi-net48-net10 }
+          - { os: windows-latest, cell: legacy-x64            }
+          - { os: windows-latest, cell: legacy-anycpu         }
+    name: Smoke - ${{ matrix.cell }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - name: Checkout common-ci
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ inputs.org-name }}/common-ci
+          ref: ${{ inputs.common-ci-ref }}
+          path: common-ci
+
+      - name: Install .NET SDK
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ inputs.dotnet-version }}
+
+      - name: Download nupkg artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.nupkg-artifact-name }}
+          path: ${{ github.workspace }}/nupkg
+
+      - name: Locate nupkgs
+        id: locate
+        run: |
+          $base = "${{ github.workspace }}/nupkg"
+          $sub  = "${{ inputs.nupkg-artifact-subpath }}"
+          $dir  = $sub ? (Join-Path $base $sub) : $base
+          $found = Get-ChildItem -Path $dir -Filter '*.nupkg' -Recurse -File
+          if (-not $found) { throw "No .nupkg files under '$dir'" }
+          # If the artifact has nested structure, collapse by using the
+          # deepest shared parent directory.
+          $nupkgDir = (Split-Path -Parent $found[0].FullName)
+          Write-Host "nupkg-dir=$nupkgDir"
+          "nupkg-dir=$nupkgDir" | Out-File $Env:GITHUB_OUTPUT -Append
+
+      # Required for the Windows-only `legacy-*` cells.
+      - name: Setup msbuild
+        if: startsWith(matrix.cell, 'legacy-')
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Setup nuget.exe
+        if: startsWith(matrix.cell, 'legacy-')
+        uses: nuget/setup-nuget@v2
+
+      - name: Run smoke cell
+        run: |
+          $nativeAsset = "${{ inputs.native-asset-name }}"
+          $args = @(
+            '-NupkgDir',       '${{ steps.locate.outputs.nupkg-dir }}'
+            '-PackageId',      '${{ inputs.package-id }}'
+            '-PackageVersion', '${{ inputs.package-version }}'
+            '-Cell',           '${{ matrix.cell }}'
+            '-WorkDir',        (Join-Path $Env:RUNNER_TEMP "smoke-${{ matrix.cell }}")
+            '-ModernTfm',      '${{ inputs.modern-tfm }}'
+          )
+          if ($nativeAsset) { $args += @('-NativeAssetName', $nativeAsset) }
+          ./common-ci/dotnet/run-pack-consume-smoke.ps1 @args
+
+      - name: Upload consumer workdir on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: smoke-${{ matrix.cell }}-${{ matrix.os }}-workdir
+          path: ${{ runner.temp }}/smoke-${{ matrix.cell }}
+          if-no-files-found: ignore
+          include-hidden-files: true

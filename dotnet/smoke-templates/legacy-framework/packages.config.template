@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<packages>
+  <package id="{{PACKAGE_ID}}" version="{{PACKAGE_VERSION}}" targetFramework="net48" />
+</packages>

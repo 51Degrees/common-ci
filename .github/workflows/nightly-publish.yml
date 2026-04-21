@@ -30,6 +30,18 @@ on:
       skip-compare-performance:
         type: boolean
         default: false
+      # If set, runs the pack-and-consume smoke matrix after Test and before
+      # Package. Opt-in — leave empty to skip. Use the package id that ships
+      # native DLLs via runtimes/{rid}/native/ and a .targets file.
+      smoke-package-id:
+        type: string
+        default: ''
+      smoke-modern-tfm:
+        type: string
+        default: 'net10.0'
+      smoke-native-asset-name:
+        type: string
+        default: ''
     secrets:
       # PAT that we use to authenticate on behalf of GitHub Actions.
       token:
@@ -340,13 +352,30 @@ jobs:
           if-no-files-found: ignore
           include-hidden-files: true
 
+  Smoke:
+    name: Pack-Consume Smoke
+    needs: [Configure, Build, Test]
+    if: >
+      !cancelled() && inputs.smoke-package-id != '' &&
+      needs.Test.result == 'success'
+    uses: ./.github/workflows/pack-consume-smoke.yml
+    with:
+      org-name: ${{ inputs.org-name }}
+      common-ci-ref: ${{ inputs.common-ci-ref }}
+      package-id: ${{ inputs.smoke-package-id }}
+      package-version: ${{ needs.Configure.outputs.version }}
+      nupkg-artifact-name: package
+      modern-tfm: ${{ inputs.smoke-modern-tfm }}
+      native-asset-name: ${{ inputs.smoke-native-asset-name }}
+
   Package:
     runs-on: ${{ inputs.build-platform }}
-    needs: [Configure, Test, ComparePerformance]
+    needs: [Configure, Test, ComparePerformance, Smoke]
     if: >
       !cancelled() && needs.Configure.outputs.update_required == 'true' &&
       needs.Test.result == 'success' &&
-      (needs.ComparePerformance.result == 'success' || needs.ComparePerformance.result == 'skipped')
+      (needs.ComparePerformance.result == 'success' || needs.ComparePerformance.result == 'skipped') &&
+      (needs.Smoke.result == 'success' || needs.Smoke.result == 'skipped')
     steps:
       - name: Checkout Common
         uses: actions/checkout@v6
