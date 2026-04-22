@@ -225,6 +225,7 @@ jobs:
   Test:
     needs: [ Build, Configure ]
     strategy:
+      fail-fast: false
       matrix:
         options: ${{ fromJSON(needs.configure.outputs.options ) }}
     name: Test - ${{ matrix.options.name }}
