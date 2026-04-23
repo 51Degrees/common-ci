@@ -1,0 +1,27 @@
+name: Bump version
+inputs:
+  format:
+    type: string
+    default: '{SemVer}'
+  mode:
+    type: string
+    default: ContinuousDeployment
+outputs:
+  version:
+    value: ${{ steps.bump.outputs.version }}
+  bumped:
+    value: ${{ steps.bump.outputs.bumped }} # 'yes' if the version doesn't exist as a tag in the repo, otherwise empty
+runs:
+  using: "composite"
+  steps:
+    - id: bump
+      shell: bash
+      env:
+        format: ${{ inputs.format }}
+        mode: ${{ inputs.mode }}
+      run: |
+        dotnet tool install -g GitVersion.Tool
+        version=$(dotnet-gitversion /format "$format" /overrideconfig "mode=$mode")
+        tee -a "$GITHUB_OUTPUT" <<<"version=$version"
+        git show-ref --quiet --tags "$version" || tee -a "$GITHUB_OUTPUT" <<<"bumped=yes"
+
