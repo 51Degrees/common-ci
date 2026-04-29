@@ -1,3 +1,9 @@
+$ErrorActionPreference = 'Stop'
+
+if (-not $IsWindows) {
+    Write-Error "Only Windows is supported"
+}
+
 if (!(Test-Path vswhere.exe)) {
     Invoke-WebRequest -Uri https://github.com/microsoft/vswhere/releases/download/3.1.1/vswhere.exe -OutFile vswhere.exe
 }
