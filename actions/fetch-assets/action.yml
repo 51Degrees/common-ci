@@ -1,0 +1,60 @@
+name: Fetch Assets
+inputs:
+  assets:
+    required: true
+  cache:
+    required: false
+  device-detection-key:
+    required: false
+  device-detection-url:
+    required: false
+  ip-intelligence-key:
+    required: false
+  ip-intelligence-url:
+    required: false
+runs:
+  using: "composite"
+  steps:
+    - name: Hash inputs
+      id: hash-inputs
+      if: ${{ inputs.cache == 'true' }}
+      shell: pwsh
+      env:
+        inputs: ${{ toJSON(inputs) }}
+      run: |
+        $sha1 = [Security.Cryptography.SHA1Managed]::new()
+        $key = ($env:inputs | ConvertFrom-Json -AsHashtable).Values | Sort-Object | Join-String -Separator `n
+        $hash = [Convert]::ToHexString($sha1.ComputeHash([Text.Encoding]::Utf8.GetBytes($key)))
+        "key=$(Get-Date -Format FileDate)-$hash" >> $env:GITHUB_OUTPUT
+
+    - name: Restore cache
+      id: cache-restore
+      if: ${{ inputs.cache == 'true' }}
+      uses: actions/cache/restore@v5
+      with:
+        key: ${{ steps.hash-inputs.outputs.key }}
+        path: assets
+        enableCrossOsArchive: true
+
+    - name: Fetch assets
+      shell: pwsh
+      env:
+        assets: ${{ inputs.assets }}
+        device_detection_key: ${{ inputs.device-detection-key }}
+        device_detection_url: ${{ inputs.device-detection-url }}
+        ip_intelligence_key: ${{ inputs.ip-intelligence-key }}
+        ip_intelligence_url: ${{ inputs.ip-intelligence-url }}
+      run: |
+        & "${{ github.action_path }}/../../steps/fetch-assets.ps1" -Assets ($env:assets.Trim() -split "`n") `
+            -DeviceDetection:$env:device_detection_key `
+            -DeviceDetectionUrl:$env:device_detection_url `
+            -IpIntelligence:$env:ip_intelligence_key `
+            -IpIntelligenceUrl:$env:ip_intelligence_url
+
+    - name: Save cache
+      if: ${{ inputs.cache == 'true' && steps.cache-restore.outputs.cache-hit != 'true' }}
+      uses: actions/cache/save@v5
+      with:
+        key: ${{ steps.hash-inputs.outputs.key }}
+        path: assets
+        enableCrossOsArchive: true

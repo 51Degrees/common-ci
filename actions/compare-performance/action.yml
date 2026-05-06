@@ -1,0 +1,21 @@
+name: Compare performance
+inputs:
+  current-results:
+    required: true
+  ignore-failure:
+    default: true
+  pattern:
+    default: performance-results*
+  higher-is-better:
+    default: true
+runs:
+  using: "composite"
+  steps:
+    - shell: pwsh
+      env:
+        current_results: ${{ inputs.current-results }}
+        ignore_failure: ${{ inputs.ignore-failure }}
+        higher_is_better: ${{ inputs.higher-is-better }}
+        branch: performance-results/${{ github.ref_name }}
+      run: . '${{ github.action_path }}/compare-performance.ps1'
+
