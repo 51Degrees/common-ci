@@ -12,3 +12,6 @@ Write-Host "Downloading $DataType data file"
 
 Write-Host "Extracting $ArchiveName"
 & $PSScriptRoot/gunzip-file.ps1 $RepoName/$ArchiveName
+
+Write-Host "Removing $ArchiveName"
+Remove-Item -Force $ArchiveName
