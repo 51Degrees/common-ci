@@ -9,7 +9,7 @@ $PSNativeCommandUseErrorActionPreference = $true
 
 if (!$Title) { Write-Error "Title must be provided" }
 
-$status = git status --porcelain
+$status = git status --porcelain --ignore-submodules=dirty --untracked-files=no
 if (-not $status) {
     Write-Host "No changes"
     exit 0
