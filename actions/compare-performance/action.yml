@@ -1,21 +1,18 @@
 name: Compare performance
 inputs:
-  current-results:
+  metrics:
     required: true
-  ignore-failure:
-    default: true
-  pattern:
-    default: performance-results*
-  higher-is-better:
-    default: true
+  save:
+    default: false
+  branch:
+    default: performance-results
 runs:
   using: "composite"
   steps:
     - shell: pwsh
       env:
-        current_results: ${{ inputs.current-results }}
-        ignore_failure: ${{ inputs.ignore-failure }}
-        higher_is_better: ${{ inputs.higher-is-better }}
-        branch: performance-results/${{ github.ref_name }}
+        metrics: ${{ inputs.metrics }}
+        save: ${{ inputs.save }}
+        branch: ${{ inputs.branch }}
       run: . '${{ github.action_path }}/compare-performance.ps1'
 
