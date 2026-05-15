@@ -17,9 +17,10 @@ try {
     $currentTime = [DateTime]::UtcNow.ToString("s")
     foreach ($_ in ($Metrics | ConvertFrom-Json -AsHashtable).GetEnumerator()) {
         $metric, $value = $_.Key, $_.Value
+        Write-Host "Comparing $metric..."
         Write-Output "$currentTime`t$value" >> "$metric.tsv"
         $lines = Get-Content -Tail 10 "$metric.tsv"
-        $lines | Set-Content "$metric.tsv"
+        $lines | Tee-Object "$metric.tsv" | Out-Host
         $table = foreach ($line in $lines) {,($line -split '\s+', 2)}
         $dates = foreach ($row in $table) {([datetime]$row[0]).ToString('%M-%d')}
         $values = foreach ($row in $table) {[double]$row[1]}
