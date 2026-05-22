@@ -17,5 +17,6 @@ jobs:
           GH_TOKEN: ${{ secrets.ACCESS_TOKEN }}
           ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
           ANTHROPIC_AUTH_TOKEN: ${{ secrets.ANTHROPIC_AUTH_TOKEN }}
+          ANTHROPIC_MODEL: ${{ secrets.ANTHROPIC_MODEL }}
         run: python scripts/dashboard-triage/triage.py
       - run: cat scripts/dashboard-triage/out/*.md >> "$GITHUB_STEP_SUMMARY"
