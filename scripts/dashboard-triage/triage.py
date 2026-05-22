@@ -63,6 +63,8 @@ def log(msg: str) -> None:
 def require_token() -> None:
     if not os.environ.get("GH_TOKEN"):
         sys.exit("GH_TOKEN not set — run via ./launch_triage.sh")
+    anthropic_vars = sorted(k for k in os.environ if k.startswith("ANTHROPIC_"))
+    log(f"[env] ANTHROPIC_* vars visible to script: {anthropic_vars or 'none'}")
 
 
 def gh_json(args: list[str]) -> dict | list:
@@ -205,10 +207,17 @@ def claude_analyse(prompt: str) -> str:
             env=claude_env(), check=False, timeout=CLAUDE_TIMEOUT_S,
         )
     except subprocess.TimeoutExpired:
+        log("[claude] timeout")
         return f"[claude timeout after {CLAUDE_TIMEOUT_S}s]"
     if result.returncode != 0:
-        return f"[claude error: {result.stderr.strip() or 'no output'}]"
-    return result.stdout.strip()
+        err = (result.stderr.strip() or result.stdout.strip() or "no output")[:400]
+        log(f"[claude] rc={result.returncode}: {err}")
+        return f"[claude error rc={result.returncode}: {err}]"
+    out = result.stdout.strip()
+    if not out:
+        log(f"[claude] empty stdout; stderr: {result.stderr.strip()[:300]}")
+        return "[claude returned empty output]"
+    return out
 
 
 def _job_fields(job: JobResult) -> dict[str, str]:
@@ -239,6 +248,10 @@ def _strip_rerun_sentinel(out: str) -> tuple[str, bool]:
     return out, False
 
 
+def _is_claude_error(text: str | None) -> bool:
+    return bool(text) and text.startswith(("[claude error", "[claude timeout", "[claude returned empty"))
+
+
 def first_pass_analyse(jobs: list[JobResult]) -> None:
     def analyse(job: JobResult) -> None:
         out = claude_analyse(FIRST_PROMPT.format(**_job_fields(job)))
@@ -248,6 +261,9 @@ def first_pass_analyse(jobs: list[JobResult]) -> None:
 
     with ThreadPoolExecutor(max_workers=CLAUDE_WORKERS) as pool:
         list(pool.map(analyse, jobs))
+    errs = sum(1 for j in jobs if _is_claude_error(j.first_analysis))
+    if errs:
+        log(f"[pass1] WARNING: {errs}/{len(jobs)} analyses failed (claude returned error/empty)")
 
 
 def second_pass_analyse(jobs: list[JobResult]) -> None:
@@ -261,6 +277,9 @@ def second_pass_analyse(jobs: list[JobResult]) -> None:
 
     with ThreadPoolExecutor(max_workers=CLAUDE_WORKERS) as pool:
         list(pool.map(analyse, targets))
+    errs = sum(1 for j in targets if _is_claude_error(j.second_analysis))
+    if errs:
+        log(f"[pass2] WARNING: {errs}/{len(targets)} analyses failed (claude returned error/empty)")
 
 
 # ----------------------------- rerun + poll -----------------------------
