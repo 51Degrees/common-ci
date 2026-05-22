@@ -12,10 +12,15 @@ See [`SPEC.md`](SPEC.md) for the full design.
 - Python 3.10+
 - `gh` CLI on `PATH`
 - `claude` CLI on `PATH`, authenticated by **one** of:
-  - `ANTHROPIC_API_KEY` in the env (recommended for CI / remote
-    runners — no interactive login possible there), or
+  - `ANTHROPIC_API_KEY` (direct Anthropic API), or
+  - `ANTHROPIC_BASE_URL` + `ANTHROPIC_AUTH_TOKEN` (LiteLLM / proxy), or
   - A valid Claude Code session on the machine (`claude /login` once
-    locally — fine for a workstation).
+    locally — fine for a workstation, not for CI).
+- If your proxy doesn't expose Claude Code's default model (e.g.
+  `claude-opus-4-7[1m]`), set `ANTHROPIC_MODEL` to a model the proxy
+  does expose (e.g. `claude-sonnet-4-6`). The script will pass it as
+  `claude -p --model "$ANTHROPIC_MODEL"`. Without it, claude uses
+  whichever model is default in your CLI build.
 - A GitHub token in the `GH_TOKEN` env var, scoped to 51Degrees with at
   least:
   - `actions:read`

@@ -65,6 +65,8 @@ def require_token() -> None:
         sys.exit("GH_TOKEN not set — run via ./launch_triage.sh")
     anthropic_vars = sorted(k for k in os.environ if k.startswith("ANTHROPIC_"))
     log(f"[env] ANTHROPIC_* vars visible to script: {anthropic_vars or 'none'}")
+    model = os.environ.get("ANTHROPIC_MODEL")
+    log(f"[env] claude --model: {model or '(default, no override)'}")
 
 
 def gh_json(args: list[str]) -> dict | list:
@@ -200,10 +202,13 @@ def claude_env() -> dict[str, str]:
 def claude_analyse(prompt: str) -> str:
     # Pipe the prompt via stdin: --allowed-tools is variadic and would
     # otherwise consume a positional prompt as additional tool names.
+    cmd = ["claude", "-p", "--allowed-tools", "Bash WebFetch"]
+    model = os.environ.get("ANTHROPIC_MODEL")
+    if model:
+        cmd += ["--model", model]
     try:
         result = subprocess.run(
-            ["claude", "-p", "--allowed-tools", "Bash WebFetch"],
-            input=prompt, capture_output=True, text=True,
+            cmd, input=prompt, capture_output=True, text=True,
             env=claude_env(), check=False, timeout=CLAUDE_TIMEOUT_S,
         )
     except subprocess.TimeoutExpired:
