@@ -76,6 +76,28 @@ not overwrite an earlier report. The `out/` directory is gitignored.
 Progress lines on stderr are timestamped (`[HH:MM:SS +elapsed]`) so you
 can read off per-step duration by subtracting between consecutive lines.
 
+## Scheduled run (GitHub Actions)
+
+Scheduled and triggered by
+[`.github/workflows/dashboard-triage.yml`](../../.github/workflows/dashboard-triage.yml)
+— see that file for cadence and triggers. The report is appended to
+the run's `$GITHUB_STEP_SUMMARY`.
+
+Required repository secrets:
+
+| Secret | Purpose |
+| ------ | ------- |
+| `ACCESS_TOKEN` | `GH_TOKEN` for the run — needs `actions:read` + `actions:write` |
+| `ANTHROPIC_*` | Whatever env vars the `claude` CLI needs to authenticate (see "Requirements" above). In our setup that's `ANTHROPIC_BASE_URL` + `ANTHROPIC_AUTH_TOKEN` + `ANTHROPIC_MODEL` for the LiteLLM proxy; a direct-Anthropic setup would use `ANTHROPIC_API_KEY` instead. |
+
+**Two-hop env contract.** Each var the `claude` CLI needs has to be wired
+through twice: (1) listed in the workflow YAML's `env:` block so it reaches
+the Python script, and (2) the script then forwards its full environment
+to the `claude -p` subprocess verbatim — stripping only `GH_TOKEN` and
+`GITHUB_TOKEN` (see `claude_env()` in `triage.py`). So to add a new
+`ANTHROPIC_*` var, just add it as a secret, mention it in the workflow
+YAML's `env:` block, and it'll automatically reach claude.
+
 ## What it does (and deliberately does not do)
 
 ### Does
