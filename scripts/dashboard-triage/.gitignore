@@ -1,0 +1,6 @@
+out/
+__pycache__/
+*.pyc
+# Personal launcher — environment-specific (keychain resolvers,
+# pyenv pins, CI bootstrap, etc.). Each runner provides its own.
+launch_triage.sh

@@ -1,0 +1,21 @@
+name: Dashboard Triage
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 7 * * *'
+
+jobs:
+  dashboard-triage:
+    runs-on: ubuntu-latest
+    steps:
+      - run: curl -fsSL https://claude.ai/install.sh | bash
+      - run: claude --version
+      - uses: actions/checkout@v6
+      - env:
+          GH_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+          ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.ANTHROPIC_AUTH_TOKEN }}
+          ANTHROPIC_MODEL: ${{ secrets.ANTHROPIC_MODEL }}
+        run: python scripts/dashboard-triage/triage.py
+      - run: cat scripts/dashboard-triage/out/*.md >> "$GITHUB_STEP_SUMMARY"
