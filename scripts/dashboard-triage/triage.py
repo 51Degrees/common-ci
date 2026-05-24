@@ -66,7 +66,9 @@ def require_token() -> None:
     anthropic_vars = sorted(k for k in os.environ if k.startswith("ANTHROPIC_"))
     log(f"[env] ANTHROPIC_* vars visible to script: {anthropic_vars or 'none'}")
     model = os.environ.get("ANTHROPIC_MODEL")
+    fallback = os.environ.get("ANTHROPIC_MODEL_FALLBACK")
     log(f"[env] claude --model: {model or '(default, no override)'}")
+    log(f"[env] claude --model fallback: {fallback or '(none)'}")
 
 
 def gh_json(args: list[str]) -> dict | list:
@@ -199,11 +201,8 @@ def claude_env() -> dict[str, str]:
     return env
 
 
-def claude_analyse(prompt: str) -> str:
-    # Pipe the prompt via stdin: --allowed-tools is variadic and would
-    # otherwise consume a positional prompt as additional tool names.
+def _run_claude(prompt: str, model: str | None) -> str:
     cmd = ["claude", "-p", "--allowed-tools", "Bash WebFetch"]
-    model = os.environ.get("ANTHROPIC_MODEL")
     if model:
         cmd += ["--model", model]
     try:
@@ -222,6 +221,17 @@ def claude_analyse(prompt: str) -> str:
     if not out:
         log(f"[claude] empty stdout; stderr: {result.stderr.strip()[:300]}")
         return "[claude returned empty output]"
+    return out
+
+
+def claude_analyse(prompt: str) -> str:
+    model = os.environ.get("ANTHROPIC_MODEL")
+    out = _run_claude(prompt, model)
+    if _is_claude_error(out):
+        fallback = os.environ.get("ANTHROPIC_MODEL_FALLBACK")
+        if fallback and fallback != model:
+            log(f"[claude] primary model failed, retrying with fallback model: {fallback}")
+            out = _run_claude(prompt, fallback)
     return out
 
 
