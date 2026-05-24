@@ -228,9 +228,10 @@ def claude_analyse(prompt: str) -> str:
     model = os.environ.get("ANTHROPIC_MODEL")
     out = _run_claude(prompt, model)
     if _is_claude_error(out):
+        log(f"[claude] primary model {model or '(default)'} failed: {out}")
         fallback = os.environ.get("ANTHROPIC_MODEL_FALLBACK")
         if fallback and fallback != model:
-            log(f"[claude] primary model failed, retrying with fallback model: {fallback}")
+            log(f"[claude] retrying with fallback model: {fallback}")
             out = _run_claude(prompt, fallback)
     return out
 
