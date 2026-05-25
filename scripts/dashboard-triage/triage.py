@@ -361,10 +361,16 @@ def write_report(jobs: list[JobResult]) -> Path:
         "",
         f"- Failed jobs detected: **{len(jobs)}**",
         f"- Passed after rerun: **{len(passed)}**",
-        f"- Failed after rerun: **{len(failed_after)}**",
-        f"- Real failures (no rerun): **{len(no_rerun)}**",
-        "",
     ]
+    for j in passed:
+        lines.append(f"  - {j.repo} `{j.workflow}` ([original]({j.run_url}) -> [rerun]({j.rerun_run_url}))")
+    lines.append(f"- Failed after rerun: **{len(failed_after)}**")
+    for j in failed_after:
+        lines.append(f"  - {j.repo} `{j.workflow}` ([rerun]({j.rerun_run_url}))")
+    lines.append(f"- Real failures (no rerun): **{len(no_rerun)}**")
+    for j in no_rerun:
+        lines.append(f"  - {j.repo} `{j.workflow}` ([run]({j.run_url}))")
+    lines.append("")
 
     def hdr(j: JobResult) -> str:
         return f"### [{j.repo}]({j.run_url}) — `{j.workflow}` ({j.conclusion})"
