@@ -22,9 +22,9 @@ jobs:
       - run: cat scripts/dashboard-triage/out/*.md >> "$GITHUB_STEP_SUMMARY"
       - env:
           DASHBOARD_TRIAGE_WEBHOOK_URL: ${{ secrets.DASHBOARD_TRIAGE_WEBHOOK_URL }}
-        run: >
-          curl -sSL --fail-with-body
-          -H "Content-Type: application/json"
-          --data-binary "$(jq -ns --arg url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --arg stats "$(awk -vRS='\n\n' 'NR==2{print;exit}' scripts/dashboard-triage/out/*.md)" '{text: "\($url)\n\($stats)"}')"
-          "$DASHBOARD_TRIAGE_WEBHOOK_URL"
+        run: |
+          curl -sSL --fail-with-body -H "Content-Type: application/json" --data-binary "$(jq -ns \
+            --arg url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+            --arg stats "$(awk '/^- Failed jobs/,/^- Real failures/{gsub(/\*\*/,"*");print;quit}' scripts/dashboard-triage/out/*.md)" '{text: "\($url)\n\($stats)"}'
+          )" "$DASHBOARD_TRIAGE_WEBHOOK_URL"
 
