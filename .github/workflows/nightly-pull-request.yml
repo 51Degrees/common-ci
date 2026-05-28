@@ -61,6 +61,7 @@ on:
       NginxJwtToken:
       PypiToken:
       ResourceKeyCloudV5Bespoke:
+      StrongNameKeyBase64:
       TestBrowserResourceKey:
       TestHardwareResourceKey:
       TestLicenseKey:

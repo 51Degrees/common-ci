@@ -49,6 +49,7 @@ on:
       CodeSigningKeyVaultClientSecret:
       CodeSigningKeyVaultCertificateName:
       CodeSigningKeyVaultCertificateData:
+      StrongNameKeyBase64:
       CsvUrl:
       DeviceDetection:
       DeviceDetectionUrl:
