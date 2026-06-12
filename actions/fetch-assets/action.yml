@@ -4,6 +4,8 @@ inputs:
     required: true
   cache:
     required: false
+  lazy: # don't actually fetch if the files are cached
+    required: false
   device-detection-key:
     required: false
   device-detection-url:
@@ -35,8 +37,10 @@ runs:
         key: ${{ steps.hash-inputs.outputs.key }}
         path: assets
         enableCrossOsArchive: true
+        lookup-only: ${{ inputs.lazy == 'true' }}
 
     - name: Fetch assets
+      if: ${{ !inputs.lazy || steps.cache-restore.outputs.cache-hit != 'true' }}
       shell: pwsh
       env:
         assets: ${{ inputs.assets }}
