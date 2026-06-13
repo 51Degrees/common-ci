@@ -51,7 +51,7 @@ foreach ($asset in $Assets) {
             Move-Item -Path $_ -Destination $cache
         }
         "51Degrees-LiteIpiV41.ipi" {
-            & $PSScriptRoot/fetch-hash-assets.ps1 -RepoName . -ArchiveName "$_.gz" -Url "https://51ddatafiles.blob.core.windows.net/enterpriseipi/51Degrees-LiteIpiV41.ipi.gz"
+            & $PSScriptRoot/fetch-hash-assets.ps1 -RepoName . -ArchiveName "$_.gz" -Url "https://51ddatafiles.blob.core.windows.net/enterpriseipi/51Degrees-IPIV4LiteIpiV41.ipi.gz"
             Move-Item -Path $_ -Destination $cache
 
         }
