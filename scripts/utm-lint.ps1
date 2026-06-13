@@ -54,10 +54,22 @@ if ($Campaign -eq "") {
 if ($ConfigPath -eq "") { $ConfigPath = Join-Path $RepoRoot ".utm-lint.json" }
 $configExclude = @()
 $allowUntagged = @()
+# Mode: "require" (default) means navigational 51degrees.com links must
+# carry the full UTM scheme. "forbid" is the inverse, for repositories
+# whose content is published ON 51degrees.com (for example the
+# documentation site): their links to 51degrees.com are internal, so a
+# UTM tag would overwrite campaign attribution and trip SEO duplicate-URL
+# checks. In forbid mode any UTM tag on a 51degrees.com link is a
+# violation and untagged links are correct.
+$mode = "require"
 if (Test-Path $ConfigPath) {
     $config = Get-Content $ConfigPath -Raw | ConvertFrom-Json
     if ($config.exclude) { $configExclude = @($config.exclude) }
     if ($config.allowUntagged) { $allowUntagged = @($config.allowUntagged) }
+    if ($config.mode) { $mode = $config.mode }
+}
+if ($mode -notin @("require", "forbid")) {
+    throw "Unknown mode '$mode' in $ConfigPath (expected 'require' or 'forbid')."
 }
 
 # Paths never scanned. Tests hold fixture URLs, generated and vendored
@@ -170,6 +182,16 @@ foreach ($file in $files) {
             }
             if ($host51.StartsWith('www.')) {
                 $violations.Add("$where www host, use the bare domain: $rawUrl")
+            }
+
+            # Forbid mode: this repository's content is served from
+            # 51degrees.com, so links to it are internal and must not be
+            # UTM-tagged. The https/www/version checks above still apply.
+            if ($mode -eq "forbid") {
+                if ($hasUtm) {
+                    $violations.Add("$where UTM parameters on an internal 51degrees.com link (this repository publishes to 51degrees.com, so its links are internal and must not be tagged): $rawUrl")
+                }
+                continue
             }
 
             if (-not $hasUtm) {
