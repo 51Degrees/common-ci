@@ -34,7 +34,10 @@ Per-repo configuration is read from .utm-lint.json at the repo root:
 param(
     [string]$RepoRoot = ".",
     [string]$Campaign = "",
-    [string]$ConfigPath = ""
+    [string]$ConfigPath = "",
+    # The current documentation site version. Versioned documentation
+    # links must use this version or none at all.
+    [string]$CurrentDocVersion = "4.5"
 )
 
 $ErrorActionPreference = "Stop"
@@ -135,6 +138,14 @@ foreach ($file in $files) {
             if ($rawUrl -imatch 'logo\.ashx') {
                 $violations.Add("$where retired Logo.ashx URL: $rawUrl")
                 continue
+            }
+
+            # Documentation links must use the current version or the
+            # un-versioned URL, never an older version.
+            $docVer = [regex]::Match($rawUrl, '/documentation/(\d+\.\d+)/')
+            if ($docVer.Success -and
+                $docVer.Groups[1].Value -ne $CurrentDocVersion) {
+                $violations.Add("$where stale documentation version $($docVer.Groups[1].Value), use the un-versioned URL or ${CurrentDocVersion}: $rawUrl")
             }
 
             $host51 = $m.Groups[2].Value.ToLowerInvariant()
