@@ -1,0 +1,61 @@
+name: Nightly Example Assets Update
+
+on:
+  workflow_call:
+    inputs:
+      repo-name:
+        required: true
+        type: string
+      org-name:
+        required: false
+        type: string
+        default: 51degrees
+      user:
+        required: false
+        type: string
+        default: Automation51D
+      email:
+        required: false
+        type: string
+        default: "51DCI@51Degrees.com"
+      dryrun:
+        required: false
+        type: string
+        default: false
+      tag:
+        required: false
+        type: string
+        default: ''
+      common-ci-ref:
+        type: string
+        default: ''
+    secrets:
+      token:
+        required: true
+
+jobs:
+  NightlyExampleAssetsUpdate:
+    runs-on: ubuntu-latest
+    name: Nightly Example Assets Update
+    steps:
+      - name: Checkout Common
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ inputs.org-name }}/common-ci
+          path: common
+          ref: ${{ inputs.common-ci-ref }}
+
+      - name: Update Example Assets
+        shell: pwsh
+        working-directory: ${{ github.workspace }}/common/
+        run: |
+          $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
+          ./nightly-example-assets-update.ps1 `
+          -GitHubToken ${{ secrets.token }} `
+          -RepoName ${{ inputs.repo-name }} `
+          -OrgName ${{ inputs.org-name }} `
+          -Branch ${{ github.ref_name }} `
+          -GitHubUser ${{ inputs.user }} `
+          -GitHubEmail ${{ inputs.email }} `
+          -Tag "${{ inputs.tag }}" `
+          -DryRun $DryRun

@@ -12,8 +12,12 @@
     are committed and visible to anyone cloning it. The assets change rarely, so
     re-running this only when a new release is cut keeps each repo in sync.
 
-    Example repos reference this script via the common-ci submodule, e.g.:
-        pwsh common-ci/scripts/update-example-assets.ps1 -OutputDir examples/assets
+    This is the download primitive. The built assets are committed into each
+    examples repo so anyone cloning it sees them; common-ci refreshes them in CI
+    via the nightly-example-assets-update reusable workflow when a new release is
+    cut (no submodule in the examples repos). It is also handy for the initial
+    vendoring, e.g.:
+        pwsh scripts/update-example-assets.ps1 -OutputDir path/to/wwwroot/assets
 
 .PARAMETER OutputDir
     Directory (created if missing) the assets are written to.
