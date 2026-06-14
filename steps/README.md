@@ -131,6 +131,15 @@ The `RepoName`, `OrgName`, and `DryRun` parameters will always be available to t
 
 For a more detailed description of options usage, see [Options](/DESIGN.md#build-options).
 
+## Set Resource Keys
+**Script: `set-resource-keys.ps1`**
+
+Exports the 51Degrees resource key secrets as environment variables for the steps and tests that follow.
+
+Takes the secrets available to the job as a hashtable (in the framework this is `$Options.Keys`) and exports every key whose name follows the resource-key convention (any name beginning with `_51DEGREES_RESOURCE_KEY`, for example `_51DEGREES_RESOURCE_KEY_FREE` and `_51DEGREES_RESOURCE_KEY_PAID`). Each is set in the process environment and, under GitHub Actions, appended to `$GITHUB_ENV`.
+
+This is the single, central place that knows the resource-key convention. To make a new resource key available to every repository, add the secret at the organisation level using the `_51DEGREES_RESOURCE_KEY_*` convention; it is picked up automatically with no change to any repository's CI. Secret values are never written to the log.
+
 ## Update Sub-Modules
 **Script: `update-sub-modules.ps1`**
 
