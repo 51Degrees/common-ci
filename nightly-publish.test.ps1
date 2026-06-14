@@ -36,6 +36,10 @@ Write-Host "::group::Setup Environment"
 ./steps/run-script.ps1 ./$RepoName/ci/setup-environment.ps1 $Options
 Write-Host "::endgroup::"
 
+Write-Host "::group::Set Resource Keys"
+./steps/set-resource-keys.ps1 -Keys $Options.Keys
+Write-Host "::endgroup::"
+
 Write-Host "::group::Install Package From Artifact"
 ./steps/run-script.ps1 ./$RepoName/ci/install-package.ps1  $Options
 Write-Host "::endgroup::"
