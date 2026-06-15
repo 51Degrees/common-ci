@@ -6,6 +6,8 @@ inputs:
   mode:
     type: string
     default: ContinuousDeployment
+  args:
+    type: string
 outputs:
   version:
     value: ${{ steps.bump.outputs.version }}
@@ -19,9 +21,10 @@ runs:
       env:
         format: ${{ inputs.format }}
         mode: ${{ inputs.mode }}
+        args: ${{ inputs.args }}
       run: |
         dotnet tool install -g GitVersion.Tool
-        version=$(dotnet-gitversion /format "$format" /overrideconfig "mode=$mode")
+        version=$(dotnet-gitversion /format "$format" /overrideconfig "mode=$mode" $args)
         tee -a "$GITHUB_OUTPUT" <<<"version=$version"
         git show-ref --quiet --tags "$version" || tee -a "$GITHUB_OUTPUT" <<<"bumped=yes"
 
