@@ -7,7 +7,7 @@ $PSNativeCommandUseErrorActionPreference = $true
 Write-Output "Building extension for $PackageName"
 
 # Installing binary builder
-npm i -g node-gyp@11.0.0
+npm i -g node-gyp@12.4.0
 
 # Determine the operating system
 if ($IsMacOS) {
