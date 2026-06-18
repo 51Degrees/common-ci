@@ -22,6 +22,13 @@ try {
     $summaryDir = Join-Path (Get-Location) $OutputDir
     New-Item -ItemType Directory -Force -Path $summaryDir | Out-Null
 
+    # The example crates live in their own workspace under examples/ and depend
+    # on the published crates from crates.io by default. The nightly must
+    # benchmark this checkout's engine code, not the released packages, so the
+    # cargo commands run from examples/ with `--config source.toml`, the patch
+    # file that points every fiftyone-* dependency at its local path.
+    $examplesDir = Join-Path (Get-Location) "examples"
+
     # Run one performance example and parse the throughput it prints. The
     # examples take the highest throughput figure they report (the multi-threaded
     # pass), which is the headline number for the product.
@@ -32,7 +39,12 @@ try {
             [Parameter(Mandatory)][string]$Pattern
         )
         Write-Host "Running performance example '$Bin'..."
-        $output = cargo run --release -p $Package --bin $Bin 2>&1 | Out-String
+        Push-Location $examplesDir
+        try {
+            $output = cargo run --release --config source.toml -p $Package --bin $Bin 2>&1 | Out-String
+        } finally {
+            Pop-Location
+        }
         Write-Host $output
         $found = [regex]::Matches($output, $Pattern)
         if ($found.Count -eq 0) {
