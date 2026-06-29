@@ -37,7 +37,7 @@ Write-Host "::endgroup::"
 
 Write-Host "::group::Checkout PR"
 ./steps/checkout-pr.ps1 -RepoName $RepoName -Branch $Branch -PullRequestId $PullRequestId -SetVariable PullRequestSha
-Write-Host "pr-sha=$PullRequestSha" | Out-File $GitHubOutput -Append
+"pr-sha=$PullRequestSha" | Out-File $GitHubOutput -Append
 Write-Host "::endgroup::"
 
 if ($Options.CI) {
