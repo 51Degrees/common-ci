@@ -44,6 +44,8 @@ runs:
           ${{ inputs.repo-name }}/test-results/unit/**/*.json
         comment_mode: off
         check_run: false
+        ignore_runs: true
+        compare_to_earlier_commit: false
 
     - name: Unit Test Results
       uses: EnricoMi/publish-unit-test-result-action/windows@v2
@@ -59,6 +61,8 @@ runs:
           ${{ inputs.repo-name }}/test-results/unit/**/*.json
         comment_mode: off
         check_run: false
+        ignore_runs: true
+        compare_to_earlier_commit: false
 
     - name: Unit Test Results
       uses: EnricoMi/publish-unit-test-result-action/macos@v2
@@ -74,6 +78,8 @@ runs:
           ${{ inputs.repo-name }}/test-results/unit/**/*.json
         comment_mode: off
         check_run: false
+        ignore_runs: true
+        compare_to_earlier_commit: false
 
     # Integration
     - name: Integration Test Results
@@ -90,6 +96,8 @@ runs:
           ${{ inputs.repo-name }}/test-results/integration/**/*.json
         comment_mode: off
         check_run: false
+        ignore_runs: true
+        compare_to_earlier_commit: false
 
     - name: Integration Test Results
       uses: EnricoMi/publish-unit-test-result-action/windows@v2
@@ -105,6 +113,8 @@ runs:
           ${{ inputs.repo-name }}/test-results/integration/**/*.json
         comment_mode: off
         check_run: false
+        ignore_runs: true
+        compare_to_earlier_commit: false
 
     - name: Integration Test Results
       uses: EnricoMi/publish-unit-test-result-action/macos@v2
@@ -120,6 +130,8 @@ runs:
           ${{ inputs.repo-name }}/test-results/integration/**/*.json
         comment_mode: off
         check_run: false
+        ignore_runs: true
+        compare_to_earlier_commit: false
 
     # Performance
     - name: Performance Test Results
@@ -136,6 +148,8 @@ runs:
           ${{ inputs.repo-name }}/test-results/performance/**/*.json
         comment_mode: off
         check_run: false
+        ignore_runs: true
+        compare_to_earlier_commit: false
 
     - name: Performance Test Results
       uses: EnricoMi/publish-unit-test-result-action/windows@v2
@@ -151,6 +165,8 @@ runs:
           ${{ inputs.repo-name }}/test-results/performance/**/*.json
         comment_mode: off
         check_run: false
+        ignore_runs: true
+        compare_to_earlier_commit: false
 
     - name: Performance Test Results
       uses: EnricoMi/publish-unit-test-result-action/macos@v2
@@ -166,3 +182,5 @@ runs:
           ${{ inputs.repo-name }}/test-results/performance/**/*.json
         comment_mode: off
         check_run: false
+        ignore_runs: true
+        compare_to_earlier_commit: false
