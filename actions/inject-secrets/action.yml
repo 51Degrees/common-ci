@@ -1,0 +1,27 @@
+name: Inject secrets
+inputs:
+  files:
+    type: string
+    required: true
+  secrets: # key-value json string
+    type: string
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - id: inject
+      shell: pwsh
+      env:
+        files: ${{ inputs.files }}
+        secrets: ${{ inputs.secrets }}
+      run: |
+        $ErrorActionPreference = "Stop"
+        Set-StrictMode -Version 3.0
+        $secrets = $env:secrets | ConvertFrom-Json -AsHashtable
+        Get-ChildItem ($env:files -split '\n') | ForEach-Object {
+            $json = $_ -clike '*.json'
+            (Get-Content -Raw $_) -replace '%\w+%', {
+                $name = $_.ToString().Trim('%')
+                return $json ? ($secrets.$name | ConvertTo-Json).Trim('"') : $secrets.$name
+            } | Set-Content $_
+        }
