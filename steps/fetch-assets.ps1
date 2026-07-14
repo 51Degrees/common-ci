@@ -86,3 +86,21 @@ foreach ($asset in $Assets) {
         default { Write-Error "Unknown asset: $_" }
     }
 }
+
+# Every asset is hashed, not just the ones downloaded above: a cache hit skips
+# the download entirely, and the dated bulkdata assets are silently superseded
+# each night, so the log is otherwise not enough to tell which bytes a run
+# actually consumed. Diagnosing a failure against the wrong copy of an asset
+# costs far more than the hashing does.
+Write-Host '::group::Asset hashes'
+foreach ($asset in $Assets) {
+    $path = Join-Path $cache $asset
+    if (-not (Test-Path -LiteralPath $path)) {
+        Write-Host "MISSING`t`t$asset"
+        continue
+    }
+    $md5 = (Get-FileHash -Algorithm MD5 -LiteralPath $path).Hash.ToLowerInvariant()
+    $size = (Get-Item -LiteralPath $path).Length
+    Write-Host "$md5`t$size`t$asset"
+}
+Write-Host '::endgroup::'
