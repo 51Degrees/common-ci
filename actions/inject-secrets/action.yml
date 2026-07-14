@@ -19,10 +19,12 @@ runs:
         Set-StrictMode -Version 3.0
         $secrets = $env:secrets | ConvertFrom-Json -AsHashtable
         Get-ChildItem $env:files.Split("`n", [StringSplitOptions]::RemoveEmptyEntries) | ForEach-Object {
-            Write-Host "Injecting secrets into $_"
-            $json = $_ -clike '*.json'
-            (Get-Content -Raw $_) -replace '%\w+%', {
+            $src = $_
+            $dest = $src -clike '*.tpl' ? $src -replace '.tpl$' : $src # strip suffix from templates
+            Write-Host "Injecting secrets into $dest"
+            $json = $dest -clike '*.json'
+            (Get-Content -Raw $src) -replace '%\w+%', {
                 $name = $_.ToString().Trim('%')
                 return $json ? ($secrets.$name | ConvertTo-Json).Trim('"') : $secrets.$name
-            } | Set-Content $_
+            } | Set-Content $dest
         }
