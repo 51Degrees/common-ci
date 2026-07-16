@@ -22,22 +22,23 @@ function Get-FromBulkData {
     $tomorrow = [DateTime]::Now.AddDays(1).ToString('yyyy-MM-dd')
     Write-Host "Retrieving the latest $Data version..."
     $available = Invoke-WebRequest "https://bulkdata.51degrees.com/api/v4/Available/Production/$Data/$License/$monthAgo/$tomorrow" | ConvertFrom-Json -AsHashtable
-    # Try the newest version first and fall back to older ones. The Available
-    # index can list a version whose blob is not actually downloadable yet (a
-    # broken or racy daily publish), and a single hard attempt on the latest
-    # then fails the whole pipeline. Sort descending rather than trusting the
-    # key order returned by the API.
+    # The Available index returns version keys as YYYY/MM/DD, but the Download
+    # endpoint expects YYYY-MM-DD - passing the key through verbatim builds a
+    # slashed URL that 404s. Normalise to dashes. Also iterate newest-first and
+    # fall back to older versions in case a given day's blob is genuinely
+    # missing, and sort explicitly rather than trusting the API's key order.
     $versions = @($available.Keys | Sort-Object -Descending)
     if (-not $versions) {
         throw "No $Data versions listed by bulkdata in the last 30 days"
     }
     foreach ($version in $versions) {
+        $datePath = $version -replace '/', '-'
         Write-Host "Downloading $Data from $version..."
         try {
-            curl -fLo $Output "https://bulkdata.51degrees.com/api/v4/Download/Production/$Data/$License/$version"
+            curl -fLo $Output "https://bulkdata.51degrees.com/api/v4/Download/Production/$Data/$License/$datePath"
             return
         } catch {
-            Write-Warning "$Data $version is indexed but not downloadable ($_); trying an older version..."
+            Write-Warning "$Data $version is not downloadable ($_); trying an older version..."
         }
     }
     throw "No downloadable $Data version found in the last 30 days"
