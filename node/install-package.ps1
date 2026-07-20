@@ -1,13 +1,5 @@
-param (
-    [Parameter(Mandatory=$true)]
-    [string]$RepoName
-)
+param ([Parameter(Mandatory)][string]$RepoName)
+$ErrorActionPreference = 'Stop'
+$PSNativeCommandUseErrorActionPreference = $true
 
-Push-Location $RepoName
-
-Get-ChildItem -Path ../package -Filter *.tgz | ForEach-Object {
-    npm install $_ || $(throw "npm install failed")
-}
-
-Pop-Location
-
+npm install --prefix $RepoName package/*.tgz
