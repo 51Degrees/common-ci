@@ -1,18 +1,5 @@
-param (
-    [Parameter(Mandatory=$true)]
-    [string]$RepoName
-)
+param ([Parameter(Mandatory)][string]$RepoName)
+$ErrorActionPreference = 'Stop'
+$PSNativeCommandUseErrorActionPreference = $true
 
-Push-Location $RepoName
-
-Write-Output "Setting up environment insіde $RepoName - [START]"
-
-npm install
-
-Write-Output "Setting up environment insіde $RepoName - [END]"
-
-if ($LASTEXITCODE -ne 0) {
-    exit $LASTEXITCODE
-}
-
-Pop-Location
+npm --prefix $RepoName install

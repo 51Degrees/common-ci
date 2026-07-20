@@ -2,6 +2,8 @@ param ([Parameter(Mandatory)][string]$RepoName)
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $true
 
-Write-Host 'Running unit tests'
-$env:JEST_JUNIT_OUTPUT_DIR = 'test-results/unit'
-npm run --prefix $RepoName unit-test
+Write-Host "Installing dependencies"
+npm --prefix $RepoName install
+
+Write-Host "Linting"
+npm --prefix $RepoName run lint
