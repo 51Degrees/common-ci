@@ -2,4 +2,7 @@ param ([Parameter(Mandatory)][string]$RepoName)
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $true
 
-npm install --prefix $RepoName package/*.tgz
+Push-Location $RepoName
+try {
+    npm install ../package/*.tgz
+} finally { Pop-Location }

@@ -2,8 +2,11 @@ param ([Parameter(Mandatory)][string]$RepoName)
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $true
 
-Write-Host "Installing dependencies"
-npm --prefix $RepoName install
+Push-Location $RepoName
+try {
+    Write-Host "Installing dependencies"
+    npm install
 
-Write-Host "Linting"
-npm --prefix $RepoName run lint
+    Write-Host "Linting"
+    npm run lint
+} finally { Pop-Location }

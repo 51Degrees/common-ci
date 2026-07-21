@@ -2,4 +2,7 @@ param ([Parameter(Mandatory)][string]$RepoName)
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $true
 
-npm --prefix $RepoName install
+Push-Location $RepoName
+try {
+    npm install
+} finally { Pop-Location }
