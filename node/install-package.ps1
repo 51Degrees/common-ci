@@ -4,5 +4,5 @@ $PSNativeCommandUseErrorActionPreference = $true
 
 Push-Location $RepoName
 try {
-    npm install ../package/*.tgz
+    Get-ChildItem ../package/*.tgz | ForEach-Object { npm install $_ }
 } finally { Pop-Location }
