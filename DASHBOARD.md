@@ -75,3 +75,9 @@
 | ---- | ------ | ------ |
 | [device-detection-go](https://github.com/51Degrees/device-detection-go) | `main` | [![Nightly Pipeline](https://github.com/51Degrees/device-detection-go/actions/workflows/nightly-pipeline.yml/badge.svg)](https://github.com/51Degrees/device-detection-go/actions/workflows/nightly-pipeline.yml) |
 | [ip-intelligence-go](https://github.com/51Degrees/ip-intelligence-go) | `main` | [![Nightly Pipeline](https://github.com/51Degrees/ip-intelligence-go/actions/workflows/nightly-pipeline.yml/badge.svg)](https://github.com/51Degrees/ip-intelligence-go/actions/workflows/nightly-pipeline.yml) |
+
+### Rust
+
+| Repo | Branch | Status |
+| ---- | ------ | ------ |
+| [rust](https://github.com/51Degrees/rust) | `main` | [![Nightly Performance](https://github.com/51Degrees/rust/actions/workflows/nightly-performance.yml/badge.svg)](https://github.com/51Degrees/device-detection-go/actions/workflows/nightly-performance.yml) |
