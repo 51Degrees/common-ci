@@ -80,4 +80,4 @@
 
 | Repo | Branch | Status |
 | ---- | ------ | ------ |
-| [rust](https://github.com/51Degrees/rust) | `main` | [![Nightly Performance](https://github.com/51Degrees/rust/actions/workflows/nightly-performance.yml/badge.svg)](https://github.com/51Degrees/device-detection-go/actions/workflows/nightly-performance.yml) |
+| [rust](https://github.com/51Degrees/rust) | `main` | [![Nightly Performance](https://github.com/51Degrees/rust/actions/workflows/nightly-performance.yml/badge.svg)](https://github.com/51Degrees/rust/actions/workflows/nightly-performance.yml) |
