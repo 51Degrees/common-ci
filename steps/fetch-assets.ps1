@@ -44,25 +44,6 @@ function Get-FromBulkData {
     throw "No downloadable $Data version found in the last 30 days"
 }
 
-# Several assets are Git LFS objects (the Lite hash file alone is ~28MB) served
-# by GitHub's media host. When the whole build matrix pulls the same object at
-# once GitHub resets or stalls the connection, which failed the job outright
-# because a bare curl has no retry. Note that --retry on its own is not enough:
-# a reset (curl 35) is not in curl's default retry set, hence --retry-all-errors,
-# and --speed-limit/--speed-time turns a stalled transfer into a retry rather
-# than a hang that runs until the job is cancelled.
-function Get-FromGitHub {
-    param (
-        [Parameter(Mandatory)][string]$Url,
-        [Parameter(Mandatory)][string]$Output
-    )
-    $retryArguments = @(
-        '--retry', 5, '--retry-all-errors', '--retry-delay', 5,
-        '--connect-timeout', 30, '--speed-limit', 1024, '--speed-time', 60
-    )
-    curl -fLo $Output @retryArguments $Url
-}
-
 foreach ($asset in $Assets) {
     if (Test-Path $cache/$asset) {
         Write-Host "Asset '$asset' already present in cache, skipping download"
@@ -75,7 +56,7 @@ foreach ($asset in $Assets) {
             Move-Item -Path $_ -Destination $cache
         }
         "51Degrees-LiteV4.1.hash" {
-            Get-FromGitHub -Url "https://media.githubusercontent.com/media/51Degrees/device-detection-data/main/51Degrees-LiteV4.1.hash" -Output $cache/$_
+            & $PSScriptRoot/download-with-retry.ps1 -Url "https://media.githubusercontent.com/media/51Degrees/device-detection-data/main/51Degrees-LiteV4.1.hash" -Output $cache/$_ -MaxTime 600
         }
         "51Degrees-EnterpriseIpiV41.ipi" {
             & $PSScriptRoot/fetch-hash-assets.ps1 -RepoName . -ArchiveName "$_.gz" -LicenseKey $IpIntelligence -DataType IPIV41 -Product IPIV4Enterprise -Url $IpIntelligenceUrl
@@ -92,10 +73,10 @@ foreach ($asset in $Assets) {
 
         }
         "20000 Evidence Records.yml" {
-            Get-FromGitHub -Url "https://media.githubusercontent.com/media/51Degrees/device-detection-data/main/20000%20Evidence%20Records.yml" -Output $cache/$_
+            & $PSScriptRoot/download-with-retry.ps1 -Url "https://media.githubusercontent.com/media/51Degrees/device-detection-data/main/20000%20Evidence%20Records.yml" -Output $cache/$_ -MaxTime 600
         }
         "20000 User Agents.csv" {
-            Get-FromGitHub -Url "https://media.githubusercontent.com/media/51Degrees/device-detection-data/main/20000%20User%20Agents.csv" -Output $cache/$_
+            & $PSScriptRoot/download-with-retry.ps1 -Url "https://media.githubusercontent.com/media/51Degrees/device-detection-data/main/20000%20User%20Agents.csv" -Output $cache/$_ -MaxTime 600
         }
         "51Degrees.csv" {
             & $PSScriptRoot/download-data-file.ps1 -LicenseKey:$DeviceDetection -DataType 'CSV' -Product 'V4TAC' -Url:$CsvUrl -FullFilePath "$_.zip"
@@ -111,7 +92,7 @@ foreach ($asset in $Assets) {
             & $PSScriptRoot/download-data-file.ps1 -LicenseKey:$DeviceDetection -DataType 'CSV' -Product 'V4TAC' -Url:$CsvUrl -FullFilePath "$cache/$_"
         }
         "ip-intelligence-evidence.yml" {
-            Get-FromGitHub -Url "https://raw.githubusercontent.com/51Degrees/ip-intelligence-data/main/evidence.yml" -Output $cache/$_
+            & $PSScriptRoot/download-with-retry.ps1 -Url "https://raw.githubusercontent.com/51Degrees/ip-intelligence-data/main/evidence.yml" -Output $cache/$_ -MaxTime 600
         }
         "chargify.json" {
             Get-FromBulkData -License:$DeviceDetection -Data 'chargify' -Output $cache/$_

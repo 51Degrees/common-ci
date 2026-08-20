@@ -14,10 +14,18 @@ runs:
         id: hash-assets
         shell: pwsh
         env:
+          repo: ${{ inputs.repo }}
           secrets: ${{ inputs.secrets }}
         run: |
           $sha1 = [Security.Cryptography.SHA1Managed]::new()
           $key = ($env:secrets | ConvertFrom-Json -AsHashtable | Select-Object -ExcludeProperty github_token).Values | Sort-Object | Join-String -Separator `n
+          # Fold the repo's fetch-assets script into the key, because it is what
+          # decides which assets are downloaded. Keying on the secrets alone means
+          # the key only rotates once a day, so an entry written before an asset
+          # was added to the list keeps being restored for the rest of that day.
+          # The prefetch step is then skipped on a cache hit and the new asset is
+          # silently missing from the restored cache.
+          $key += "`n" + (Get-Content -Raw "$env:repo/ci/fetch-assets.ps1")
           $hash = [Convert]::ToHexString($sha1.ComputeHash([Text.Encoding]::Utf8.GetBytes($key)))
           "key=$(Get-Date -Format FileDate)-$hash" >> $env:GITHUB_OUTPUT
 
