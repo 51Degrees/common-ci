@@ -18,7 +18,14 @@ runs:
           secrets: ${{ inputs.secrets }}
         run: |
           $sha1 = [Security.Cryptography.SHA1Managed]::new()
-          $key = ($env:secrets | ConvertFrom-Json -AsHashtable | Select-Object -ExcludeProperty github_token).Values | Sort-Object | Join-String -Separator `n
+          # Select-Object -ExcludeProperty against a hashtable returns an object
+          # with no Values member, so this whole expression used to evaluate to
+          # an empty string and every key carried SHA1("") - the secrets never
+          # took part in the key at all. Drop the token from the hashtable
+          # itself instead.
+          $secretValues = $env:secrets | ConvertFrom-Json -AsHashtable
+          $null = $secretValues.Remove('github_token')
+          $key = $secretValues.Values | Sort-Object | Join-String -Separator `n
           # Fold the repo's fetch-assets script into the key, because it is what
           # decides which assets are downloaded. Keying on the secrets alone means
           # the key only rotates once a day, so an entry written before an asset

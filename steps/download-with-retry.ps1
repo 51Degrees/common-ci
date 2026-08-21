@@ -5,15 +5,22 @@ param (
     # downloads of a known, bounded size - the data files are several GB and
     # any limit generous enough for them on a slow runner would be too coarse
     # to catch anything, so those rely on the transfer speed floor instead.
-    [int]$MaxTime
+    [int]$MaxTime,
+    # Resume a retry from where the previous attempt stopped instead of
+    # starting again. Worth it for the multi-GB data files, where a runner
+    # pulling at ~1MB/s takes the best part of an hour and restarting from zero
+    # can outlast the job. Curl only sends a Range header once there is partial
+    # data to resume from, so the first attempt is unaffected on a server that
+    # does not support ranges.
+    [switch]$Resume
 )
 $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
 
 $curlArguments = @(
-    # --retry alone is not enough: a connection reset (curl 35) is not in
-    # curl's default retry set, which is exactly the failure this guards
-    # against. Note also that no --retry-delay is given on purpose - curl's
+    # --retry alone is not enough: a connection reset (curl 35) and a receive
+    # timeout (curl 56) are not in curl's default retry set, which is exactly
+    # what these downloads keep failing on. Note also that no --retry-delay is given on purpose - curl's
     # default exponential backoff staggers matrix jobs that were all reset at
     # the same moment, whereas a fixed delay would retry them in lockstep.
     '--retry', 5, '--retry-all-errors',
@@ -24,6 +31,9 @@ $curlArguments = @(
 )
 if ($MaxTime) {
     $curlArguments += @('--max-time', $MaxTime)
+}
+if ($Resume) {
+    $curlArguments += @('--continue-at', '-')
 }
 
 try {
