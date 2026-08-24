@@ -81,9 +81,12 @@ on:
       DockerRegistry:
       DockerUser:
       PearlLicense:
-      PearlUsageOvhEu:
-      PearlUsageOvhUs:
-      PearlUsageHetzner:
+      PearlHetznerS3AccessKeyId:
+      PearlHetznerS3SecretAccessKey:
+      PearlOvhEuS3AccessKeyId:
+      PearlOvhEuS3SecretAccessKey:
+      PearlOvhUsS3AccessKeyId:
+      PearlOvhUsS3SecretAccessKey:
 
 defaults:
   run:
