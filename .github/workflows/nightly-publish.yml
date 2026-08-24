@@ -78,6 +78,9 @@ on:
       DockerRegistry:
       DockerUser:
       PearlLicense:
+      PearlUsageOvhEu:
+      PearlUsageOvhUs:
+      PearlUsageHetzner:
 
 defaults:
   run:
