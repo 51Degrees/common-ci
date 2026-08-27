@@ -12,6 +12,23 @@ $PSNativeCommandUseErrorActionPreference = $true
 
 $cache = New-Item -ItemType Directory -Path assets -Force
 
+# --retry alone is not enough: a connection reset (curl 35) and a receive
+# timeout (curl 56) are not in curl's default retry set, and those are what
+# these downloads keep failing on. No --retry-delay on purpose - curl's default
+# exponential backoff staggers matrix jobs that were all reset at the same
+# moment, whereas a fixed delay retries them in lockstep. --speed-limit and
+# --speed-time abort an attempt that has trickled below 1KB/s for a minute so
+# that it is retried rather than hanging until the job is cancelled, and
+# --max-time caps one that stays just above that floor. These assets are all
+# well under 100MB - download-data-file.ps1 keeps its own set because the data
+# files it fetches are several GB.
+$curlFlags = @(
+    '--retry', 5, '--retry-all-errors',
+    '--connect-timeout', 30,
+    '--speed-limit', 1024, '--speed-time', 60,
+    '--max-time', 600
+)
+
 function Get-FromBulkData {
     param (
         [Parameter(Mandatory)][string]$License,
@@ -50,56 +67,65 @@ foreach ($asset in $Assets) {
         continue
     }
     Write-Host "Fetching '$asset'"
-    switch -Exact -CaseSensitive ($asset) {
-        "TAC-HashV41.hash" {
-            & $PSScriptRoot/fetch-hash-assets.ps1 -RepoName . -LicenseKey $DeviceDetection -Url $DeviceDetectionUrl
-            Move-Item -Path $_ -Destination $cache
-        }
-        "51Degrees-LiteV4.1.hash" {
-            curl -fLo $cache/$_ "https://github.com/51Degrees/device-detection-data/raw/main/51Degrees-LiteV4.1.hash"
-        }
-        "51Degrees-EnterpriseIpiV41.ipi" {
-            & $PSScriptRoot/fetch-hash-assets.ps1 -RepoName . -ArchiveName "$_.gz" -LicenseKey $IpIntelligence -DataType IPIV41 -Product IPIV4Enterprise -Url $IpIntelligenceUrl
-            Move-Item -Path $_ -Destination $cache
-        }
-        "51Degrees-EnterpriseIpiV41-AllProperties.ipi" {
-            # Only uses URL
-            & $PSScriptRoot/fetch-hash-assets.ps1 -RepoName . -ArchiveName "$_.gz" -Url $IpIntelligenceUrl
-            Move-Item -Path $_ -Destination $cache
-        }
-        "51Degrees-LiteIpiV41.ipi" {
-            & $PSScriptRoot/fetch-hash-assets.ps1 -RepoName . -ArchiveName "$_.gz" -Url "https://51ddatafiles.blob.core.windows.net/enterpriseipi/51Degrees-IPIV4LiteIpiV41.ipi.gz"
-            Move-Item -Path $_ -Destination $cache
-
-        }
-        "20000 Evidence Records.yml" {
-            curl -fLo $cache/$_ "https://media.githubusercontent.com/media/51Degrees/device-detection-data/main/20000%20Evidence%20Records.yml"
-        }
-        "20000 User Agents.csv" {
-            curl -fLo $cache/$_ "https://media.githubusercontent.com/media/51Degrees/device-detection-data/main/20000%20User%20Agents.csv"
-        }
-        "51Degrees.csv" {
-            & $PSScriptRoot/download-data-file.ps1 -LicenseKey:$DeviceDetection -DataType 'CSV' -Product 'V4TAC' -Url:$CsvUrl -FullFilePath "$_.zip"
-            Expand-Archive -DestinationPath . "$_.zip"
-            if ($FullCsv) {
-                Move-Item -Path '51Degrees-Tac-All.csv' -Destination $cache/$_
-            } else {
-                Get-Content -TotalCount 1 '51Degrees-Tac-All.csv' > $cache/$_ # Most repos only need the header
+    try {
+        switch -Exact -CaseSensitive ($asset) {
+            "TAC-HashV41.hash" {
+                & $PSScriptRoot/fetch-hash-assets.ps1 -RepoName . -LicenseKey $DeviceDetection -Url $DeviceDetectionUrl
+                Move-Item -Path $_ -Destination $cache
             }
-            Remove-Item -Force "$_.zip", '51Degrees-Tac-All.csv'
+            "51Degrees-LiteV4.1.hash" {
+                curl -fLo $cache/$_ @curlFlags "https://media.githubusercontent.com/media/51Degrees/device-detection-data/main/51Degrees-LiteV4.1.hash"
+            }
+            "51Degrees-EnterpriseIpiV41.ipi" {
+                & $PSScriptRoot/fetch-hash-assets.ps1 -RepoName . -ArchiveName "$_.gz" -LicenseKey $IpIntelligence -DataType IPIV41 -Product IPIV4Enterprise -Url $IpIntelligenceUrl
+                Move-Item -Path $_ -Destination $cache
+            }
+            "51Degrees-EnterpriseIpiV41-AllProperties.ipi" {
+                # Only uses URL
+                & $PSScriptRoot/fetch-hash-assets.ps1 -RepoName . -ArchiveName "$_.gz" -Url $IpIntelligenceUrl
+                Move-Item -Path $_ -Destination $cache
+            }
+            "51Degrees-LiteIpiV41.ipi" {
+                & $PSScriptRoot/fetch-hash-assets.ps1 -RepoName . -ArchiveName "$_.gz" -Url "https://51ddatafiles.blob.core.windows.net/enterpriseipi/51Degrees-IPIV4LiteIpiV41.ipi.gz"
+                Move-Item -Path $_ -Destination $cache
+
+            }
+            "20000 Evidence Records.yml" {
+                curl -fLo $cache/$_ @curlFlags "https://media.githubusercontent.com/media/51Degrees/device-detection-data/main/20000%20Evidence%20Records.yml"
+            }
+            "20000 User Agents.csv" {
+                curl -fLo $cache/$_ @curlFlags "https://media.githubusercontent.com/media/51Degrees/device-detection-data/main/20000%20User%20Agents.csv"
+            }
+            "51Degrees.csv" {
+                & $PSScriptRoot/download-data-file.ps1 -LicenseKey:$DeviceDetection -DataType 'CSV' -Product 'V4TAC' -Url:$CsvUrl -FullFilePath "$_.zip"
+                Expand-Archive -DestinationPath . "$_.zip"
+                if ($FullCsv) {
+                    Move-Item -Path '51Degrees-Tac-All.csv' -Destination $cache/$_
+                } else {
+                    Get-Content -TotalCount 1 '51Degrees-Tac-All.csv' > $cache/$_ # Most repos only need the header
+                }
+                Remove-Item -Force "$_.zip", '51Degrees-Tac-All.csv'
+            }
+            "51Degrees-Tac.zip" {  # same as the CSV above, without extracting
+                & $PSScriptRoot/download-data-file.ps1 -LicenseKey:$DeviceDetection -DataType 'CSV' -Product 'V4TAC' -Url:$CsvUrl -FullFilePath "$cache/$_"
+            }
+            "ip-intelligence-evidence.yml" {
+                curl -fLo $cache/$_ @curlFlags "https://raw.githubusercontent.com/51Degrees/ip-intelligence-data/main/evidence.yml"
+            }
+            "chargify.json" {
+                Get-FromBulkData -License:$DeviceDetection -Data 'chargify' -Output $cache/$_
+            }
+            "entitlement.json" {
+                Get-FromBulkData -License:$DeviceDetection -Data 'entitlement' -Output $cache/$_
+            }
+            default { Write-Error "Unknown asset: $_" }
         }
-        "51Degrees-Tac.zip" {  # same as the CSV above, without extracting
-            & $PSScriptRoot/download-data-file.ps1 -LicenseKey:$DeviceDetection -DataType 'CSV' -Product 'V4TAC' -Url:$CsvUrl -FullFilePath "$cache/$_"
+    } catch {
+        # Never leave a partial file behind: the Test-Path check above would
+        # take it for a complete asset on the next run.
+        if (Test-Path $cache/$asset) {
+            Remove-Item -Force $cache/$asset
         }
-        "ip-intelligence-evidence.yml" {
-            curl -fLo $cache/$_ "https://raw.githubusercontent.com/51Degrees/ip-intelligence-data/main/evidence.yml"
-        }
-        "chargify.json" {
-            Get-FromBulkData -License:$DeviceDetection -Data 'chargify' -Output $cache/$_
-        }
-        "entitlement.json" {
-            Get-FromBulkData -License:$DeviceDetection -Data 'entitlement' -Output $cache/$_
-        }
-        default { Write-Error "Unknown asset: $_" }
+        throw
     }
 }
