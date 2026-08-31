@@ -30,6 +30,12 @@ on:
       skip-compare-performance:
         type: boolean
         default: false
+      skip-tests:
+        type: boolean
+        default: false
+      skip-web-performance:
+        type: boolean
+        default: false
     secrets:
       # PAT that we use to authenticate on behalf of GitHub Actions.
       token:
@@ -232,6 +238,7 @@ jobs:
 
   Test:
     needs: [ Build, Configure ]
+    if: ${{ !inputs.skip-tests }}
     strategy:
       fail-fast: false
       matrix:
@@ -274,6 +281,7 @@ jobs:
         if: ${{ success() && matrix.options.packagerequirement }}
         env:
           SECRETS: ${{ toJSON(secrets) }}
+          SKIP_WEB_PERFORMANCE: ${{ inputs.skip-web-performance }}
         run: |
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
           $Options = $(ConvertFrom-Json -AsHashtable '${{ toJSON(matrix.options) }}')
@@ -354,7 +362,7 @@ jobs:
     needs: [Configure, Test, ComparePerformance]
     if: >
       !cancelled() && needs.Configure.outputs.update_required == 'true' &&
-      needs.Test.result == 'success' &&
+      (needs.Test.result == 'success' || (inputs.skip-tests && needs.Test.result == 'skipped')) &&
       (needs.ComparePerformance.result == 'success' || needs.ComparePerformance.result == 'skipped')
     steps:
       - name: Checkout Common
