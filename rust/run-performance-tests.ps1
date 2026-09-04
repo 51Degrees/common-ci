@@ -1,17 +1,3 @@
-<#
-.SYNOPSIS
-Runs the 51Degrees Rust on-premise performance examples and publishes their
-results.
-
-.DESCRIPTION
-Each example writes its own results JSON in the shared schema (see
-steps/publish-performance-results.ps1), so this adapter only runs the examples
-and hands their files over. It does not parse the examples' console output.
-
-The Rust on-premise engines call the device-detection-cxx and
-ip-intelligence-cxx libraries through FFI, so the figures track the native
-C/C++ performance.
-#>
 param(
     # The directory the rust workspace is checked out to. CI checks the repo out
     # into a subdirectory named after the repository, matching the other
@@ -26,23 +12,18 @@ $PSNativeCommandUseErrorActionPreference = $true
 
 $publishStep = Join-Path $PSScriptRoot "../steps/publish-performance-results.ps1"
 
-# The example crates live in their own workspace under examples/ and depend on
-# the published crates from crates.io by default. The nightly must benchmark
-# this checkout's engine code, not the released packages, so the cargo commands
-# run from examples/ with `--config source.toml`, the patch file that points
-# every fiftyone-* dependency at its local path.
+# The example crates depend on the published crates from crates.io by default,
+# so cargo runs from examples/ with `--config source.toml`, the patch file that
+# points every fiftyone-* dependency at its local path.
 $examplesDir = Join-Path (Resolve-Path $RepoName) "examples"
 
-# Run one performance example, asking it to write its results JSON, and publish
-# that file under the configuration name the graph is keyed on.
 function Invoke-PerformanceExample {
     param(
         [Parameter(Mandatory)][string]$Package,
         [Parameter(Mandatory)][string]$Bin,
         [Parameter(Mandatory)][string]$Name
     )
-    # An absolute path, because the example runs with examples/ as its working
-    # directory but the results are published under the repository directory.
+    # Absolute, because the example runs from examples/ but publishes under the repo.
     $resultsFile = Join-Path ([System.IO.Path]::GetTempPath()) "results_$Name.json"
     Remove-Item -Path $resultsFile -Force -ErrorAction SilentlyContinue
 

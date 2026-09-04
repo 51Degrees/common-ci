@@ -1,13 +1,3 @@
-<#
-.SYNOPSIS
-Runs the C/C++ performance tests and publishes the results JSON the performance
-example emits.
-
-.DESCRIPTION
-The performance example writes its own results JSON in the shared schema (see
-steps/publish-performance-results.ps1), so this adapter only runs it and hands
-the file over. It does not parse the example's console output.
-#>
 param(
     [Parameter(Mandatory=$true)]
     [string]$RepoName,

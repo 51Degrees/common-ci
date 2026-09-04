@@ -1,12 +1,3 @@
-<#
-.SYNOPSIS
-Runs a Node performance example and publishes the results JSON it emits.
-
-.DESCRIPTION
-The example writes its own results JSON in the shared schema (see
-steps/publish-performance-results.ps1), so this adapter only runs it and hands
-the file over. It does not parse the example's console output.
-#>
 param (
     [Parameter(Mandatory)][string]$RepoName,
     [Parameter(Mandatory)][string]$Name,
@@ -15,8 +6,7 @@ param (
 )
 
 $rootDir = $PWD
-# An absolute path, because the example runs with the repository as its working
-# directory.
+# Absolute, because the example runs from the repository directory.
 $resultsFile = Join-Path $rootDir "results_$Name.json"
 Remove-Item -Path $resultsFile -Force -ErrorAction SilentlyContinue
 
@@ -32,8 +22,7 @@ try {
 }
 
 if ($testsFailed) {
-    # Report the test failure rather than letting the publish step fail with a
-    # missing-results-file error, which would hide the real cause.
+    # Stop here, so a test failure isn't reported as a missing results file.
     Write-Warning "Performance tests failed, so the results are not published"
     exit 1
 }

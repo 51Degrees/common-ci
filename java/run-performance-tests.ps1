@@ -1,16 +1,3 @@
-<#
-.SYNOPSIS
-Runs a Java performance test and publishes the results JSON it emits.
-
-.DESCRIPTION
-The performance test writes its own results JSON in the shared schema (see
-steps/publish-performance-results.ps1) to the path given by the
-fiftyone.performance.json system property, so this adapter only runs it and
-hands the file over. It does not parse the test's console output.
-
-The surefire reports are still copied to test-results/performance, which is the
-unit-test result feed and a separate concern from the performance figure.
-#>
 param(
     [Parameter(Mandatory)][string]$RepoName,
     [Parameter(Mandatory)][string]$Name,
@@ -19,7 +6,7 @@ param(
 
 $ok = $true
 $rootDir = $PWD
-# An absolute path, because Maven runs each module with its own working directory.
+# Absolute, because Maven runs each module from its own directory.
 $resultsFile = Join-Path $rootDir "results_$Name.json"
 Remove-Item -Path $resultsFile -Force -ErrorAction SilentlyContinue
 
@@ -43,8 +30,7 @@ try {
 }
 
 if (-not $ok) {
-    # Report the test failure rather than letting the publish step fail with a
-    # missing-results-file error, which would hide the real cause.
+    # Stop here, so a test failure isn't reported as a missing results file.
     Write-Warning "Performance tests failed, so the results are not published"
     exit 1
 }
