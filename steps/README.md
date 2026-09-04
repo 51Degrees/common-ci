@@ -30,6 +30,16 @@ All repos are assumed to be in the 51Degrees organization. For example the name 
 
 Stages all changes in the repository, and commits them with the message provided.
 
+## Publish Performance Results
+**Script: `publish-performance-results.ps1`**
+
+Validates the results JSON a performance example or test emitted and copies it
+to `[repo]/test-results/performance-summary/results_[name].json`, where
+`compare-performance.ps1` reads it. Every language's `run-performance-tests.ps1`
+uses this rather than parsing an example's console output.
+
+For a more in depth description of this, see [Performance Tests](/DESIGN.md#performance-tests)
+
 ## Compare Performance
 **Script: `compare-performance.ps1`**
 
