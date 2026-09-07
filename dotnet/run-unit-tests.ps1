@@ -33,11 +33,11 @@ try {
     Write-Output "Initial ok value: $($script:ok)"
     Write-Output "Initial LASTEXITCODE: $LASTEXITCODE"
 
-    # Reset LASTEXITCODE to ensure clean state. This must be $global:, because a
-    # plain assignment creates a script-scoped variable that shadows the automatic
-    # one: the native calls below update the global, every read here returns the
-    # shadow, and so the exit code checks silently see 0 for every assembly.
-    $global:LASTEXITCODE = 0
+    # No LASTEXITCODE reset here. Assigning to it creates a script-scoped variable
+    # that shadows the automatic one: the native calls below update the global,
+    # every read here returns the shadow, and the exit code checks silently see 0
+    # for every assembly. Nothing needs the reset - the only reads are immediately
+    # after a native call below, where it is freshly set.
     if ($BuildMethod -eq "dotnet"){
         Write-Output "[dotnet] => Looking for '$Filter' in directories like '$DirNameFormatForDotnet'"
 
