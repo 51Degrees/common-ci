@@ -76,7 +76,18 @@ Run any performance tests for the project. For implementation guidelines, see [I
 
 Results should be written to the `[repo]/test-results/performance` directory. Supported formats can be found on the [publish-unit-test-result](https://github.com/EnricoMi/publish-unit-test-result-action#generating-test-result-files) action readme.
 
-Performance figures are different from test results. These should be written to the `[repo]/test-results/performance-summary/` directory in a specific format. See the [Performance Tests](/DESIGN.md#performance-tests) section for details.
+Performance figures are different from test results. The performance example or
+test writes them itself as a JSON file in the shared schema, and this script
+publishes that file to the `[repo]/test-results/performance-summary/` directory
+with [`steps/publish-performance-results.ps1`](/steps/publish-performance-results.ps1):
+
+```powershell
+./steps/publish-performance-results.ps1 -SourceFile $RepoName/summary.json -Name $Name -RepoName $RepoName
+```
+
+This script must not parse the example's console output to recover a figure.
+See the [Performance Tests](/DESIGN.md#performance-tests) section for the schema
+and the reasoning.
 
 ## Run Unit Tests
 

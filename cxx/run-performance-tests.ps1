@@ -14,7 +14,7 @@ $BuildPath = "$PWD/$RepoName/$ProjectDir/build"
 Write-Output "Entering '$BuildPath'"
 Push-Location $BuildPath
 try {
-    Write-Output "Testing $($Options.Name)"
+    Write-Output "Testing $Name"
 
     ctest -C $Configuration -T test --no-compress-output --output-junit "../test-results/performance/$Name.xml" --tests-regex .*Perf.*
 
