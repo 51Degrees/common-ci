@@ -29,9 +29,26 @@ try {
         $LastFailCode = $LASTEXITCODE
     }
 
+    # Projects inside a submodule belong to that submodule's own repository.
+    # Editing them leaves the submodule dirty, which the commit step cannot
+    # stage, so the update fails whenever that is the only change.
+    # .gitmodules is parsed rather than queried with git so no native exit
+    # code leaks into the one this script returns.
+    $SubmodulePaths = @()
+    if (Test-Path .gitmodules) {
+        $SubmodulePaths = Select-String -Path .gitmodules -Pattern '^\s*path\s*=\s*(.+?)\s*$' |
+            ForEach-Object { [IO.Path]::GetFullPath($_.Matches[0].Groups[1].Value, $pwd) + [IO.Path]::DirectorySeparatorChar }
+    }
+
     foreach ($ProjectFile in $(Get-ChildItem -Path $pwd -Filter $Filter -Recurse -ErrorAction SilentlyContinue -Force)) {
         Write-Output "========= ========= ========="
         Write-Output $ProjectFile.FullName
+
+        $Submodule = $SubmodulePaths | Where-Object { $ProjectFile.FullName.StartsWith($_) } | Select-Object -First 1
+        if ($Submodule) {
+            Write-Output "⏭️ SKIPPED: inside submodule '$Submodule'"
+            continue
+        }
 
         $ProjectPackagesOutdatedRaw = (dotnet list $ProjectFile.FullName package --format json --outdated --highest-patch --no-restore @IncludePrereleaseParams)
         if ($ProjectPackagesOutdatedRaw[0][0] -ne '{') {
