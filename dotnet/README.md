@@ -21,7 +21,7 @@ The packages are signed in the `build-packages-nuget.ps1` script as they are bui
 
 ## Updating Dependencies 
 
-The `run-update-dependencies.ps1` script loops through each .csproj file found in the repository to identify outdated packages for each project. By iterating through the projects and packages, the script can analyze and update each project individually, ensuring that the package updates are performed at the appropriate project level.
+The `run-update-dependencies.ps1` script loops through each .csproj file found in the repository to identify outdated packages for each project. Projects inside a git submodule are skipped: they are updated in the submodule's own repository. By iterating through the projects and packages, the script can analyze and update each project individually, ensuring that the package updates are performed at the appropriate project level.
 
 The script executes the dotnet list command to retrieve a list of outdated packages for the project. It then filters the output to consider only lines starting with >, indicating outdated packages. From each line, it extracts the package name, major version, minor version, and patch version using regular expressions.
 
