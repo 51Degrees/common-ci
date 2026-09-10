@@ -115,6 +115,10 @@ jobs:
   BuildAndTest:
     needs: Configure
     strategy:
+      # One platform failing must not cancel the others: a PR that breaks a
+      # single leg would otherwise report nothing at all for the rest, and
+      # the next run has to be spent finding out what they would have said.
+      fail-fast: false
       matrix:
         options: ${{ fromJSON(needs.configure.outputs.options ) }}
     name: Build and Test - ${{ inputs.pull-request-id }} - ${{ matrix.options.name }}
