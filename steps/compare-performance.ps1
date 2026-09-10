@@ -1,3 +1,59 @@
+<#
+.SYNOPSIS
+    Compares the current performance figures against historic runs and,
+    optionally, renders and publishes the trend graphs.
+
+.DESCRIPTION
+    Reads results_<name>.json from the working directory, pulls prior figures
+    from this repository's performance-result artifacts, and checks each metric
+    against its acceptable band. With -Publish it also renders the trend graphs
+    with ScottPlot and commits them to the images branch (gh-images on main,
+    perf-images/<branch> otherwise), pushing unless -DryRun is set.
+
+    The script signals its outcome through the process exit code so a caller can
+    tell a genuine performance verdict apart from an infrastructure failure:
+
+        0  Success. Figures were compared and, when -Publish is set, the graphs
+           were rendered and committed/pushed. Also used for the benign
+           "not enough history yet" and "no current results file" cases, which
+           are expected and must not fail CI.
+
+        1  Performance regression. A metric with sufficient history (>= 10
+           points) is outside its acceptable band. A real, actionable verdict.
+
+        2  Infrastructure failure while publishing. The graph toolchain or the
+           git operations that (re)create and update the images branch failed
+           (for example `git switch --orphan`, the ScottPlot install, or the
+           commit / push of the rendered graphs). This is NOT a performance
+           verdict: the run could not do its job and must always be surfaced,
+           never swallowed as an "expected" outcome.
+
+.PARAMETER RepoName
+    Name of the repository checkout directory; git and graph operations run
+    against it and it names the artifact/branch used for publishing.
+
+.PARAMETER OrgName
+    GitHub organisation that owns the repository, used to query historic
+    performance artifacts.
+
+.PARAMETER AllOptions
+    Collection of configuration objects to process; each with a Name and a
+    RunPerformance flag. Only entries with RunPerformance are compared.
+
+.PARAMETER Branch
+    Branch the figures belong to. 'main' publishes to gh-images; any other
+    branch publishes to perf-images/<branch>. Defaults to 'main'.
+
+.PARAMETER Publish
+    Render the trend graphs and commit them to the images branch. Without it
+    the script only compares figures and writes the run summary.
+
+.PARAMETER DryRun
+    With -Publish, render and commit the graphs but do not push them.
+
+.NOTES
+    Exit codes are described under DESCRIPTION above.
+#>
 param (
     [Parameter(Mandatory)][string]$RepoName,
     [Parameter(Mandatory)][string]$OrgName,
@@ -119,27 +175,34 @@ $plotTmp = [System.IO.Path]::GetTempPath() + "plot." + (New-Guid)
 New-Item -ItemType directory -Force -Path $plotTmp
 try {
     if ($Publish) {
-        Write-Host "Installing ScottPlot..."
-        dotnet new classlib -o $plotTmp
-        dotnet add $plotTmp package ScottPlot --version 5.0.55
-        dotnet publish $plotTmp --output $plotTmp/scottplot
-        $arch = [System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString().ToLower()
-        $skia = `
-            $IsLinux   ? "linux-$arch/native/libSkiaSharp.so" :
-            $IsWindows ? "win-$arch/native/libSkiaSharp.dll"  :
-            $IsMacOS   ? "osx/native/libSkiaSharp.dylib"      :
-            (Write-Error "Unsupported OS")
-        New-Item -ItemType SymbolicLink -Force -Target "$plotTmp/scottplot/runtimes/$skia" -Path "$plotTmp/scottplot/$(Split-Path -Leaf $skia)"
-        Add-Type -Path $plotTmp/scottplot/ScottPlot.dll
+        try {
+            Write-Host "Installing ScottPlot..."
+            dotnet new classlib -o $plotTmp
+            dotnet add $plotTmp package ScottPlot --version 5.0.55
+            dotnet publish $plotTmp --output $plotTmp/scottplot
+            $arch = [System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString().ToLower()
+            $skia = `
+                $IsLinux   ? "linux-$arch/native/libSkiaSharp.so" :
+                $IsWindows ? "win-$arch/native/libSkiaSharp.dll"  :
+                $IsMacOS   ? "osx/native/libSkiaSharp.dylib"      :
+                (Write-Error "Unsupported OS")
+            New-Item -ItemType SymbolicLink -Force -Target "$plotTmp/scottplot/runtimes/$skia" -Path "$plotTmp/scottplot/$(Split-Path -Leaf $skia)"
+            Add-Type -Path $plotTmp/scottplot/ScottPlot.dll
 
-        # gh-images is used for main for compatibility, other branches use
-        # perf-images/ prefix instead of gh-images/ to avoid collisions with
-        # the gh-images branch
-        $imagesBranch = $Branch -ceq 'main' ? 'gh-images' : "perf-images/$Branch"
-        Write-Host "(Re)creating $imagesBranch branch..."
-        git -C $RepoName update-ref -d refs/heads/$imagesBranch # delete local $imagesBranch if exists
-        git -C $RepoName switch --orphan $imagesBranch
-        git -C $RepoName rm -rf --ignore-unmatch .
+            # gh-images is used for main for compatibility, other branches use
+            # perf-images/ prefix instead of gh-images/ to avoid collisions with
+            # the gh-images branch
+            $imagesBranch = $Branch -ceq 'main' ? 'gh-images' : "perf-images/$Branch"
+            Write-Host "(Re)creating $imagesBranch branch..."
+            git -C $RepoName update-ref -d refs/heads/$imagesBranch # delete local $imagesBranch if exists
+            git -C $RepoName switch --orphan $imagesBranch
+            git -C $RepoName rm -rf --ignore-unmatch .
+        } catch {
+            # Write-Error is non-terminating here (-ErrorAction Continue) so the
+            # Stop preference doesn't throw before exit 2 sets the code.
+            Write-Error "Infrastructure failure preparing graph publish: $_" -ErrorAction Continue
+            exit 2
+        }
     } else {
         Write-Host "Not publishing graphs"
     }
@@ -190,14 +253,20 @@ try {
     }
 
     if ($Publish) {
-        # Commit the images, and change back to the original branch
-        git -C $RepoName add '*.png'
-        git -C $RepoName status
-        git -C $RepoName commit -m "Add performance graphs"
-        if ($DryRun) {
-            Write-Host "Dry run, not pushing graphs."
-        } else {
-            git -C $RepoName push --force-with-lease origin HEAD
+        try {
+            # Commit the images, and change back to the original branch
+            git -C $RepoName add '*.png'
+            git -C $RepoName status
+            git -C $RepoName commit -m "Add performance graphs"
+            if ($DryRun) {
+                Write-Host "Dry run, not pushing graphs."
+            } else {
+                git -C $RepoName push --force-with-lease origin HEAD
+            }
+        } catch {
+            # Non-terminating (see note above) so exit 2 is reached.
+            Write-Error "Infrastructure failure publishing graphs: $_" -ErrorAction Continue
+            exit 2
         }
     }
 } finally {
