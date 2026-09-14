@@ -391,26 +391,63 @@ To achieve this, the arrangement of integration tests is as follows:
 
 ## Performance Tests
 
-Performance tests should output their results in a common format. This is then picked up by the workflow to compare with historic results.
+Performance tests output their results in a common format. This is then picked
+up by the workflow to compare with historic results.
 
-The format of results must contain two objects, `HigherIsBetter` and `LowerIsBetter`. These each contain metrics and their values where higher or lower values mean a better metric respectively.
+### The results file is written by the example, not scraped from its output
 
-Note that single quotes (`'`) must be used, not double (`"`)
+The performance example or test writes the results JSON itself, and
+`run-performance-tests.ps1` only copies that file into place through
+[`steps/publish-performance-results.ps1`](/steps/publish-performance-results.ps1).
+No adapter parses an example's console output.
 
-An example of this is:
+This matters because a figure scraped from printed text is tied to the exact
+wording and number formatting of that output. Renaming a label, changing a
+number format or adding a unit is a cosmetic improvement that would silently
+stop the graph updating, and that is easy to miss in review. Emitting the JSON
+from the example makes the contract structured rather than textual.
+
+For Device Detection and IP Intelligence, the results model and its JSON
+serialisation live in a shared component within each repository, so the
+examples in a repository emit an identical structure and there is one
+definition of the schema to maintain.
+
+### Schema
+
+The results must contain a `HigherIsBetter` object, a `LowerIsBetter` object, or
+both. Each maps metric names to numbers, where a higher or lower value means a
+better metric respectively. The metric names are the series keys on the graph,
+so they must stay stable across runs of the same configuration.
+
 ```json
 {
-    'HigherIsBetter': {
-        'ResultsPerSecond': 100,
-        'OtherResultsPerSecond': 200
+    "HigherIsBetter": {
+        "ResultsPerSecond": 100,
+        "OtherResultsPerSecond": 200
     },
-    'LowerIsBetter': {
-        'SecondsPerResult': 0.001
+    "LowerIsBetter": {
+        "SecondsPerResult": 0.001
     }
 }
 ```
 
-The JSON formatted results should be written to the `test-results/performance-summary/results_[name].json` directory within the cloned repo, where `[name]` is the configuration name from `options.json`.
+Any other members are allowed and are preserved in the published artifact. An
+example that already writes a detailed per-configuration breakdown can keep it
+alongside the two headline objects, which makes the detail available for
+debugging without a second file to manage.
+
+The results are written to `test-results/performance-summary/results_[name].json`
+within the cloned repo, where `[name]` is the configuration name from
+`options.json`. `publish-performance-results.ps1` validates the file and puts it
+there:
+
+```powershell
+./steps/publish-performance-results.ps1 -SourceFile $RepoName/summary.json -Name $Name -RepoName $RepoName
+```
+
+It fails the run if the example produced no file, if the file is not valid JSON,
+if it has neither headline object, or if any metric is not a number. Each of
+those is a broken data point that is far cheaper to see here than in the plot.
 
 Results are automatically picked up by the `nightly-pr-to-main` workflow, and written to artifacts. Past artifacts are then downloaded to find ones which match the same configuration name. Each metric is then plotted and written to the summary.
 
