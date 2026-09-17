@@ -131,7 +131,7 @@ Creates a pull request to the main branch of the repository.
 Push any committed changes in the repo to the branch that is currently checked out.
 
 ## Run Repo Script
-**Script: `run-repo-script.ps1`**
+**Script: `run-script.ps1`**
 
 Runs a named script from within the `ci` directory of the repo supplied by name.
 Any options are passed to this script as a hashtable. They are then parsed, checked against the parameters
@@ -140,6 +140,36 @@ required by the repo script, and used when calling the repo script.
 The `RepoName`, `OrgName`, and `DryRun` parameters will always be available to the repo script, and do not need to be added to the options object.
 
 For a more detailed description of options usage, see [Options](/DESIGN.md#build-options).
+
+### How failure is reported
+
+The step fails when the repo script fails. A repo script says it failed in one
+of three ways, and all three now turn the step red.
+
+1. It throws, which it already did.
+2. It ends on a command that returned a non zero code, which is how a test
+   runner reports a failing test.
+3. It calls `exit` with a non zero code, which is what every language folder
+   script in this repository does, for example `exit $ok ? 0 : 1`.
+
+The message names the script and the code, and a GitHub error annotation is
+written alongside it, so the failing step is findable from the run summary.
+
+A repo script decides for itself whether a command that failed part way
+through counts as a failure. Many scripts deliberately let a test command fail
+so that they can still collect the results, using `mvn test ... || $($ok =
+$false)` and then `exit $ok ? 0 : 1`. That pattern keeps working, because the
+runner reads the code the script chose to end with rather than second guessing
+it. The corollary is that a script which captures its own exit code and then
+never uses it still hides its failure, and the fix for that belongs in the
+script.
+
+Pass `-IgnoreExitCode` where a non zero code is expected and the workflow is
+meant to carry on. The code is still written to the log as a warning, so a
+tolerated failure stays visible. No caller in this repository needs it today.
+
+`run-script.Tests.ps1` covers all of the above. Run it with
+`Invoke-Pester ./steps/run-script.Tests.ps1` (Pester 5 or later).
 
 ## Set Resource Keys
 **Script: `set-resource-keys.ps1`**

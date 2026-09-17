@@ -25,7 +25,9 @@ Write-Host "::endgroup::"
 
 if ($Options.CI) {
     & "./$RepoName/$($Options.CI)/prebuild.ps1" @Options
-    exit
+    # A bare 'exit' reports success whatever the script did, so the code
+    # the script left has to be passed on here.
+    exit $LASTEXITCODE
 }
 
 Write-Host "::group::Setup Environment"
