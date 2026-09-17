@@ -149,8 +149,10 @@ of three ways, and all three now turn the step red.
 1. It throws, which it already did.
 2. It ends on a command that returned a non zero code, which is how a test
    runner reports a failing test.
-3. It calls `exit` with a non zero code, which is what every language folder
-   script in this repository does, for example `exit $ok ? 0 : 1`.
+3. It calls `exit` with a non zero code, which several of the language folder
+   scripts in this repository do, for example `java/run-unit-tests.ps1` ends
+   `exit $ok ? 0 : 1` and `python/run-unit-tests.ps1` ends
+   `exit $testsFailed ? 1 : 0`.
 
 The message names the script and the code, and a GitHub error annotation is
 written alongside it, so the failing step is findable from the run summary.
