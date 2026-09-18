@@ -197,7 +197,7 @@ try {
         if ($DryRun) {
             Write-Host "Dry run, not pushing graphs."
         } else {
-            git -C $RepoName push --force-with-lease origin HEAD
+            git -C $RepoName push --force origin HEAD
         }
     }
 } finally {
