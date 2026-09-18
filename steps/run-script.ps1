@@ -19,5 +19,9 @@ foreach ($opt in $Options.GetEnumerator()) {
     }
 }
 
-Write-Output "Running '$Script' with parameters: $($Parameters.psbase.Keys)"
-. $Script @Parameters
+Write-Host "Running '$Script' with parameters: $($Parameters.psbase.Keys)"
+$LASTEXITCODE = 0
+& $Script @Parameters
+if ($LASTEXITCODE -ne 0) {
+    throw "$Script failed with code $LASTEXITCODE"
+}

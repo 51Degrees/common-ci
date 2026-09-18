@@ -131,7 +131,7 @@ Creates a pull request to the main branch of the repository.
 Push any committed changes in the repo to the branch that is currently checked out.
 
 ## Run Repo Script
-**Script: `run-repo-script.ps1`**
+**Script: `run-script.ps1`**
 
 Runs a named script from within the `ci` directory of the repo supplied by name.
 Any options are passed to this script as a hashtable. They are then parsed, checked against the parameters
