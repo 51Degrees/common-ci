@@ -53,6 +53,14 @@ function Get-FromBulkData {
         Write-Host "Downloading $Data from $version..."
         try {
             curl -fLo $Output "https://bulkdata.51degrees.com/api/v4/Download/Production/$Data/$License/$datePath"
+            # A 200 with an empty or truncated body passes curl -f. Accepted,
+            # the file is cached for the rest of the day and every consumer
+            # reads it as no data, which is what a fetch just after midnight
+            # UTC once did to chargify.json.
+            $content = Get-Content -Raw $Output
+            if (-not $content -or -not (Test-Json -Json $content -ErrorAction SilentlyContinue)) {
+                throw "the download is empty or not JSON"
+            }
             return
         } catch {
             Write-Warning "$Data $version is not downloadable ($_); trying an older version..."
