@@ -4,7 +4,7 @@ The CI/CD pipeline in this project adheres to the principles outlined in the com
 
 ## Environment
 
-The script `setup-environment.ps1` is specific for each repository and is responsible for configuring essential environment variables required for running tests. These variables include the location of data files and the resource key. On Linux systems, it may also handle the installation of multilib if needed. Additionally, in cases where the project is utilizing the msbuild command instead of dotnet, the script ensures that both msbuild and vstest are appropriately added to the PATH variable. 
+The script `setup-environment.ps1` is specific for each repository and is responsible for configuring essential environment variables required for running tests. These variables include the location of data files and the resource key. On Linux systems, it may also install multilib, which it should do by calling `environments/setup-multilib.ps1` rather than apt directly, because those packages do not exist on arm64 and asking for them there fails the step. Additionally, in cases where the project is utilizing the msbuild command instead of dotnet, the script ensures that both msbuild and vstest are appropriately added to the PATH variable. 
 
 
 ## Build
