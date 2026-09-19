@@ -20,10 +20,10 @@ on:
         default: "51DCI@51Degrees.com"
       dryrun:
         type: boolean
+        default: false
       allow-version-bump:
         description: 'Publish even though the version moves the major or minor place.'
         type: boolean
-        default: false
         default: false
       cache-assets:
         type: boolean
