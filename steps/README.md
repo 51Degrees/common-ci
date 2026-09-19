@@ -180,3 +180,19 @@ automation with bypass walks straight through a required review. On
 18 September 2026 one directive, in the body of one commit, took sixteen NuGet
 packages, three npm packages, five PyPI projects and three crates to 4.6
 overnight, merged and published with nobody reading it.
+
+## Version bumps at publish
+
+`steps/check-version-bump.ps1` refuses a publish whose version moves the major
+or minor place, comparing it with the highest version the repository has
+already tagged. `nightly-publish.yml` runs it in the Configure job, straight
+after the version is worked out and before anything is built or pushed.
+
+It is at the publish rather than the merge on purpose. A version can arrive by
+a `+semver` directive, a tag pushed by hand, a version committed in a file, or
+one typed into a dispatch. Gating any one of those leaves the others open. The
+publish is where they all meet.
+
+To release a bump deliberately, run the workflow with `allow-version-bump`
+set. That is a decision with somebody's name on it rather than something a
+commit message does quietly.
