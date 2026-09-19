@@ -161,3 +161,22 @@ Updates any submodule references in the repo to point to the latest commit in th
 Tags the repository with the version supplied, and pushed to GitHub.
 
 A GitHub release is then created from the tag containing a description generated from the PRs linked to the tag.
+
+## Version directives
+
+`+semver: minor` and `+semver: major` in a commit message are **never** taken
+automatically. A directive makes the next release a new minor or major version
+of every package the repository publishes, and a published version number can
+never be reclaimed: NuGet cannot delete, crates.io cannot unpublish, and PyPI
+burns the number even when a release is deleted.
+
+`steps/version-directive.ps1` refuses such a pull request unless someone other
+than the author, with write access, has applied the label
+`version bump approved`. `steps/get-pull-requests.ps1` calls it, so the nightly
+will not merge one on its own.
+
+This is enforced here rather than through branch protection, because an
+automation with bypass walks straight through a required review. On
+18 September 2026 one directive, in the body of one commit, took sixteen NuGet
+packages, three npm packages, five PyPI projects and three crates to 4.6
+overnight, merged and published with nobody reading it.
