@@ -34,11 +34,20 @@ The version about to be published, such as 4.5.110.
 
 .PARAMETER RepoName
 The directory the repository is checked out into, whose tags are the release
-history this compares against.
+history this compares against. Give this or -ReleasedVersion.
+
+.PARAMETER ReleasedVersion
+The highest version already released, for a repository whose tags are not its
+release history. Some repositories keep the version in a manifest and publish
+without tagging, so there is nothing here to read and the check would pass
+everything. Whoever calls this knows where that number lives, for example the
+registry the package is published to, so they pass it in. Give this or
+-RepoName.
 #>
 param (
     [Parameter(Mandatory)][string]$Version,
-    [Parameter(Mandatory)][string]$RepoName
+    [string]$RepoName,
+    [string]$ReleasedVersion
 )
 $ErrorActionPreference = "Stop"
 
@@ -57,26 +66,39 @@ if ($null -eq $next) {
     throw "'$Version' is not a version this can check. Expected something like 4.5.110."
 }
 
-# The highest version already tagged, which is what this repository has
-# released. Read from the checkout rather than from a registry, so this works
-# the same for every language and needs no package name.
-Push-Location $RepoName
-try {
-    $tags = git tag --list
-} finally {
-    Pop-Location
-}
-
-$highest = $null
-foreach ($tag in $tags) {
-    $p = Get-Parts $tag
-    if ($null -eq $p) { continue }
-    if ($null -eq $highest -or
-        $p.Major -gt $highest.Major -or
-        ($p.Major -eq $highest.Major -and $p.Minor -gt $highest.Minor) -or
-        ($p.Major -eq $highest.Major -and $p.Minor -eq $highest.Minor -and $p.Patch -gt $highest.Patch)) {
-        $highest = $p
+if ($ReleasedVersion) {
+    # Told what has been released, because this repository's tags are not its
+    # release history.
+    $highest = Get-Parts $ReleasedVersion
+    if ($null -eq $highest) {
+        throw "'$ReleasedVersion' is not a version this can check. Expected something like 4.5.110."
     }
+}
+elseif ($RepoName) {
+    # The highest version already tagged, which is what this repository has
+    # released. Read from the checkout rather than from a registry, so this
+    # works the same for every language and needs no package name.
+    Push-Location $RepoName
+    try {
+        $tags = git tag --list
+    } finally {
+        Pop-Location
+    }
+
+    $highest = $null
+    foreach ($tag in $tags) {
+        $p = Get-Parts $tag
+        if ($null -eq $p) { continue }
+        if ($null -eq $highest -or
+            $p.Major -gt $highest.Major -or
+            ($p.Major -eq $highest.Major -and $p.Minor -gt $highest.Minor) -or
+            ($p.Major -eq $highest.Major -and $p.Minor -eq $highest.Minor -and $p.Patch -gt $highest.Patch)) {
+            $highest = $p
+        }
+    }
+}
+else {
+    throw "Give -RepoName, whose tags are the release history, or -ReleasedVersion where they are not."
 }
 
 if ($null -eq $highest) {
