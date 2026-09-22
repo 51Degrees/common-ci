@@ -39,7 +39,7 @@
 
 | Repo | Branch | Status |
 | ---- | ------ | ------ |
-| [device-detection-nginx](https://github.com/51Degrees/device-detection-nginx) | `main` | [![Nightly Pipeline](https://github.com/51Degrees/device-detection-nginx/actions/workflows/nightly-pipeline.yml/badge.svg)](https://github.com/51Degrees/device-detection-nginx/actions/workflows/nightly-pipeline.yml) [![Monthly Copyright Update](https://github.com/51Degrees/device-detection-nginx/actions/workflows/monthly-copyright-update.yml/badge.svg)](https://github.com/51Degrees/device-detection-nginx/actions/workflows/monthly-copyright-update.yml) |
+| [device-detection-nginx](https://github.com/51Degrees/device-detection-nginx) | `main` | [![Nightly Pipeline](https://github.com/51Degrees/device-detection-nginx/actions/workflows/nightly-pipeline.yml/badge.svg?branch=main)](https://github.com/51Degrees/device-detection-nginx/actions/workflows/nightly-pipeline.yml) [![Monthly Copyright Update](https://github.com/51Degrees/device-detection-nginx/actions/workflows/monthly-copyright-update.yml/badge.svg?branch=main)](https://github.com/51Degrees/device-detection-nginx/actions/workflows/monthly-copyright-update.yml) |
 
 ### Node
 
