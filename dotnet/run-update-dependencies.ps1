@@ -50,7 +50,18 @@ try {
             continue
         }
 
-        $ProjectPackagesOutdatedRaw = (dotnet list $ProjectFile.FullName package --format json --outdated --highest-patch --no-restore @IncludePrereleaseParams)
+        # --no-restore is deliberately not passed. It was added as an
+        # optimisation, but "dotnet list package" only accepts it from the
+        # .NET 10 SDK onwards. An older SDK, which is what the CI images
+        # still carry, rejects it with "Unrecognized command or argument"
+        # and prints its help instead, so the check below read help text
+        # where it expected JSON. Every project listing failed, no update
+        # was ever found, and the script exited non zero. Letting the
+        # command restore for itself costs time on each project but is
+        # understood by every SDK this repository runs on.
+        $OutdatedArguments =
+            @('--format', 'json', '--outdated', '--highest-patch') + $IncludePrereleaseParams
+        $ProjectPackagesOutdatedRaw = (dotnet list $ProjectFile.FullName package @OutdatedArguments)
         if ($ProjectPackagesOutdatedRaw[0][0] -ne '{') {
             Write-Warning "----- RAW OUTPUT START -----"
             Write-Warning ($ProjectPackagesOutdatedRaw -Join "`n")
@@ -103,7 +114,8 @@ try {
         Write-Output "NECESSARY UPDATES:"
         Write-Output (ConvertTo-Json -InputObject $RequestedPackages -Depth 4)
         Write-Debug "FULL PACKAGES:"
-        $ProjectPackagesFull = (dotnet list $ProjectFile.FullName package --format json --no-restore | ConvertFrom-Json)
+        # --no-restore omitted for the reason given at the listing above.
+        $ProjectPackagesFull = (dotnet list $ProjectFile.FullName package --format json | ConvertFrom-Json)
         if ($LASTEXITCODE -ne 0) {
             Write-Warning "⚠️ LASTEXITCODE = $LASTEXITCODE"
             $LastFailCode = $LASTEXITCODE

@@ -1,0 +1,58 @@
+name: Test Dotnet Scripts
+
+# Runs this repository's own Pester tests for the dotnet scripts. Nothing
+# here clones another repository, publishes anything or dispatches another
+# workflow.
+
+on:
+  pull_request:
+    paths:
+      - 'dotnet/**'
+      - '.github/workflows/test-dotnet.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'dotnet/**'
+      - '.github/workflows/test-dotnet.yml'
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  Pester:
+    name: Pester - ${{ matrix.os }} - SDK ${{ matrix.sdk }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+        # The nightly runs on whichever SDK the image carries, so the oldest
+        # one still in use is tested alongside the newest. An argument that
+        # only the newest accepts has already cost ten months of silent
+        # no-op nightly runs.
+        sdk: [ '8.0', '10.0' ]
+    env:
+      COMMON_CI_TEST_SDK: ${{ matrix.sdk }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET ${{ matrix.sdk }}
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ matrix.sdk }}.x
+
+      - name: Install Pester
+        run: |
+          Install-Module -Name Pester -MinimumVersion 5.0.0 -Force -Scope CurrentUser -SkipPublisherCheck
+
+      - name: Run tests
+        run: |
+          Import-Module Pester -MinimumVersion 5.0.0
+          $config = New-PesterConfiguration
+          $config.Run.Path = './dotnet'
+          $config.Run.Exit = $true
+          $config.Output.Verbosity = 'Detailed'
+          Invoke-Pester -Configuration $config
