@@ -52,13 +52,15 @@ try {
 
         # --no-restore is deliberately not passed. It was added as an
         # optimisation, but "dotnet list package" only accepts it from the
-        # .NET 10 SDK onwards. An older SDK, which is what the CI images
-        # still carry, rejects it with "Unrecognized command or argument"
-        # and prints its help instead, so the check below read help text
-        # where it expected JSON. Every project listing failed, no update
-        # was ever found, and the script exited non zero. Letting the
-        # command restore for itself costs time on each project but is
-        # understood by every SDK this repository runs on.
+        # .NET 10 SDK onwards, and the SDK in use is chosen by the
+        # repository being updated, not by this one. pipeline-dotnet pins
+        # 8.0 in its global.json, so it runs on .NET 8, which rejects the
+        # option with "Unrecognized command or argument" and prints its
+        # help instead. The check below then read that help where it
+        # expected JSON, every project listing failed, no update was ever
+        # found, and the script exited non zero. Letting the command
+        # restore for itself costs time on each project but works whatever
+        # SDK the consuming repository pins.
         $OutdatedArguments =
             @('--format', 'json', '--outdated', '--highest-patch') + $IncludePrereleaseParams
         $ProjectPackagesOutdatedRaw = (dotnet list $ProjectFile.FullName package @OutdatedArguments)
