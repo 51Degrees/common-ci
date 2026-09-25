@@ -99,6 +99,52 @@ function Write-SignalKillEvidence {
     }
 }
 
+# Runs a single test-assembly invocation (supplied as a script block that leaves
+# its native exit code in $LASTEXITCODE) with a narrow retry for the macOS
+# bootstrap-time infra SIGKILL. That kill is a ~20% per-attempt flake: the test
+# host dies within tens of milliseconds of launch, before any test runs, and the
+# evidence collector has confirmed (5/5) it is NOT out-of-memory. Rather than
+# always sleeping between attempts, we use the *duration* as the discriminator:
+# a genuine bootstrap kill exits almost immediately, so we only retry a 137 that
+# died faster than $FastExitThresholdMs. A 137 that arrives after real work ran
+# is not this flake and is left to fail. On the final (or non-retryable) exit
+# the evidence collector runs and the resolved exit code is returned. macOS only;
+# every other OS runs the block exactly once.
+function Invoke-AssemblyTest {
+    param(
+        [Parameter(Mandatory)][scriptblock]$TestScript,
+        [Parameter(Mandatory)][string]$Assembly,
+        [string]$ResultPath,
+        [string]$Runner = "test",
+        [int]$MaxSignalRetries = 2,
+        [int]$FastExitThresholdMs = 200
+    )
+
+    $maxRetries = ($IsMacOS ? $MaxSignalRetries : 0)
+    $attempt = 0
+    do {
+        $attempt++
+        $sw = [System.Diagnostics.Stopwatch]::StartNew()
+        & $TestScript
+        $exitCode = $LASTEXITCODE
+        $sw.Stop()
+        $elapsedMs = $sw.ElapsedMilliseconds
+        Write-Output "$Runner LastExitCode=$exitCode (elapsed ${elapsedMs}ms)"
+
+        # Retry only a fast-exiting 137: that is the bootstrap SIGKILL signature.
+        $retryable = ($exitCode -eq 137 -and $elapsedMs -lt $FastExitThresholdMs -and $attempt -le $maxRetries)
+        if ($retryable) {
+            Write-Output "Exit 137 after only ${elapsedMs}ms (SIGKILL at bootstrap) on attempt $attempt for $Assembly; retrying immediately (macOS infra flake gate)"
+        }
+    } while ($retryable)
+
+    if ($exitCode -ne 0) {
+        Write-Output "Setting ok=false due to $Runner exit code $exitCode for $Assembly"
+        Write-SignalKillEvidence -ExitCode $exitCode -Assembly $Assembly -ResultPath $ResultPath
+        $script:ok = $false
+    }
+}
+
 $RepoPath = [IO.Path]::Combine($pwd, $RepoName)
 $TestResultPath = [IO.Path]::Combine($RepoPath, "test-results", $OutputFolder, $Name)
 
@@ -138,18 +184,14 @@ try {
                 Write-Debug "- $NextFileName not matched $Filter"
             } else {
                 Write-Output "Testing Assembly: '$NextFile'"
-                dotnet test $NextFile.FullName `
-                    --no-build `
-                    --configuration $Configuration `
-                    @PlatformParams `
-                    @testRunsettings `
-                    --results-directory $TestResultPath `
-                    --blame-crash --blame-hang-timeout $BlameHangTimeout -l "trx" $verbose
-                Write-Output "dotnet test LastExitCode=$LASTEXITCODE"
-                if ($LASTEXITCODE -ne 0) {
-                    Write-Output "Setting ok=false due to dotnet test exit code $LASTEXITCODE for $NextFile"
-                    Write-SignalKillEvidence -ExitCode $LASTEXITCODE -Assembly $NextFile.FullName -ResultPath $TestResultPath
-                    $script:ok = $false
+                Invoke-AssemblyTest -Assembly $NextFile.FullName -ResultPath $TestResultPath -Runner "dotnet test" -TestScript {
+                    dotnet test $NextFile.FullName `
+                        --no-build `
+                        --configuration $Configuration `
+                        @PlatformParams `
+                        @testRunsettings `
+                        --results-directory $TestResultPath `
+                        --blame-crash --blame-hang-timeout $BlameHangTimeout -l "trx" $verbose
                 }
             }
         }
@@ -168,15 +210,11 @@ try {
                 Write-Debug "- $NextFileName not matched $Filter"
             } else {
                 Write-Output "Testing Assembly: '$NextFile'"
-                & vstest.console.exe $NextFile.FullName `
-                    @PlatformParams `
-                    /Logger:trx `
-                    /ResultsDirectory:$TestResultPath
-                Write-Output "vstest.console LastExitCode=$LASTEXITCODE"
-                if ($LASTEXITCODE -ne 0) {
-                    Write-Output "Setting ok=false due to vstest.console exit code $LASTEXITCODE for $NextFile"
-                    Write-SignalKillEvidence -ExitCode $LASTEXITCODE -Assembly $NextFile.FullName -ResultPath $TestResultPath
-                    $script:ok = $false
+                Invoke-AssemblyTest -Assembly $NextFile.FullName -ResultPath $TestResultPath -Runner "vstest.console" -TestScript {
+                    & vstest.console.exe $NextFile.FullName `
+                        @PlatformParams `
+                        /Logger:trx `
+                        /ResultsDirectory:$TestResultPath
                 }
             }
         }
