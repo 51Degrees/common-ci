@@ -102,13 +102,15 @@ function Write-SignalKillEvidence {
 # Runs a single test-assembly invocation (supplied as a script block that leaves
 # its native exit code in $LASTEXITCODE) with a narrow retry for the macOS
 # bootstrap-time infra SIGKILL. That kill is a ~20% per-attempt flake: the test
-# host dies within tens of milliseconds of launch, before any test runs, and the
-# evidence collector has confirmed (5/5) it is NOT out-of-memory. Rather than
-# always sleeping between attempts, we use the *duration* as the discriminator:
-# a genuine bootstrap kill exits almost immediately, so we only retry a 137 that
-# died faster than $FastExitThresholdMs. A 137 that arrives after real work ran
-# is not this flake and is left to fail. On the final (or non-retryable) exit
-# the evidence collector runs and the resolved exit code is returned. macOS only;
+# host dies before any test runs, and the evidence collector has confirmed it is
+# NOT out-of-memory. Rather than always sleeping between attempts, we use the
+# *duration* as the discriminator: a genuine bootstrap kill exits well before any
+# assembly could execute its tests, so we only retry a 137 that died faster than
+# $FastExitThresholdMs. A 137 that arrives after real work ran is not this flake
+# and is left to fail. The threshold sits in the wide gap observed in the logs
+# between bootstrap kills (measured at ~320 ms, host stopwatch) and the fastest
+# assembly that actually ran tests (~2 s), so 1 s cleanly separates the two. On
+# the final (or non-retryable) exit the evidence collector runs. macOS only;
 # every other OS runs the block exactly once.
 function Invoke-AssemblyTest {
     param(
@@ -117,7 +119,7 @@ function Invoke-AssemblyTest {
         [string]$ResultPath,
         [string]$Runner = "test",
         [int]$MaxSignalRetries = 2,
-        [int]$FastExitThresholdMs = 200
+        [int]$FastExitThresholdMs = 1000
     )
 
     $maxRetries = ($IsMacOS ? $MaxSignalRetries : 0)
