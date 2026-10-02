@@ -96,6 +96,8 @@ on:
       PearlOvhUsS3SecretAccessKey:
       MaxioApiKeyUs:
       MaxioApiKeyEu:
+      MaxioApiKeyUsSandbox:
+      MaxioApiKeyEuSandbox:
 
 defaults:
   run:
