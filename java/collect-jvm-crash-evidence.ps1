@@ -16,6 +16,11 @@ param (
 # been released. hs_err holds the memory at the moment of death, and the
 # snapshot adds the page file peak and the disk space, which hs_err does not.
 #
+# A JVM can also die without an hs_err file: something outside ends it, or a
+# native library ends the process itself. For those cases the end of the
+# redirected test output, the commit peak and the operating system's own
+# record of processes dying or memory running out are printed too.
+#
 # Called by the Java test scripts only when Maven failed, so green runs pay
 # nothing. It must never change the outcome, so every failure in here is
 # reported and swallowed.
@@ -60,15 +65,136 @@ function Write-HsErrSummary {
     }
 }
 
-# Prints the start of a Surefire dump, which is where Surefire says what went
-# wrong with the fork. Only the start, because on Windows every fork also
-# leaves a harmless "Cannot use PPID" dump with a stack trace under it.
+# Prints every entry of a Surefire dump without its stack frames. On Windows
+# every fork leaves a harmless "Cannot use PPID" entry first, so what Surefire
+# said about the fork dying, if anything, is in a later entry. Cutting the file
+# short would hide it. The frames are dropped because they are most of the
+# file and say where Surefire was, not what happened to the fork.
 function Write-SurefireDump {
     param([IO.FileInfo]$File)
     Write-Section $File.FullName
-    Get-Content -Path $File.FullName -TotalCount 5 `
-        -ErrorAction SilentlyContinue |
+    Get-Content -Path $File.FullName -ErrorAction SilentlyContinue |
+        Where-Object { $_ -notmatch '^\s+(at |\.\.\. \d+ more)' } |
+        Where-Object { $_.Trim().Length -gt 0 } |
+        Select-Object -First 60 |
         ForEach-Object { Write-Output $_ }
+}
+
+# Prints the end of the test output files written last. Where a project has
+# Surefire redirect test output to files, what the fork wrote before it died
+# is only there. That includes anything a native library printed to standard
+# error before ending the process itself, which leaves no hs_err file.
+function Write-TestOutputTails {
+    param([string]$RepoPath)
+    $outputFiles = @(Get-ChildItem -Path $RepoPath -File -Recurse -Force `
+        -Filter "*-output.txt" -ErrorAction SilentlyContinue |
+        Where-Object { $_.DirectoryName -like "*surefire-reports*" } |
+        Sort-Object -Property LastWriteTime -Descending |
+        Select-Object -First 3)
+    if ($outputFiles.Count -eq 0) {
+        Write-Output "(none - test output was not redirected to files)"
+    }
+    foreach ($file in $outputFiles) {
+        Write-Section "$($file.FullName) (last 30 lines)"
+        Get-Content -Path $file.FullName -Tail 30 `
+            -ErrorAction SilentlyContinue |
+            ForEach-Object { Write-Output $_ }
+    }
+}
+
+# Declares the Windows call that returns the system's memory counters.
+function Add-PerformanceInfoType {
+    Add-Type -Namespace FiftyOne -Name PerformanceInfo -MemberDefinition @'
+[StructLayout(LayoutKind.Sequential)]
+public struct Info {
+    public uint Size;
+    public UIntPtr CommitTotal;
+    public UIntPtr CommitLimit;
+    public UIntPtr CommitPeak;
+    public UIntPtr PhysicalTotal;
+    public UIntPtr PhysicalAvailable;
+    public UIntPtr SystemCache;
+    public UIntPtr KernelTotal;
+    public UIntPtr KernelPaged;
+    public UIntPtr KernelNonpaged;
+    public UIntPtr PageSize;
+    public uint HandleCount;
+    public uint ProcessCount;
+    public uint ThreadCount;
+}
+[DllImport("psapi.dll", SetLastError = true)]
+public static extern bool GetPerformanceInfo(out Info info, uint size);
+'@
+}
+
+# Windows keeps the highest commit charge since boot, which on a hosted runner
+# is the highest of the job. If it reached the commit limit then an allocation
+# was refused at some point, whatever the snapshot taken afterwards says.
+function Write-WindowsCommitPeak {
+    # Add-Type fails if the type is already defined in the session.
+    if ($null -eq ('FiftyOne.PerformanceInfo' -as [type])) {
+        Add-PerformanceInfoType
+    }
+    $info = New-Object FiftyOne.PerformanceInfo+Info
+    $size = [Runtime.InteropServices.Marshal]::SizeOf($info)
+    if ([FiftyOne.PerformanceInfo]::GetPerformanceInfo([ref]$info, $size)) {
+        # The counts are in pages.
+        $pageMb = $info.PageSize.ToUInt64() / 1MB
+        Write-Output ("Commit peak:     {0:N0} MB of a {1:N0} MB limit" -f
+            ($info.CommitPeak.ToUInt64() * $pageMb),
+            ($info.CommitLimit.ToUInt64() * $pageMb))
+    }
+    else {
+        Write-Output "Commit peak:     not available"
+    }
+}
+
+# Asks the operating system whether it recorded a process dying or memory
+# running out. This is the only evidence when something outside the JVM ended
+# it, as the JVM then writes nothing itself.
+function Write-OperatingSystemEvents {
+    if ($IsWindows) {
+        # A hosted runner is booted for the job, so everything since boot
+        # belongs to it.
+        $since = (Get-CimInstance Win32_OperatingSystem).LastBootUpTime
+        $providers = @(
+            # A process crashed, or was reported to Windows Error Reporting.
+            @{ LogName = 'Application'; ProviderName = 'Application Error' },
+            @{ LogName = 'Application';
+               ProviderName = 'Windows Error Reporting' },
+            # Windows diagnosed the system as low on virtual memory.
+            @{ LogName = 'System';
+               ProviderName = 'Microsoft-Windows-Resource-Exhaustion-Detector' }
+        )
+        $events = @($providers | ForEach-Object {
+            Get-WinEvent -FilterHashtable ($_ + @{ StartTime = $since }) `
+                -MaxEvents 5 -ErrorAction SilentlyContinue
+        })
+        if ($events.Count -eq 0) {
+            Write-Output "(none since boot at $since)"
+        }
+        foreach ($entry in ($events | Sort-Object -Property TimeCreated)) {
+            $message = ($entry.Message -replace '\s+', ' ')
+            if ($message.Length -gt 300) {
+                $message = $message.Substring(0, 300) + "..."
+            }
+            Write-Output ("{0:HH:mm:ss} {1} ({2}): {3}" -f
+                $entry.TimeCreated, $entry.ProviderName, $entry.Id, $message)
+        }
+    }
+    elseif ($IsLinux) {
+        # The kernel logs the process it kills when memory runs out.
+        $killed = @(& sudo -n dmesg 2>$null |
+            Where-Object { $_ -match 'out of memory|oom-kill|killed process' } |
+            Select-Object -Last 10)
+        if ($killed.Count -eq 0) {
+            Write-Output "(no out of memory kills in the kernel log)"
+        }
+        $killed | ForEach-Object { Write-Output $_ }
+    }
+    else {
+        Write-Output "(not collected on this operating system)"
+    }
 }
 
 function Write-MemorySnapshot {
@@ -91,6 +217,7 @@ function Write-MemorySnapshot {
             Write-Output ($pageFileFormat -f $_.Name, $_.AllocatedBaseSize,
                 $_.CurrentUsage, $_.PeakUsage)
         }
+        Write-WindowsCommitPeak
     }
     elseif ($IsLinux) {
         $fields = '^(MemTotal|MemAvailable|SwapTotal|SwapFree|' +
@@ -153,11 +280,17 @@ try {
         Write-SurefireDump -File $file
     }
 
+    Write-Section "Test output"
+    Write-TestOutputTails -RepoPath $repoPath
+
     Write-Section "Memory"
     Write-MemorySnapshot
 
     Write-Section "Disk"
     Write-DiskSnapshot
+
+    Write-Section "Operating system events"
+    Write-OperatingSystemEvents
 }
 catch {
     # The evidence must never itself affect the build outcome.
