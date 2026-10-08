@@ -25,6 +25,10 @@ try {
     Write-Output "Merging in any changes from $Branch"
     git merge origin/$Branch
 
+    # Submodules stay at pre-merge commits; check out what the merge recorded.
+    git submodule sync --recursive
+    git submodule update --init --recursive
+
     $Sha = gh pr view $PullRequestId --json headRefOid --jq '.headRefOid'
     Write-Output "Setting '$SetVariable' to '$Sha'"
     Set-Variable -Scope 1 -Name $SetVariable -Value $Sha
