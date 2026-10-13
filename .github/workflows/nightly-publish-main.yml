@@ -87,6 +87,8 @@ on:
       PearlOvhEuS3SecretAccessKey:
       PearlOvhUsS3AccessKeyId:
       PearlOvhUsS3SecretAccessKey:
+      PearlCollectorHetznerS3AccessKeyId:
+      PearlCollectorHetznerS3SecretAccessKey:
 
 defaults:
   run:
