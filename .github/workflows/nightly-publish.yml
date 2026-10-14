@@ -96,6 +96,10 @@ on:
       PearlOvhUsS3SecretAccessKey:
       PearlCollectorHetznerS3AccessKeyId:
       PearlCollectorHetznerS3SecretAccessKey:
+      PearlCollectorOvhUk1S3AccessKeyId:
+      PearlCollectorOvhUk1S3SecretAccessKey:
+      PearlCollectorOvhUsEastVa1S3AccessKeyId:
+      PearlCollectorOvhUsEastVa1S3SecretAccessKey:
 
 defaults:
   run:
