@@ -76,6 +76,25 @@ try {
 
     Write-Host "Copying publishing bundle"
     Copy-Item target/central-publishing/central-bundle.zip $packagePath
+
+    # Maven 3.10 writes local repository files into the staging directory, the
+    # publishing plugin bundles them, and Central rejects the bundle because of them.
+    Write-Host "Removing local repository files from the publishing bundle"
+    $localRepoFiles = 'maven-metadata-local.xml', '_remote.repositories'
+    $bundle = [System.IO.Compression.ZipFile]::Open("$packagePath/central-bundle.zip", 'Update')
+    try {
+        foreach ($entry in @($bundle.Entries)) {
+            $parts = $entry.FullName -split '[\\/]'
+            $name = $parts[-1]
+            # Each file is matched together with its checksums, e.g. _remote.repositories.sha1
+            if ($parts -contains '.locks' -or $localRepoFiles.Where({ $name -eq $_ -or $name.StartsWith("$_.") })) {
+                Write-Host "Removing $($entry.FullName)"
+                $entry.Delete()
+            }
+        }
+    } finally {
+        $bundle.Dispose()
+    }
 } finally {
     Write-Host "Leaving '$RepoName'"
     Pop-Location
