@@ -100,6 +100,10 @@ on:
       PearlCollectorOvhUk1S3SecretAccessKey:
       PearlCollectorOvhUsEastVa1S3AccessKeyId:
       PearlCollectorOvhUsEastVa1S3SecretAccessKey:
+      MaxioApiKeyUs:
+      MaxioApiKeyEu:
+      MaxioApiKeyUsSandbox:
+      MaxioApiKeyEuSandbox:
 
 defaults:
   run:
