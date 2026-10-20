@@ -25,4 +25,10 @@ try {
     Pop-Location
 }
 
+# A forked JVM that dies leaves why it died only on the runner, so log it. This
+# does not change the outcome.
+if ($ok -eq $false) {
+    & "$PSScriptRoot/collect-jvm-crash-evidence.ps1" -RepoName $RepoName
+}
+
 exit $ok ? 0 : 1
