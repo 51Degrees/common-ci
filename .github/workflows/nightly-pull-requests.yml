@@ -37,6 +37,10 @@ on:
       skip-lite-tests:
         type: boolean
         default: false
+      examples-branch:
+        description: 'Examples repo branch for the tests; empty keeps the one in options.json'
+        type: string
+        default: ''
     secrets:
       token:
         required: true
@@ -127,4 +131,5 @@ jobs:
       build-test-timeout-minutes: ${{ inputs.build-test-timeout-minutes }}
       skip-compare-performance: ${{ inputs.skip-compare-performance }}
       skip-lite-tests: ${{ inputs.skip-lite-tests }}
+      examples-branch: ${{ inputs.examples-branch }}
     secrets: inherit

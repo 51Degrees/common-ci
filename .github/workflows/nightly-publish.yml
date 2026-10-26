@@ -40,6 +40,10 @@ on:
       skip-web-performance:
         type: boolean
         default: false
+      examples-branch:
+        description: 'Examples repo branch for the tests; empty keeps the one in options.json'
+        type: string
+        default: ''
     secrets:
       # PAT that we use to authenticate on behalf of GitHub Actions.
       token:
@@ -305,9 +309,19 @@ jobs:
         env:
           SECRETS: ${{ toJSON(secrets) }}
           SKIP_WEB_PERFORMANCE: ${{ inputs.skip-web-performance }}
+          # Through env rather than inline, so the branch name is never
+          # parsed as PowerShell.
+          EXAMPLES_BRANCH: ${{ inputs.examples-branch }}
         run: |
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
           $Options = $(ConvertFrom-Json -AsHashtable '${{ toJSON(matrix.options) }}')
+          # Overrides every matrix entry. run-script.ps1 only hands it to
+          # scripts declaring an ExamplesBranch parameter, so repos without
+          # one are unaffected.
+          if ([string]::IsNullOrEmpty($env:EXAMPLES_BRANCH) -eq $false)
+          {
+            $Options["ExamplesBranch"] = $env:EXAMPLES_BRANCH
+          }
           $Options.Add("Keys", $(ConvertFrom-Json -AsHashtable $env:SECRETS))
           ./nightly-publish.test.ps1 `
           -RepoName ${{ inputs.repo-name }} `
