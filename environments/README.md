@@ -22,7 +22,7 @@ Specifically, it uses `GITHUB_PATH` so that the tool is available in subsequent 
 This is limited to Linux images, and within those to x86_64.
 
 It installs `gcc-multilib` and `g++-multilib`, the 32 bit libraries an x86 build links
-against. Pass `-Packages` to install a different set, which common-cxx does because it
+against. Pass `-Packages` to install a different set, which 51degrees-cxx does because it
 needs only `gcc-multilib`.
 
 Neither package exists for arm64 under any name, so on an ARM runner apt answers "has no
