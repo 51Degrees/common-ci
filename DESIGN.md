@@ -468,24 +468,17 @@ Github does not have a full-fledged job orchestrator, it only has some (limited)
 
 We need to seek a tradeoff between satisfying the requirements and stretching the github features. We propose to not use cross-repository dispatch triggers for now, but rather rely on proper timing of actions and workflow_run triggers within the repository. Let's start with terminal repositories (that are submodules for other repos).
 
-### common-cxx
-* Monthly Copyright Update should run at 0 0 1 * * - this action usually takes less than a minute - this action does not always run, so we can't use a workflow_run completion trigger, we just schedule the Nightly PRs to Main run slightly after it
-* Nightly PRs to Main should run at 0 5 * * * - the action takes less than 30 minutes
-* Nightly Publish Main should run on workflow_run completion of Nightly PRs to Main workflow
+### 51degrees-cxx
+51degrees-cxx holds what were common-cxx, device-detection-cxx, ip-intelligence-cxx and ip-graph-cxx.
+* Nightly Pipeline should run at 35 0 * * *. It updates the submodules, merges the eligible pull requests and publishes, in that order, and can take up to 1.5 hours.
+* Monthly Copyright Update should run at 0 0 1 * *.
 
-### device-detection-cxx
-* Nightly Submodule Update should run at 35 0 * * * - that is 30 minutes after midnight to pick up any changes from common-cxx
-* Nightly PRs to Main should run on workflow_run completion of Nightly Submodule Update workflow - can take up to 1.5 hours to complete
-* Nightly Documentation Update at 0 3 * * * as it is a completely independent action and it will be guaranteed to run after PRs to Main
-* Nightly Publish Main should run on workflow_run completion of Nightly PRs to Main workflow
-* Monthly Copyright Update should run at 0 0 1 * * - this action usually takes less than a minute
-
-Other repos should start submodule updates around 0 2 * * * - after the device-detection-cxx has likely finished running:
+Other repos should start submodule updates around 0 2 * * *, after 51degrees-cxx has likely finished running:
 
 ### device-detection-dotnet
 * Nightly Data File Change should run at 0 0 * * *
 * Nightly Package Update should run at 0 0 * * *
-* Nightly Submodule Update should run at 0 2 * * * - to incorporate updates from device-detection-cxx
+* Nightly Submodule Update should run at 0 2 * * * - to incorporate updates from 51degrees-cxx
 * Monthly Copyright Update should run at 0 0 1 * *
 * Nightly PRs to Main should run on workflow_run complete after Submodule Update
 * Nightly Publish Main should run on wokflow_run complete after PRs to Main
