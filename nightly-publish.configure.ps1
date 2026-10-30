@@ -34,7 +34,17 @@ Write-Output version=$Version | Out-File $GitHubOutput -Append
 Write-Output "::endgroup::"
 
 Write-Output "::group::Package Update Required"
-./steps/package-update-required.ps1 -RepoName $RepoName -Version $Version
+# A repository that releases several packages, each with its own version and
+# tagged '<package>/<version>', cannot answer this from one version: a plain
+# tag lookup would find another package's tag of the same number. Such a
+# repository decides for itself, in its own ci/package-update-required.ps1,
+# with the same exit codes: 0 when something is to be released, 1 when not.
+$global:LASTEXITCODE = 0
+if (Test-Path ./$RepoName/ci/package-update-required.ps1) {
+  & ./$RepoName/ci/package-update-required.ps1 -RepoName $RepoName -Version $Version
+} else {
+  ./steps/package-update-required.ps1 -RepoName $RepoName -Version $Version
+}
 Write-Output "update_required=$($LASTEXITCODE -eq 0 ? 'true' : 'false')" | Out-File $GitHubOutput -Append
 Write-Output "::endgroup::"
 

@@ -17,16 +17,22 @@ foreach ($package in $Packages) {
         Write-Output "Building $package"
         pip install . || $(throw "failed to build $package")
 
+        # The source folder under src/ has the package folder's own name. A
+        # monorepo passes the package as a path, such as
+        # pipeline-python/fiftyone_pipeline_core, so take the last part of it.
+        $sourceName = Split-Path -Path $package -Leaf
+
         # Special case - if package is a '.' we can't just lint the subdir with
         # the same name, so instead we'll lint the first subdir with the name
         # that starts with 'fiftyone*'
         if ($package -eq '.') {
-            $package = (get-item src/fiftyone_*)[0].Name
+            $sourceName = (get-item src/fiftyone_*)[0].Name
         }
 
-        Write-Output "Linting $package"
+        Write-Output "Linting $sourceName"
         pylint --version
-        pylint --rcfile=.pylintrc (Join-Path -Path (Get-Item src) -ChildPath $package) || $(throw "pylint failed for $package")
+        $sourcePath = Join-Path -Path (Get-Item src) -ChildPath $sourceName
+        pylint --rcfile=.pylintrc $sourcePath || $(throw "pylint failed for $sourceName")
     } finally {
         Pop-Location
     }
