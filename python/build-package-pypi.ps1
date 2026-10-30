@@ -22,6 +22,15 @@ if ($Version -match '^(\d+\.\d+\.\d+)-(?!(?:alpha|beta|rc)[.0-9]*$)(.+)$') {
 
 $packagesDir = New-Item -ItemType directory -Path package -Force
 
+# Packages with a C/C++ extension are published as source distributions only.
+# `python -m build` also makes a wheel tagged for the build machine
+# (linux_x86_64), which PyPI rejects with a 400, and twine then stops without
+# uploading the packages after it. The first IP Intelligence publish failed
+# that way, leaving one of its six packages released. Matched on the package
+# folder's own name, because a monorepo passes the package as a path such as
+# device-detection-python/fiftyone_devicedetection_onpremise.
+$sourceOnlyPackages = 'fiftyone_devicedetection_onpremise', 'fiftyone_ipintelligence_onpremise'
+
 Push-Location $RepoName
 try {
     # Should probably be done in setup-environment.ps1, but it isn't called by
@@ -34,7 +43,7 @@ try {
         Push-Location $package
         try {
             $Version | Out-File version.txt
-            if ($package -eq "fiftyone_devicedetection_onpremise") {
+            if ((Split-Path -Path $package -Leaf) -in $sourceOnlyPackages) {
                 python setup.py sdist || $(throw "failed to build package $package")
             } else {
                 python -m build || $(throw "failed to build package $package")

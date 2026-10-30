@@ -17,10 +17,16 @@ try {
         try {
             Write-Output "Running tests in '$pwd'"
             # coverage run -m xmlrunner discover -s tests -p 'test*.py' -o $commonTestResults || $($testsFailed = $true)
-            $coverageOutputFile = Join-Path -Path $commonTestResults -ChildPath "$package.xml"
+            # Named by the folder rather than by $package, because a monorepo
+            # passes the package as a path, and a '/' in these names would put
+            # the results in a folder that does not exist. run-integration-tests.ps1
+            # does the same.
+            $packageName = Split-Path -Path $pwd -Leaf
+            $coverageOutputFile = Join-Path -Path $commonTestResults -ChildPath "$packageName.xml"
             $toxEnv = $env:GITHUB_JOB -ilike "build*test" ? "py" : "pre-publish"
             python -m tox -e $toxEnv -- --junit-xml=$coverageOutputFile || $($testsFailed = $true)
-            Move-Item -Path .coverage -Destination $repoPath/.coverage.$package || $(throw "failed to move coverage report")
+            Move-Item -Path .coverage -Destination $repoPath/.coverage.$packageName ||
+                $(throw "failed to move coverage report")
         } finally {
             Pop-Location
         }
