@@ -459,6 +459,20 @@ If the test passes, then the successful results are written to an artifact. Only
 
 Note that if there are less than ten data points, it is not considered a failure, but a warning is logged.
 
+### What a failed comparison does
+
+A failed comparison turns the nightly run red and does not stop a merge or a
+release. Figures vary too much between GitHub runners for one night's result to
+prove a regression, so the `Compare Performance` step continues on error, the
+results are still kept as history, and a separate `ReportComparePerformance` job
+then fails when that step failed.
+
+The comparison fails when a metric with at least ten results is outside its
+accepted range, when a results file can't be read, when the graphs can't be
+published, or when a configuration that produced results on earlier runs produced
+none. A configuration with `RunPerformance` set that has never produced results
+gets a warning annotation on the run, because it has no graph to keep up to date.
+
 ## Job Scheduling
 
 Github does not have a full-fledged job orchestrator, it only has some (limited) features that allow to trigger jobs after one another, f.e.:

@@ -196,6 +196,8 @@ jobs:
     needs: [ Configure, BuildAndTest ]
     if: ${{ !inputs.skip-compare-performance && contains(fromJSON(needs.Configure.outputs.options).*.RunPerformance, true) }}
     name: Compare Performance - ${{ inputs.pull-request-id }}
+    outputs:
+      outcome: ${{ steps.compare.outcome }}
     steps:
       - name: Checkout Common
         uses: actions/checkout@v6
@@ -210,7 +212,10 @@ jobs:
           pattern: performance_results-${{ inputs.pull-request-id }}-*
           merge-multiple: true
 
+      # A failed comparison must not stop a merge or a release, because figures
+      # vary too much between runners. ReportComparePerformance turns the run red.
       - name: Compare Performance
+        id: compare
         continue-on-error: true
         run: |
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
@@ -226,6 +231,17 @@ jobs:
           -GitHubUser ${{ inputs.user }} `
           -GitHubEmail ${{ inputs.email }} `
           -DryRun $DryRun
+
+  ReportComparePerformance:
+    name: Report Compare Performance - ${{ inputs.pull-request-id }}
+    runs-on: ubuntu-latest
+    needs: ComparePerformance
+    if: ${{ !cancelled() && needs.ComparePerformance.outputs.outcome == 'failure' }}
+    steps:
+      - name: Report Failure
+        run: |
+          Write-Output "::error title=Compare Performance failed::See the log of the Compare Performance - ${{ inputs.pull-request-id }} job. The performance graphs may not have updated."
+          exit 1
 
   Complete:
     runs-on: ubuntu-latest
