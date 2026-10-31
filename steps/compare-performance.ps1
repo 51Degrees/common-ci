@@ -32,26 +32,87 @@ function Get-Artifact-Result {
     return $result
 }
 
+# Every metric is a rate or a time, so anything but a finite number above zero
+# is a broken measurement and not a result.
+function Test-UsableFigure {
+    param($Figure)
+    $isNumber = $Figure -is [int] -or $Figure -is [long] -or
+        $Figure -is [double] -or $Figure -is [decimal]
+    return $isNumber -and [double]::IsFinite($Figure) -and $Figure -gt 0
+}
+
+# Rewrites a results file without its unusable figures and returns what it left
+# out. The workflow uploads this file as history however this script ends.
+function Remove-UnusableFigures {
+    param([Parameter(Mandatory)][string]$Path)
+    $kept = Get-Content $Path | ConvertFrom-Json -AsHashtable
+    $dropped = foreach ($section in 'HigherIsBetter', 'LowerIsBetter') {
+        foreach ($metric in [string[]]$kept[$section].Keys) {
+            $figure = $kept[$section][$metric]
+            if (-not (Test-UsableFigure $figure)) {
+                Write-Host "::error::'$section.$metric' in '$Path' is '$figure', which is not a number above zero. It is left out of the graph and the history."
+                [void] $kept[$section].Remove($metric)
+                "$Path $section.$metric"
+            }
+        }
+    }
+    if ($dropped) {
+        $kept | ConvertTo-Json -Depth 100 | Set-Content $Path
+    }
+    return $dropped
+}
+
+# Gets the dates and figures to plot, leaving out any run with no usable figure.
+function Get-UsableFigures {
+    param(
+        [Parameter(Mandatory)]$Results,
+        [Parameter(Mandatory)][string]$Section,
+        [Parameter(Mandatory)][string]$Metric
+    )
+    $dates = [System.Collections.Generic.List[double]]::new()
+    $values = [System.Collections.Generic.List[double]]::new()
+    foreach ($result in $Results) {
+        $figure = $result[$Section][$Metric]
+        if (Test-UsableFigure $figure) {
+            $dates.Add($result.Artifact.created_at.ToOADate())
+            $values.Add($figure)
+        } elseif ($null -ne $figure) {
+            Write-Warning "Dropped '$Metric' figure '$figure' from the run of $($result.Artifact.created_at), as it is not a number above zero"
+        }
+    }
+    return @{ Dates = $dates.ToArray(); Values = $values.ToArray() }
+}
+
 function Generate-PerformanceResults {
     param(
-        [Parameter(Mandatory)][double[]]$Dates,
-        [Parameter(Mandatory)][double[]]$Values,
+        [Parameter(Mandatory)][AllowEmptyCollection()][double[]]$Dates,
+        [Parameter(Mandatory)][AllowEmptyCollection()][double[]]$Values,
         [string]$Name,
         [string]$MetricName,
+        # The current figure was dropped, so the last value is a historic one.
+        [switch]$NoCurrentFigure,
         [switch]$HigherIsBetter
     )
 
-    # Calculate the stats
-    $stats = $Values | Measure-Object -Average -StandardDeviation
-    $maxDiff = (($stats.Average*0.1), ($stats.StandardDeviation*2) | Measure-Object -Maximum).Maximum
-    $lowerBound = $stats.Average - $maxDiff
-    $higherBound = $stats.Average + $maxDiff
+    $hasFigures = $Values.Count -gt 0
+    if ($hasFigures) {
+        # Calculate the stats
+        $stats = $Values | Measure-Object -Average -StandardDeviation
+        $maxDiff = (($stats.Average*0.1), ($stats.StandardDeviation*2) | Measure-Object -Maximum).Maximum
+        $lowerBound = [Math]::Max(0.0, $stats.Average - $maxDiff)
+        $higherBound = $stats.Average + $maxDiff
 
-    $currentResult = $Values[-1]
-    Write-Host "Average: $($stats.Average)"
-    Write-Host "Standard deviation: $($stats.StandardDeviation) (x2 = $($stats.StandardDeviation*2))"
-    Write-Host "Acceptable values: $($HigherIsBetter ? ">$lowerBound" : "<$higherBound")"
-    Write-Host "Current result: $currentResult"
+        Write-Host "Average: $($stats.Average)"
+        Write-Host "Standard deviation: $($stats.StandardDeviation) (x2 = $($stats.StandardDeviation*2))"
+        Write-Host "Acceptable values: $($HigherIsBetter ? ">$lowerBound" : "<$higherBound")"
+    } else {
+        Write-Warning "There are no usable figures for '$MetricName' for '$Name'"
+    }
+
+    if (-not $NoCurrentFigure) {
+        $currentResult = $Values[-1]
+        Write-Host "Current result: $currentResult"
+    }
 
     if ($Publish) {
         Write-Host "Generating graph..."
@@ -63,22 +124,42 @@ function Generate-PerformanceResults {
         [void] $plot.YLabel($MetricName)
         [void] $plot.Axes.Margins(0.2, 0.5)
         [void] $plot.Axes.DateTimeTicksBottom()
-        [void] $plot.Add.VerticalSpan($lowerBound, $higherBound) # Acceptable variation
 
-        # Circle around current performance figure
-        $current = $plot.Add.Marker($Dates[-1], $Values[-1], [ScottPlot.MarkerShape]::OpenCircle, 15)
-        $current.LegendText = "current"
+        if ($hasFigures) {
+            [void] $plot.Add.VerticalSpan($lowerBound, $higherBound) # Acceptable variation
 
-        # Historic figures
-        $historic = $plot.Add.Scatter($Dates, $Values)
-        $historic.MarkerShape = [ScottPlot.MarkerShape]::FilledCircle
-        $historic.MarkerSize = 5
-        $historic.LegendText = "historic"
+            # Circle around current performance figure
+            if (-not $NoCurrentFigure) {
+                $current = $plot.Add.Marker($Dates[-1], $Values[-1], [ScottPlot.MarkerShape]::OpenCircle, 15)
+                $current.LegendText = "current"
+            }
+
+            # Historic figures
+            $historic = $plot.Add.Scatter($Dates, $Values)
+            $historic.MarkerShape = [ScottPlot.MarkerShape]::FilledCircle
+            $historic.MarkerSize = 5
+            $historic.LegendText = "historic"
+
+            # The margin would otherwise carry the axis below zero
+            [void] $plot.Axes.AutoScale()
+            $limits = $plot.Axes.GetLimits()
+            if ($limits.Bottom -lt 0) {
+                [void] $plot.Axes.SetLimitsY(0, $limits.Top)
+            }
+        } else {
+            # An empty graph, because the documentation embeds this file and the
+            # images branch only holds what is drawn tonight
+            $now = (Get-Date).ToOADate()
+            [void] $plot.Axes.SetLimits($now - 1, $now + 1, 0, 1)
+        }
 
         # Write to the output image
         $plot.Font.Set([ScottPlot.Fonts]::Monospace)
         Write-Host "Default font: $([ScottPlot.Fonts]::Monospace)"
         $plot.SavePng("$RepoName/perf-graph-$Name-$MetricName-latest.png", 400, 300)
+
+        $limits = $plot.Axes.GetLimits()
+        Write-Host "Y axis: from $($limits.Bottom) to $($limits.Top)"
     } else {
         Write-Host "Not publishing graphs, skipping graph generation"
     }
@@ -94,6 +175,11 @@ function Generate-PerformanceResults {
         for ($i=0; $i -lt $Dates.Length; ++$i) {
             Write-Output "| $([DateTime]::FromOADate($Dates[$i])) | $($Values[$i]) |" >> $env:GITHUB_STEP_SUMMARY
         }
+    }
+
+    if ($NoCurrentFigure) {
+        Write-Warning "There is no usable current figure for '$MetricName' for '$Name', so it was not checked"
+        return
     }
 
     # Check if current result is within acceptable bounds
@@ -112,6 +198,19 @@ function Generate-PerformanceResults {
         } else {
             exit 1
         }
+    }
+}
+
+# Done first, so that no failure below can leave a broken figure in the files
+# uploaded as history. The figures read here still include them, because a metric
+# with a dropped figure must keep its graph.
+$currentResults = @{}
+$droppedFigures = @()
+foreach ($options in $AllOptions) {
+    $currentResultsPath = "results_$($options.Name).json"
+    if ($options.RunPerformance -and (Test-Path $currentResultsPath)) {
+        $currentResults[$options.Name] = Get-Content $currentResultsPath | ConvertFrom-Json -AsHashtable
+        $droppedFigures += @(Remove-UnusableFigures -Path $currentResultsPath)
     }
 }
 
@@ -161,7 +260,7 @@ try {
             exit 0
         }
         # Get the result for the current artifact
-        $currentResult = Get-Content $currentResultsPath | ConvertFrom-Json -AsHashtable
+        $currentResult = $currentResults[$options.Name]
         $currentResult.Artifact = @{created_at = Get-Date}
 
         # Get the historic performance results from the artifacts
@@ -174,18 +273,18 @@ try {
         $higherIsBetterResults = $results.Where({$null -ne $_.HigherIsBetter})
         foreach ($metric in $currentResult.HigherIsBetter.Keys) {
             Write-Host "Checking '$metric' (HigherIsBetter)"
-            [double[]]$dates = foreach ($_ in $higherIsBetterResults) { $_.Artifact.created_at.ToOADate() }
-            [double[]]$values = foreach ($_ in $higherIsBetterResults) { $_.HigherIsBetter[$metric] }
-            Generate-PerformanceResults -Name $Options.Name -MetricName $metric -Dates $dates -Values $values -HigherIsBetter
+            $figures = Get-UsableFigures -Results $higherIsBetterResults -Section HigherIsBetter -Metric $metric
+            $noCurrentFigure = -not (Test-UsableFigure $currentResult.HigherIsBetter[$metric])
+            Generate-PerformanceResults -Name $Options.Name -MetricName $metric -Dates $figures.Dates -Values $figures.Values -NoCurrentFigure:$noCurrentFigure -HigherIsBetter
         }
         ### NOTE: currently all LowerIsBetter metrics are derivatives of
         ### HigherIsBetter metrics, no reason to do the comparison twice
         # $lowerIsBetterResults = $results.Where({$null -ne $_.LowerIsBetter})
         # foreach ($metric in $CurrentResult.LowerIsBetter.Keys) {
         #     Write-Host "Checking '$metric' (LowerIsBetter)"
-        #     [double[]]$dates = foreach ($_ in $lowerIsBetterResults) { $_.Artifact.created_at.ToOADate() }
-        #     [double[]]$values = foreach ($_ in $lowerIsBetterResults) { $_.LowerIsBetter[$metric] }
-        #     Generate-PerformanceResults -Name $Options.Name -MetricName $metric -Dates $dates -Values $values
+        #     $figures = Get-UsableFigures -Results $lowerIsBetterResults -Section LowerIsBetter -Metric $metric
+        #     $noCurrentFigure = -not (Test-UsableFigure $currentResult.LowerIsBetter[$metric])
+        #     Generate-PerformanceResults -Name $Options.Name -MetricName $metric -Dates $figures.Dates -Values $figures.Values -NoCurrentFigure:$noCurrentFigure
         # }
     }
 
@@ -204,4 +303,11 @@ try {
     # Fails on Windows :(
     # Remove-Item -Recurse -Force $plotTmp
     Write-Host "Please remove '$plotTmp' manually 🙂"
+}
+
+# Last, so that one broken figure costs neither the other graphs nor the push.
+# No release depends on this exit code.
+if ($droppedFigures.Count -gt 0) {
+    Write-Host "Failing, because these figures were dropped: $($droppedFigures -join ', ')"
+    exit 1
 }

@@ -36,7 +36,8 @@ Stages all changes in the repository, and commits them with the message provided
 Validates the results JSON a performance example or test emitted and copies it
 to `[repo]/test-results/performance-summary/results_[name].json`, where
 `compare-performance.ps1` reads it. Every language's `run-performance-tests.ps1`
-uses this rather than parsing an example's console output.
+uses this rather than parsing an example's console output. A figure at or below
+zero only warns, because failing would stop that night's release.
 
 For a more in depth description of this, see [Performance Tests](/DESIGN.md#performance-tests)
 
