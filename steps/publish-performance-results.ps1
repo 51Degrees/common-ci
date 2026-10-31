@@ -65,6 +65,11 @@ foreach ($section in $sections) {
             $shown = $null -eq $value ? "null" : "'$value'"
             Write-Error "Metric '$section.$metric' in '$SourceFile' is $shown, which is not a number."
         }
+        # Only a warning, as failing here would fail the Test job and stop that
+        # night's release. compare-performance.ps1 leaves the figure out.
+        if (-not ([double]::IsFinite($value) -and $value -gt 0)) {
+            Write-Host "::warning::Metric '$section.$metric' in '$SourceFile' is $value, which is not a number above zero. It will be left out of the graph and the history."
+        }
         Write-Host "  $section.$metric = $value"
         $metricCount++
     }

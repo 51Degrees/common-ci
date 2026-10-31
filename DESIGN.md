@@ -448,12 +448,27 @@ there:
 It fails the run if the example produced no file, if the file is not valid JSON,
 if it has neither headline object, or if any metric is not a number. Each of
 those is a broken data point that is far cheaper to see here than in the plot.
+A figure at or below zero only gets a warning here, because failing would fail
+the `Test` job and stop that night's release. The comparison leaves it out.
 
 Results are automatically picked up by the `nightly-pr-to-main` workflow, and written to artifacts. Past artifacts are then downloaded to find ones which match the same configuration name. Each metric is then plotted and written to the summary.
 
 ![Plot Example](./images/example-plot.png)
 
-As performance tests in CI can be inconsistent, an absolute value is not tested. Instead, an increase (or decrease depending on the metric) from the mean by more than two standard deviations is considered a failure. An area is added to the plot to show one standard deviation either side of the mean.
+As performance tests in CI can be inconsistent, an absolute value is not tested. Instead, an increase (or decrease depending on the metric) from the mean by more than two standard deviations, or ten percent of the mean if that is larger, is considered a failure. An area is added to the plot to show that range.
+
+Every metric is a rate or a time, so a figure that is not a number above zero is
+a broken measurement and not a result. `compare-performance.ps1` leaves it out of
+the graph, the mean, the range and the check, and warns in the log. The range and
+the y axis of the graph stop at zero.
+
+When the current figure is the broken one, the script takes it out of the results
+file before anything else can fail, because the workflow uploads that file as
+history however the step ends. The metric still gets a graph of its history, or
+an empty graph if there is none, because the documentation embeds that file and
+the images branch is recreated on every run. The step then fails, once the other
+metrics are compared and the graphs are pushed. That does not stop a merge or a
+release, because the `Compare Performance` step continues on error.
 
 If the test passes, then the successful results are written to an artifact. Only successful results are used when getting past results. This prevents a performance degradation from changing the mean and deviation, which in turn could allow future degradations to pass this test.
 
