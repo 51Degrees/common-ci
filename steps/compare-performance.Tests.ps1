@@ -212,6 +212,21 @@ Describe 'compare-performance.ps1' {
             $run.Code | Should -Be 0
         }
 
+        It 'passes when several configurations have nothing to drop' {
+            $current = [ordered]@{
+                first  = New-Results '5'
+                second = New-Results '7'
+            }
+            $run = Invoke-Step -Current $current
+            $run.Log | Should -Not -Match 'Failing'
+            $run.Code | Should -Be 0
+        }
+
+        It 'still fails when a results file cannot be read' {
+            $run = Invoke-Step -Current @{ demo = 'not json' }
+            $run.Code | Should -Not -Be 0
+        }
+
         It 'still compares the other metrics and configurations' {
             $current = [ordered]@{
                 first  = '{"HigherIsBetter":{"Bad":-1,"Good":5}}'
