@@ -45,6 +45,11 @@ For a more in depth description of this, see [Performance Tests](/DESIGN.md#perf
 
 Compares the performance test results with previous runs, and outputs a graph to the summary.
 
+Exits with a non-zero code when a metric is outside its accepted range, when a
+results file can't be read, when the graphs can't be published, or when a
+configuration that produced results on earlier runs produced none. A configuration
+that has never produced results gets a warning annotation and is skipped.
+
 For a more in depth description of this, see [Performance Tests](/DESIGN.md#performance-tests)
 
 ## Configure Git
