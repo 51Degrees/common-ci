@@ -19,6 +19,7 @@ jobs:
           manifest: .github/labels.yml
           repository: |
               51Degrees/51degrees-cxx
+              51Degrees/51degrees-varnish
               51Degrees/caching-dotnet
               51Degrees/cloud-issues
               51Degrees/common-ci
@@ -33,7 +34,6 @@ jobs:
               51Degrees/device-detection-php
               51Degrees/device-detection-php-onpremise
               51Degrees/device-detection-python
-              51Degrees/device-detection-varnish
               51Degrees/location-dotnet
               51Degrees/location-java
               51Degrees/location-node
