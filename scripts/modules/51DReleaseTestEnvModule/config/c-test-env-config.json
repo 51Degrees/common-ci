@@ -149,20 +149,20 @@
 				"device-detection-data"
 			]
 		},
-		"device-detection-varnish": {
+		"51degrees-varnish": {
 			"definitions": [
 				{
-					"name": "device-detection-varnish-test",
+					"name": "51degrees-varnish-test",
 					"defaultBranch": "master",
 					"yamlFileName": "ci/build-and-test.yml"
 				},
 				{
-					"name": "device-detection-varnish-tag-repository",
+					"name": "51degrees-varnish-tag-repository",
 					"defaultBranch": "master",
 					"yamlFileName": "ci/create-tag.yml"
 				},
 				{
-					"name": "device-detection-varnish-submodule-trigger",
+					"name": "51degrees-varnish-submodule-trigger",
 					"defaultBranch": "release/v4.3.0",
 					"yamlFileName": "ci/submodule-trigger.yml",
 					"triggers": [
@@ -187,7 +187,7 @@
 			],
 			"policies": [
 				{
-					"definition": "device-detection-varnish-test",
+					"definition": "51degrees-varnish-test",
 					"type": "Build",
 					"refName": "refs/heads/master",
 					"matchKind": "Exact"
