@@ -77,4 +77,4 @@
 
 | Repo | Branch | Status |
 | ---- | ------ | ------ |
-| [rust](https://github.com/51Degrees/rust) | `main` | [![Nightly Performance](https://github.com/51Degrees/rust/actions/workflows/nightly-performance.yml/badge.svg)](https://github.com/51Degrees/rust/actions/workflows/nightly-performance.yml) |
+| [51degrees-rust](https://github.com/51Degrees/51degrees-rust) | `main` | [![Nightly Performance](https://github.com/51Degrees/51degrees-rust/actions/workflows/nightly-performance.yml/badge.svg)](https://github.com/51Degrees/51degrees-rust/actions/workflows/nightly-performance.yml) |
