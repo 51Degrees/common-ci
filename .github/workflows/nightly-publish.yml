@@ -104,6 +104,7 @@ on:
       MaxioApiKeyEu:
       MaxioApiKeyUsSandbox:
       MaxioApiKeyEuSandbox:
+      PearlTableauToken:
 
 defaults:
   run:
