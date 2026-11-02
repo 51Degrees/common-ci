@@ -42,9 +42,7 @@
 
 | Repo | Branch | Status |
 | ---- | ------ | ------ |
-| [pipeline-node](https://github.com/51Degrees/pipeline-node) | `main` | [![Nightly Pipeline](https://github.com/51Degrees/pipeline-node/actions/workflows/nightly-pipeline.yml/badge.svg)](https://github.com/51Degrees/pipeline-node/actions/workflows/nightly-pipeline.yml) [![Monthly Copyright Update](https://github.com/51Degrees/pipeline-node/actions/workflows/monthly-copyright-update.yml/badge.svg)](https://github.com/51Degrees/pipeline-node/actions/workflows/monthly-copyright-update.yml) |
-| [device-detection-node](https://github.com/51Degrees/device-detection-node) | `main` | [![Nightly Pipeline](https://github.com/51Degrees/device-detection-node/actions/workflows/nightly-pipeline.yml/badge.svg)](https://github.com/51Degrees/device-detection-node/actions/workflows/nightly-pipeline.yml) [![Monthly Copyright Update](https://github.com/51Degrees/device-detection-node/actions/workflows/monthly-copyright-update.yml/badge.svg)](https://github.com/51Degrees/device-detection-node/actions/workflows/monthly-copyright-update.yml) |
-| [location-node](https://github.com/51Degrees/location-node) | `main` | [![Nightly Pipeline](https://github.com/51Degrees/location-node/actions/workflows/nightly-pipeline.yml/badge.svg)](https://github.com/51Degrees/location-node/actions/workflows/nightly-pipeline.yml) [![Monthly Copyright Update](https://github.com/51Degrees/location-node/actions/workflows/monthly-copyright-update.yml/badge.svg)](https://github.com/51Degrees/location-node/actions/workflows/monthly-copyright-update.yml) |
+| [51degrees-node](https://github.com/51Degrees/51degrees-node) | `main` | [![Nightly Pipeline](https://github.com/51Degrees/51degrees-node/actions/workflows/nightly-pipeline.yml/badge.svg)](https://github.com/51Degrees/51degrees-node/actions/workflows/nightly-pipeline.yml) [![Monthly Copyright Update](https://github.com/51Degrees/51degrees-node/actions/workflows/monthly-copyright-update.yml/badge.svg)](https://github.com/51Degrees/51degrees-node/actions/workflows/monthly-copyright-update.yml) |
 
 ### PHP
 
