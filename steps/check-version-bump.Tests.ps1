@@ -38,23 +38,18 @@ AfterEach {
     $env:ALLOW_VERSION_BUMP = $null
 }
 
-Describe 'a repository that has never released' {
-    It 'refuses 0.0.1, the version GitVersion gives a repository with no tags' {
+Describe 'a branch with no tags' {
+    It 'refuses 0.0.1, the version GitVersion gives a branch with no tags' {
         # The fault behind common-ci#251: fiftyone_ipintelligence_cloud 0.0.1.
         $script:Repo = New-TaggedRepo @()
         $result = Invoke-Check @{ Version = '0.0.1'; RepoName = $script:Repo }
         $result.ExitCode | Should -Be 1
-        $result.Output | Should -Match 'First version refused'
+        $result.Output | Should -Match 'First release refused'
     }
 
-    It 'refuses any other 0.x first release' {
+    It 'refuses any version, because nobody has decided where it starts' {
         $script:Repo = New-TaggedRepo @()
-        (Invoke-Check @{ Version = '0.3.0'; RepoName = $script:Repo }).ExitCode | Should -Be 1
-    }
-
-    It 'accepts a chosen 4.5 first release' {
-        $script:Repo = New-TaggedRepo @()
-        (Invoke-Check @{ Version = '4.5.0'; RepoName = $script:Repo }).ExitCode | Should -Be 0
+        (Invoke-Check @{ Version = '4.5.0'; RepoName = $script:Repo }).ExitCode | Should -Be 1
     }
 
     It 'is not talked out of the refusal by ALLOW_VERSION_BUMP' {
@@ -63,6 +58,14 @@ Describe 'a repository that has never released' {
         $script:Repo = New-TaggedRepo @()
         $env:ALLOW_VERSION_BUMP = 'true'
         (Invoke-Check @{ Version = '0.0.1'; RepoName = $script:Repo }).ExitCode | Should -Be 1
+    }
+
+}
+
+Describe 'a package on a 0.x line' {
+    It 'is checked like any other once its branch has a tag' {
+        $script:Repo = New-TaggedRepo @('0.0.5')
+        (Invoke-Check @{ Version = '0.0.6'; RepoName = $script:Repo }).ExitCode | Should -Be 0
     }
 }
 
@@ -122,14 +125,13 @@ Describe 'one package of a monorepo, with -TagPrefix' {
         ).ExitCode | Should -Be 0
     }
 
-    It 'treats a package with no tags of its own as never released' {
+    It 'lets a new package make its first release beside tagged ones' {
+        # The branch has tags, so the repository's release history is there;
+        # the new package's first number was chosen by the repository.
         $script:Repo = New-TaggedRepo @('fiftyone_pipeline_core/4.5.38')
         (Invoke-Check @{
             Version = '4.5.0'; RepoName = $script:Repo; TagPrefix = 'fiftyone_ipintelligence' }
         ).ExitCode | Should -Be 0
-        (Invoke-Check @{
-            Version = '0.0.1'; RepoName = $script:Repo; TagPrefix = 'fiftyone_ipintelligence' }
-        ).ExitCode | Should -Be 1
     }
 }
 
