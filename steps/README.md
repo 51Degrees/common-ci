@@ -195,7 +195,10 @@ works out. It provides `ci/check-version-bump.ps1`, which the publish runs in
 place of this script. That script must refuse the same moves, with the same
 exit codes, for every package it is about to publish, usually by running this
 script once for each with `-TagPrefix` or `-ReleasedVersion`. The publish never
-skips the check, and a repository can only replace it with its own.
+skips the check. Only the repositories named in that step of
+`nightly-publish.yml` may replace it with their own, so a script that checks
+nothing cannot switch it off, and naming another repository is a change to
+common-ci.
 
 It is at the publish rather than the merge on purpose. A version can arrive by
 a `+semver` directive, a tag pushed by hand, a version committed in a file, or

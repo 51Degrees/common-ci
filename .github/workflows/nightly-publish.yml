@@ -154,13 +154,16 @@ jobs:
       # check is at the publish rather than at the merge. A repository that
       # gives each package its own version checks every package it is about
       # to publish in its own ci/check-version-bump.ps1, with the same exit
-      # codes, because one version cannot speak for them all.
+      # codes, because one version cannot speak for them all. Only the
+      # repositories named here may replace the shared check, so a script that
+      # checks nothing cannot switch the check off.
       - name: Refuse a version bump nobody asked for
         shell: pwsh
         env:
           ALLOW_VERSION_BUMP: ${{ inputs.allow-version-bump }}
         run: |
-          if (Test-Path ./${{ inputs.repo-name }}/ci/check-version-bump.ps1) {
+          $OwnCheck = @('51degrees-dotnet')
+          if ('${{ inputs.repo-name }}' -in $OwnCheck -and (Test-Path ./${{ inputs.repo-name }}/ci/check-version-bump.ps1)) {
             ./${{ inputs.repo-name }}/ci/check-version-bump.ps1 -RepoName '${{ inputs.repo-name }}' -Version '${{ steps.configure.outputs.version }}'
           } else {
             ./steps/check-version-bump.ps1 -Version '${{ steps.configure.outputs.version }}' -RepoName '${{ inputs.repo-name }}'
