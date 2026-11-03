@@ -88,6 +88,21 @@ Describe 'package-update-required.ps1' {
         (Invoke-Check $script:Repo '4.5.1').ExitCode | Should -Be 1
     }
 
+    It 'does not publish when only a Doxyfile in a docs folder changed' {
+        $script:Repo = New-ReleasedRepo @(, @('device-detection/docs/Doxyfile'))
+        (Invoke-Check $script:Repo '4.5.1').ExitCode | Should -Be 1
+    }
+
+    It 'does not publish when only the top-level docs folder changed' {
+        $script:Repo = New-ReleasedRepo @(, @('docs/DoxygenLayout.xml'))
+        (Invoke-Check $script:Repo '4.5.1').ExitCode | Should -Be 1
+    }
+
+    It 'publishes a file whose name only contains docs' {
+        $script:Repo = New-ReleasedRepo @(, @('src/docsupport.c'))
+        (Invoke-Check $script:Repo '4.5.1').ExitCode | Should -Be 0
+    }
+
     It 'publishes when documentation and code both changed' {
         $script:Repo = New-ReleasedRepo @(@('README.md'), @('engine.c'))
         (Invoke-Check $script:Repo '4.5.1').ExitCode | Should -Be 0
