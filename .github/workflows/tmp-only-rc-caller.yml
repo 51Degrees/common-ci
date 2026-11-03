@@ -1,0 +1,11 @@
+name: Only rc into main
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  rc:
+    name: Only rc into main
+    uses: ./.github/workflows/only-rc-into-main.yml

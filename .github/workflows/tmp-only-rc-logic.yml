@@ -1,0 +1,26 @@
+name: Temporary logic test of only rc into main
+
+on:
+  push:
+    branches:
+      - tmp/only-rc-check
+
+jobs:
+  logic:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run the check's own step for four cases
+        run: |
+          script=$(python3 -c "import yaml; print(yaml.safe_load(open('.github/workflows/only-rc-into-main.yml'))['jobs']['check']['steps'][0]['run'])")
+          run_case () {
+            BASE="$1" HEAD="$2" HEAD_REPOSITORY="$3" REPOSITORY=51Degrees/common-ci bash -c "$script" > /dev/null 2>&1
+            echo $?
+          }
+          fail=0
+          check () { got=$(run_case "$2" "$3" "$4"); if [ "$got" = "$5" ]; then echo "ok   $1"; else echo "WRONG $1: expected $5, got $got"; fail=1; fi; }
+          check "rc into main" main rc 51Degrees/common-ci 0
+          check "a feature branch into main" main feature/x 51Degrees/common-ci 1
+          check "a fork's rc into main" main rc someone/common-ci 1
+          check "a feature branch into rc" rc feature/x 51Degrees/common-ci 0
+          exit $fail
