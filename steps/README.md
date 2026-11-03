@@ -189,6 +189,14 @@ or minor place, comparing it with the highest version the repository has
 already tagged. `nightly-publish.yml` runs it in the Configure job, straight
 after the version is worked out and before anything is built or pushed.
 
+A repository that gives each package its own version, tagged
+`<package>/<version>`, cannot be checked from the one version the publish
+works out. It provides `ci/check-version-bump.ps1`, which the publish runs in
+place of this script. That script must refuse the same moves, with the same
+exit codes, for every package it is about to publish, usually by running this
+script once for each with `-TagPrefix` or `-ReleasedVersion`. The publish never
+skips the check, and a repository can only replace it with its own.
+
 It is at the publish rather than the merge on purpose. A version can arrive by
 a `+semver` directive, a tag pushed by hand, a version committed in a file, or
 one typed into a dispatch. Gating any one of those leaves the others open. The

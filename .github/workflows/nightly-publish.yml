@@ -151,12 +151,20 @@ jobs:
       # Every route to a version meets here: a '+semver' directive, a tag
       # pushed by hand, a version committed in a file, or one typed into a
       # dispatch. Gating any one of them leaves the others open, so the
-      # check is at the publish rather than at the merge.
+      # check is at the publish rather than at the merge. A repository that
+      # gives each package its own version checks every package it is about
+      # to publish in its own ci/check-version-bump.ps1, with the same exit
+      # codes, because one version cannot speak for them all.
       - name: Refuse a version bump nobody asked for
         shell: pwsh
         env:
           ALLOW_VERSION_BUMP: ${{ inputs.allow-version-bump }}
-        run: ./steps/check-version-bump.ps1 -Version '${{ steps.configure.outputs.version }}' -RepoName '${{ inputs.repo-name }}'
+        run: |
+          if (Test-Path ./${{ inputs.repo-name }}/ci/check-version-bump.ps1) {
+            ./${{ inputs.repo-name }}/ci/check-version-bump.ps1 -RepoName '${{ inputs.repo-name }}' -Version '${{ steps.configure.outputs.version }}'
+          } else {
+            ./steps/check-version-bump.ps1 -Version '${{ steps.configure.outputs.version }}' -RepoName '${{ inputs.repo-name }}'
+          }
       - name: Prefetch assets
         id: prefetch-assets
         if: inputs.cache-assets
