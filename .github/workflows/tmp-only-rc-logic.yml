@@ -10,17 +10,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Run the check's own step for four cases
+      - name: Run the check's own step for eight cases
         run: |
           script=$(python3 -c "import yaml; print(yaml.safe_load(open('.github/workflows/only-rc-into-main.yml'))['jobs']['check']['steps'][0]['run'])")
           run_case () {
-            BASE="$1" HEAD="$2" HEAD_REPOSITORY="$3" REPOSITORY=51Degrees/common-ci bash -c "$script" > /dev/null 2>&1
+            BASE="$1" HEAD="$2" HEAD_REPOSITORY="$3" DEFAULT="$4" REPOSITORY=51Degrees/common-ci bash -c "$script" > /dev/null 2>&1
             echo $?
           }
           fail=0
-          check () { got=$(run_case "$2" "$3" "$4"); if [ "$got" = "$5" ]; then echo "ok   $1"; else echo "WRONG $1: expected $5, got $got"; fail=1; fi; }
-          check "rc into main" main rc 51Degrees/common-ci 0
-          check "a feature branch into main" main feature/x 51Degrees/common-ci 1
-          check "a fork's rc into main" main rc someone/common-ci 1
-          check "a feature branch into rc" rc feature/x 51Degrees/common-ci 0
+          check () { got=$(run_case "$2" "$3" "$4" "$5"); if [ "$got" = "$6" ]; then echo "ok   $1"; else echo "WRONG $1: expected $6, got $got"; fail=1; fi; }
+          check "rc into main" main rc 51Degrees/common-ci main 0
+          check "a feature branch into main" main feature/x 51Degrees/common-ci main 1
+          check "a fork's rc into main" main rc someone/common-ci main 1
+          check "a feature branch into rc" rc feature/x 51Degrees/common-ci main 0
+          check "rc into master, the default" master rc 51Degrees/common-ci master 0
+          check "a feature branch into master, the default" master feature/x 51Degrees/common-ci master 1
+          check "a feature branch into main, where master is the default" main feature/x 51Degrees/common-ci master 0
+          check "a feature branch into gh-pages, the default" gh-pages feature/x 51Degrees/common-ci gh-pages 1
           exit $fail
