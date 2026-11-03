@@ -14,12 +14,17 @@ param (
     [string]$GitHubToken,
     [string]$MetadataBranch = "main", # unused, kept for compatibility
     [string]$ToolsBranch = "main",
-    [bool]$DryRun = $False
+    [bool]$DryRun = $False,
+    # The branch the changes are pushed to and proposed from. A repository that
+    # runs this for more than one data type gives each type its own branch.
+    [string]$PrBranch
 )
 $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
 
-$PrBranch = "properties-update/$Branch"
+if (-not $PrBranch) {
+    $PrBranch = "properties-update/$Branch"
+}
 
 Write-Output "::group::Configure Git"
 ./steps/configure-git.ps1 -GitHubToken $GitHubToken -GitHubUser $GitHubUser -GitHubEmail $GitHubEmail
