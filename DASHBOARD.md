@@ -45,6 +45,12 @@
 | ---- | ------ | ------ |
 | [51degrees-go](https://github.com/51Degrees/51degrees-go) | `main` | [![Nightly Pipeline](https://github.com/51Degrees/51degrees-go/actions/workflows/nightly-pipeline.yml/badge.svg)](https://github.com/51Degrees/51degrees-go/actions/workflows/nightly-pipeline.yml) |
 
+### Varnish
+
+| Repo | Branch | Status |
+| ---- | ------ | ------ |
+| [51degrees-varnish](https://github.com/51Degrees/51degrees-varnish) | `main` | [![Nightly Pipeline](https://github.com/51Degrees/51degrees-varnish/actions/workflows/nightly-pipeline.yml/badge.svg)](https://github.com/51Degrees/51degrees-varnish/actions/workflows/nightly-pipeline.yml) [![Monthly Copyright Update](https://github.com/51Degrees/51degrees-varnish/actions/workflows/monthly-copyright-update.yml/badge.svg)](https://github.com/51Degrees/51degrees-varnish/actions/workflows/monthly-copyright-update.yml) |
+
 ### Rust
 
 | Repo | Branch | Status |
