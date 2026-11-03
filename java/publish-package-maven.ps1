@@ -1,7 +1,8 @@
 param (
     [Parameter(Mandatory)][string]$MavenSettings,
     $RepoName, # accepted for compatibility
-    $Version   # accepted for compatibility
+    $Version,  # accepted for compatibility
+    [bool]$DryRun
 )
 $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
@@ -14,8 +15,15 @@ $args = @{
 }
 $api = "https://central.sonatype.com/api/v1/publisher"
 
+$bundle = Get-Item package/central-bundle.zip
+
+if ($DryRun) {
+    Write-Host "Dry run - not uploading '$($bundle.Name)' ($($bundle.Length) bytes) to $api"
+    exit 0
+}
+
 Write-Host "Uploading the bundle..."
-$id = Invoke-WebRequest @args -Uri "$api/upload" -Form @{bundle = Get-Item package/central-bundle.zip; publishingType = 'AUTOMATIC'}
+$id = Invoke-WebRequest @args -Uri "$api/upload" -Form @{bundle = $bundle; publishingType = 'AUTOMATIC'}
 Write-Host "Deployment id: $id"
 
 for ($i = 1; $i -le 60; ++$i) {

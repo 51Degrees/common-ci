@@ -6,7 +6,8 @@ param(
     [string]$Name = "Release_x64",
     [Parameter(Mandatory=$true)]
     [string]$ApiKey,
-    [string]$Source = "https://api.nuget.org/v3/index.json"
+    [string]$Source = "https://api.nuget.org/v3/index.json",
+    [bool]$DryRun
 )
 
 $PackagePath = [IO.Path]::Combine($pwd, "package")
@@ -18,7 +19,11 @@ try {
 
     Write-Output "Releasing package for '$Name'"
     
-    dotnet nuget push "*.nupkg" --source $Source --api-key $ApiKey --skip-duplicate
+    if ($DryRun) {
+        Write-Output "Dry run - not pushing $((Get-ChildItem *.nupkg).Name -join ', ') to '$Source'"
+    } else {
+        dotnet nuget push "*.nupkg" --source $Source --api-key $ApiKey --skip-duplicate
+    }
 
 }
 finally {
