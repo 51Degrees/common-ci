@@ -22,13 +22,15 @@ param (
 $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
 
-if (-not $PrBranch) {
-    $PrBranch = "properties-update/$Branch"
-}
-
 Write-Output "::group::Configure Git"
 ./steps/configure-git.ps1 -GitHubToken $GitHubToken -GitHubUser $GitHubUser -GitHubEmail $GitHubEmail
 Write-Output "::endgroup::"
+
+# The pull request targets rc where the repository takes changes through rc.
+$Branch = ./steps/get-target-branch.ps1 -RepoName $RepoName -OrgName $OrgName -Branch $Branch
+if (-not $PrBranch) {
+    $PrBranch = "properties-update/$Branch"
+}
 
 Write-Output "::group::Clone $RepoName - $Branch"
 ./steps/clone-repo.ps1 -RepoName $RepoName -OrgName $OrgName -Branch $Branch -ForceSwitchTo $PrBranch
@@ -62,7 +64,7 @@ if ($LASTEXITCODE -eq 0) {
     ./steps/push-changes.ps1 -RepoName $RepoName -DryRun $DryRun -Force $true
     Write-Output "::endgroup::"
 
-    Write-Output "::group::PR To Main"
+    Write-Output "::group::Create Pull Request"
     ./steps/pull-request.ps1 -RepoName $RepoName -From $PrBranch -To $Branch -Message "Update properties" -DryRun $DryRun
     Write-Output "::endgroup::"
 

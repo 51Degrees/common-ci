@@ -82,7 +82,7 @@ Describe 'get-target-branch.ps1' {
         # Answering main here would let the nightly merge into main in a
         # repository that takes its changes through rc.
         Set-Repository -Default main -Branches main, rc -Unreachable
-        { Invoke-Step main } | Should -Throw
+        { Invoke-Step main } | Should -Throw -ExpectedMessage '*HTTP 502*'
     }
 
     It 'writes nothing but the branch name, so a caller can assign it' {
