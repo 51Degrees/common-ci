@@ -66,6 +66,8 @@ Updated any package dependencies to the latest patch version. This should reuse 
 
 Publish the local package (which was built with `build-package.ps1` and installed locally with `install-package.ps1`) to the appropriate package manager. This should use language specific scripts in `common-ci` where possible.
 
+Declare a `[bool]$DryRun` parameter and pass it to the language specific script. On a dry run that script prepares everything but does not upload.
+
 ## Run Integration Tests
 
 **Script: `run-integration-tests.ps1`**
