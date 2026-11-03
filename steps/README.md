@@ -122,9 +122,14 @@ Completes the pull request with the id provided.
 ## Package Update Required?
 **Script: `package-update-required.ps1`**
 
-Takes the prospective version for the repo, and compares to the existing tags.
+Takes the prospective version for the repo, and decides whether to publish it.
 
-If the version does not already exist, then a non-zero exit code is returned, otherwise zero.
+It exits 0, an update, when the version is not yet tagged and something other
+than documentation has changed since the last release tag. It exits 1 when the
+version is already tagged, or when every file changed since the last release
+tag is a Markdown file or sits under `.github`, which holds the workflows,
+images and templates that no package includes, because that release would
+publish the same packages again.
 
 ## PR to Main
 **Script: `pull-request-to-main.ps1`**
