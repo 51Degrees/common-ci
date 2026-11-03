@@ -39,6 +39,10 @@ on:
       skip-lite-tests:
         type: boolean
         default: false
+      examples-branch:
+        description: 'Examples repo branch for the tests; empty keeps the one in options.json'
+        type: string
+        default: ''
     secrets:
       token:
         required: true
@@ -146,9 +150,19 @@ jobs:
         id: build-and-test
         env:
           SECRETS: ${{ toJSON(secrets) }}
+          # Through env rather than inline, so the branch name is never
+          # parsed as PowerShell.
+          EXAMPLES_BRANCH: ${{ inputs.examples-branch }}
         run: |
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
           $Options = $(ConvertFrom-Json -AsHashtable '${{ toJSON(matrix.options) }}')
+          # Overrides every matrix entry. run-script.ps1 only hands it to
+          # scripts declaring an ExamplesBranch parameter, so repos without
+          # one are unaffected.
+          if ([string]::IsNullOrEmpty($env:EXAMPLES_BRANCH) -eq $false)
+          {
+            $Options["ExamplesBranch"] = $env:EXAMPLES_BRANCH
+          }
           $Options.Add("Keys", $(ConvertFrom-Json -AsHashtable $env:SECRETS))
           $SkipLiteTests = [bool]::Parse("${{ inputs.skip-lite-tests }}")
           ./nightly-pull-request.build-and-test.ps1 `
