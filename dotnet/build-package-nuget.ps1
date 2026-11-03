@@ -55,7 +55,7 @@ try {
     dotnet tool install -g NuGetKeyVaultSignTool || $(throw "NuGetKeyVaultSignTool installation failed")
 
     Write-Output "Signing packages"
-    NuGetKeyVaultSignTool sign -f "$PackagesFolder\*.nupkg" `
+    NuGetKeyVaultSignTool sign -f "$PackagesFolder/*.nupkg" `
         --file-digest sha256 `
         --timestamp-digest sha256 `
         --timestamp-rfc3161 http://rfc3161timestamp.globalsign.com/advanced `
