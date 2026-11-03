@@ -19,6 +19,7 @@ jobs:
           manifest: .github/labels.yml
           repository: |
               51Degrees/51degrees-cxx
+              51Degrees/51degrees-dotnet
               51Degrees/51degrees-go
               51Degrees/51degrees-java
               51Degrees/51degrees-nginx
