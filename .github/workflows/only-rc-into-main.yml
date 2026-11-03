@@ -1,0 +1,36 @@
+name: Only rc into main
+
+# Fails a pull request into main unless it comes from the same repository's rc
+# branch, so changes reach main together, as one release. Each public
+# repository calls it on pull requests into main from a workflow and job both
+# named "Only rc into main", which makes the check "Only rc into main / check"
+# everywhere:
+#
+#   on:
+#     pull_request:
+#       branches:
+#         - main
+#   jobs:
+#     rc:
+#       name: Only rc into main
+#       uses: 51Degrees/common-ci/.github/workflows/only-rc-into-main.yml@main
+
+on:
+  workflow_call:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Refuse a pull request into main from any branch but rc
+        env:
+          BASE: ${{ github.base_ref }}
+          HEAD: ${{ github.head_ref }}
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          if [ "$BASE" = "main" ] && { [ "$HEAD" != "rc" ] || [ "$HEAD_REPOSITORY" != "$REPOSITORY" ]; }; then
+            echo "::error title=Only rc merges into main::This pull request merges $HEAD_REPOSITORY:$HEAD into main. Open it against rc instead, as only rc merges into main."
+            exit 1
+          fi
+          echo "$HEAD_REPOSITORY:$HEAD into $BASE is allowed."
