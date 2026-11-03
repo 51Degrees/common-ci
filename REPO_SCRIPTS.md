@@ -40,6 +40,12 @@ Gets the next version for the package. This must take a parameter of `ParameterN
 
 This should make use of the common version which returns the versions from GitVersion as an object.
 
+## Check Version Bump
+
+**Script: `check-version-bump.ps1`** (optional)
+
+Only for a repository that gives each package its own version. The publish runs it in place of `steps/check-version-bump.ps1`, with `RepoName` and `Version`, from the `common-ci` root. It must exit with 1, and so stop the publish, when any package it is about to publish would move the major or minor place, unless `ALLOW_VERSION_BUMP` is `true`. Running `steps/check-version-bump.ps1` once for each package does this.
+
 ## Install Package
 
 **Script: `install-package.ps1`**
