@@ -86,7 +86,7 @@ This will also copy the generated classes to the directory specified.
 ## Get PRs
 **Script: `get-pull-requests.ps1`**
 
-Gets the open PRs for the repo, and sets the ids of valid PRs as an array under a variable name provided.
+Gets the open PRs into the branch given, and sets the ids of valid PRs as an array under a variable name provided.
 
 A PR is considered valid if it was created by one of the following roles:
 - `OWNER`
@@ -96,6 +96,13 @@ or was approved by a member of the 51Degrees Github organisation.
 
 If one or more reviewers have been assigned to the PR, then the PR will only
 be included if all reviewers have approved.
+
+## Get Target Branch
+**Script: `get-target-branch.ps1`**
+
+Writes the branch the nightly's own pull requests target and the nightly merges into. For the default branch of a repository with an `rc` branch this is `rc`, because such a repository takes every change to its default branch through `rc`. Any other branch, and any repository without `rc`, is written back unchanged.
+
+It fails if GitHub cannot be asked, rather than answering the default branch.
 
 ## Get Next Package Version
 **Script: `get-next-package-version.ps1`**
@@ -118,6 +125,8 @@ Checks if there are any changes in the repo. If there are then a non-zero exit c
 **Script: `merge-pr.ps1`**
 
 Completes the pull request with the id provided.
+
+Given a branch, it refuses a pull request into any other branch, so the nightly never merges into the default branch of a repository that takes changes through `rc`. A dry run merges nothing either way.
 
 ## Package Update Required?
 **Script: `package-update-required.ps1`**

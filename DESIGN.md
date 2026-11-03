@@ -500,6 +500,7 @@ We need to seek a tradeoff between satisfying the requirements and stretching th
 ### 51degrees-cxx
 51degrees-cxx holds what were common-cxx, device-detection-cxx, ip-intelligence-cxx and ip-graph-cxx.
 * Nightly Pipeline should run at 35 0 * * *. It updates the submodules, merges the eligible pull requests and publishes, in that order, and can take up to 1.5 hours.
+  Its pull requests target `rc` and it merges into `rc`, so what it publishes from `main` changes only when `rc` is released into `main`.
 * Monthly Copyright Update should run at 0 0 1 * *.
 
 Other repos should start submodule updates around 0 2 * * *, after 51degrees-cxx has likely finished running:

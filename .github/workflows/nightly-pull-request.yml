@@ -30,6 +30,10 @@ on:
       branch: # Branch to use if not one calling this
         type: string
         default: ''
+      performance-branch:
+        description: 'Branch whose performance history the results are compared with; empty uses branch'
+        type: string
+        default: ''
       build-test-timeout-minutes:
         type: number
         default: 120
@@ -237,7 +241,7 @@ jobs:
           ./nightly-pull-request.compare-performance.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
-          -Branch ${{ inputs.branch != '' && inputs.branch || github.ref_name }} `
+          -Branch ${{ inputs.performance-branch != '' && inputs.performance-branch || (inputs.branch != '' && inputs.branch || github.ref_name) }} `
           -GitHubToken ${{ secrets.token }} `
           -GitHubOutput $Env:GITHUB_OUTPUT `
           -Options $Options `
@@ -280,4 +284,5 @@ jobs:
           -OrgName ${{ inputs.org-name }} `
           -GitHubToken ${{ secrets.token }} `
           -PullRequestId ${{ inputs.pull-request-id }} `
+          -Branch ${{ inputs.branch != '' && inputs.branch || github.ref_name }} `
           -DryRun $DryRun

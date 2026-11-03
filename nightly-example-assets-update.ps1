@@ -13,11 +13,13 @@ param (
 )
 $ErrorActionPreference = "Stop"
 
-$PrBranch = "update-example-assets/$Branch"
-
 Write-Output "::group::Configure Git"
 ./steps/configure-git.ps1 -GitHubToken $GitHubToken -GitHubUser $GitHubUser -GitHubEmail $GitHubEmail
 Write-Output "::endgroup::"
+
+# The pull request targets rc where the repository takes changes through rc.
+$Branch = ./steps/get-target-branch.ps1 -RepoName $RepoName -OrgName $OrgName -Branch $Branch
+$PrBranch = "update-example-assets/$Branch"
 
 Write-Output "::group::Clone $RepoName"
 ./steps/clone-repo.ps1 -RepoName $RepoName -OrgName $OrgName -Branch $Branch -ForceSwitchTo $PrBranch
