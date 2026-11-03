@@ -156,7 +156,17 @@ function Generate-PerformanceResults {
         # Write to the output image
         $plot.Font.Set([ScottPlot.Fonts]::Monospace)
         Write-Host "Default font: $([ScottPlot.Fonts]::Monospace)"
-        $plot.SavePng("$RepoName/perf-graph-$Name-$MetricName-latest.png", 400, 300)
+
+        # A long metric name, such as one that starts with its product's name,
+        # would run off the image, so its label is made smaller until it fits
+        $width, $height = 400, 300
+        $yLabel = $plot.Axes.Left.Label
+        while ($yLabel.FontSize -gt 8 -and $yLabel.Measure().Width -gt $height - 20) {
+            $yLabel.FontSize--
+        }
+        Write-Host "Y label size: $($yLabel.FontSize)"
+
+        $plot.SavePng("$RepoName/perf-graph-$Name-$MetricName-latest.png", $width, $height)
 
         $limits = $plot.Axes.GetLimits()
         Write-Host "Y axis: from $($limits.Bottom) to $($limits.Top)"
