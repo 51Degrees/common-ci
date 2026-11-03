@@ -87,7 +87,7 @@ Describe 'get-target-branch.ps1' {
 
     It 'writes nothing but the branch name, so a caller can assign it' {
         Set-Repository -Default main -Branches main, rc
-        $output = Invoke-Step main
+        $output = @(Invoke-Step main)
         $output.Count | Should -Be 1
         $output[0] | Should -BeOfType [string]
     }
