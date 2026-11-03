@@ -13,8 +13,6 @@ param (
 )
 $ErrorActionPreference = "Stop"
 
-$PrBranch = "update-copyright/$Branch"
-
 # This token is used by the gh command.
 Write-Output "Setting GITHUB_TOKEN"
 $env:GITHUB_TOKEN="$GitHubToken"
@@ -22,6 +20,10 @@ $env:GITHUB_TOKEN="$GitHubToken"
 Write-Output "::group::Configure Git"
 ./steps/configure-git.ps1 -GitHubToken $GitHubToken -GitHubUser $GitHubUser -GitHubEmail $GitHubEmail
 Write-Output "::endgroup::"
+
+# The pull request targets rc where the repository takes changes through rc.
+$Branch = ./steps/get-target-branch.ps1 -RepoName $RepoName -OrgName $OrgName -Branch $Branch
+$PrBranch = "update-copyright/$Branch"
 
 Write-Output "::group::Clone $RepoName - $Branch"
 ./steps/clone-repo.ps1 -RepoName $RepoName -OrgName $OrgName -Branch $Branch -ForceSwitchTo $PrBranch
@@ -48,7 +50,7 @@ if ($LASTEXITCODE -eq 0) {
     ./steps/push-changes.ps1 -RepoName $RepoName -DryRun $DryRun -Force $true
     Write-Output "::endgroup::"
 
-    Write-Output "::group::PR To Main"
+    Write-Output "::group::Create Pull Request"
     ./steps/pull-request.ps1 -RepoName $RepoName -From $PrBranch -To $Branch -Message "Update copyright" -DryRun $DryRun
     Write-Output "::endgroup::"
 

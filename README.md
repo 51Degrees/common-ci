@@ -251,7 +251,7 @@ classDef green fill:green;
     C[Update Copyright Messages]
     D[Check For Changes]
     E[Commit Changes]
-    F[PR To Main]
+    F[Create Pull Request]
     A-->B-->C-->D-->E-->F
   end
 ```
@@ -259,6 +259,15 @@ classDef green fill:green;
 # Triggers
 
 Each of the triggers shown is described at a high level. More detail is provided in the associated scripts and the following summary.
+
+### Target branch
+
+A repository with an `rc` branch takes every change to its default branch through `rc`. For such a repository the nightly works on `rc`:
+
+- The nightly's own pull requests, being the data file, package, submodule, example asset and copyright updates, target `rc`.
+- The Pull Requests job builds and merges pull requests into `rc`, and never merges into the default branch. Their performance is still compared with the default branch's history, as only its publish runs record one.
+
+These updates therefore wait on `rc`, and reach the default branch and the published packages with the next release, when `rc` is merged into the default branch. A new property in a data file, for example, is published with the next release rather than the next night. A repository without `rc` works as before. `steps/get-target-branch.ps1` makes the decision.
 
 ### Nightly Data File Change
 
@@ -310,11 +319,11 @@ This does no happen often, so the workflow can be run monthly rather than nightl
 
 #### New property in data file
 
-The Data File Change trigger creates new auto generated code for the strongly typed accessors. These are pushed to a branch and a PR to main commenced. All the tests associated with the repository will then be run. If they fail, then the engineers will be alerted to a problem. If they pass, then the PR will be approved and main branch updated. When the next nightly publish of packages occurs then the new property will be included in the package.
+The Data File Change trigger creates new auto generated code for the strongly typed accessors. These are pushed to a branch and a PR to the target branch commenced. All the tests associated with the repository will then be run. If they fail, then the engineers will be alerted to a problem. If they pass, then the PR will be approved and the target branch updated. When the next nightly publish of packages occurs then the new property will be included in the package, or, where the target branch is `rc`, the first publish after the next release.
 
 #### Update dependency
 
-A package that the organisation uses is updated to a new version within the same `major.minor` version. The nightly dependency check will pick up on the new version and create a branch and associated PR to main. The changes will then propagate to the published packages if the tests executed for any PR pass.
+A package that the organisation uses is updated to a new version within the same `major.minor` version. The nightly dependency check will pick up on the new version and create a branch and associated PR to the target branch. The changes will then propagate to the published packages if the tests executed for any PR pass.
 
 #### Organisation package update
 

@@ -81,7 +81,9 @@ defaults:
     working-directory: ./common
 
 jobs:
-  # Get all the pull requests that are going to main
+  # Get the pull requests into the branch the nightly works on. Where the
+  # repository takes changes through rc that is rc, so nothing is built for or
+  # merged into the default branch.
   GetPullRequests:
     name: Get Pull Requests
     runs-on: ubuntu-latest
@@ -93,7 +95,7 @@ jobs:
           path: common
           ref: ${{ inputs.common-ci-ref }}
 
-      # Get all the pull requests into main, and output the ids
+      # Output the branch and the ids of the pull requests into it
       - name: Get Pull Requests
         id: get_pull_requests
         env:
@@ -107,6 +109,7 @@ jobs:
           -GitHubOutput $Env:GITHUB_OUTPUT
     outputs:
       pull_request_ids: ${{ steps.get_pull_requests.outputs.pull_request_ids }}
+      branch: ${{ steps.get_pull_requests.outputs.branch }}
 
   # Run the common workflow on each pull request
   NightlyPullRequest:
@@ -127,7 +130,10 @@ jobs:
       dryrun: ${{ inputs.dryrun }}
       cache-assets: ${{ inputs.cache-assets }}
       common-ci-ref: ${{ inputs.common-ci-ref }}
-      branch: ${{ inputs.branch }}
+      branch: ${{ needs.GetPullRequests.outputs.branch }}
+      # The history to compare performance against is the branch the nightly
+      # runs for, as only that branch's publish runs record it.
+      performance-branch: ${{ inputs.branch != '' && inputs.branch || github.ref_name }}
       build-test-timeout-minutes: ${{ inputs.build-test-timeout-minutes }}
       skip-compare-performance: ${{ inputs.skip-compare-performance }}
       skip-lite-tests: ${{ inputs.skip-lite-tests }}

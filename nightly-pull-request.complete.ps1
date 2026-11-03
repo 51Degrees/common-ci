@@ -7,6 +7,8 @@ param (
     [string]$GitHubToken,
     [Parameter(Mandatory=$true)]
     [string]$PullRequestId,
+    # The branch the nightly merges into, passed on to merge-pr.ps1.
+    [string]$Branch,
     [bool]$DryRun
 )
 $ErrorActionPreference = "Stop"
@@ -15,4 +17,4 @@ $ErrorActionPreference = "Stop"
 Write-Output "Setting GITHUB_TOKEN"
 $env:GITHUB_TOKEN="$GitHubToken"
 
-./steps/merge-pr.ps1 -RepoName $RepoName -OrgName $OrgName -PullRequestId $PullRequestId -DryRun $DryRun
+./steps/merge-pr.ps1 -RepoName $RepoName -OrgName $OrgName -PullRequestId $PullRequestId -Branch $Branch -DryRun $DryRun

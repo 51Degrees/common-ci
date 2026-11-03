@@ -3,10 +3,10 @@
 If there is a bugfix or feature you'd like to see implemented, the best place to start is with a GitHub issue. First check there is not an issue raised already. If the issue has not yet been raised, it is worth raising one before making any changes yourself. That way, we can let you know whether or not this is something we are already working on.
 
 As an open source project, 51Degrees accepts changes from the community. To propose a change:
-1. Create a new branch from `main` (see [Branching Strategy](#branching-strategy)),
+1. Create a new branch from `rc` (see [Branching Strategy](#branching-strategy)),
 2. Make changes to your new branch locally,
 3. Push to GitHub,
-4. Open a pull request to the `main` branch in the 51Degrees GitHub,
+4. Open a pull request to the `rc` branch in the 51Degrees GitHub,
 5. 51Degrees will assess and update.
 
 The rest of this document goes into more details of what is required.
@@ -40,7 +40,16 @@ It should also show the steps needed to recreate the issue.
 
 ## Branching Strategy
 
-In general, branches should be taken from `main`, and PRs created back to `main` for each feature.
+Branches are taken from `rc`, and pull requests go back to `rc` for each feature or fix. `rc`, short for release candidate, collects the changes for the next release. When a release is wanted, one pull request merges `rc` into `main`, so everything in it goes live together.
+
+Changes do not go straight to `main`, because a commit on `main` starts a release. In most repositories the nightly publishes a new version whenever `main` has a commit since its last release, documentation included. Every language also moves its `51degrees-cxx` submodule to the newest commit on that repository's `main`, so a commit there leads to a release of every language the following night.
+
+When a release is wanted:
+
+1. Merge `main` into `rc`, because nightly data file and submodule updates still reach `main`.
+2. Open a pull request from `rc` into `main`, naming every issue its changes fix, because GitHub closes an issue only when its fix reaches `main`.
+3. Keep that pull request a draft until it is merged, because the nightly merges any pull request into `main` that is not a draft.
+
 For a more in depth descriptions, see [Feature Branch Workflow](https://www.atlassian.com/git/tutorials/comparing-workflows/feature-branch-workflow").
 
 There are some exceptions to this, which will be stated per repository.
@@ -107,7 +116,7 @@ See issue #1
 
 # Making a Pull Request
 
-Pull requests should be made into the `main` branch on GitHub.
+Pull requests should be made into the `rc` branch on GitHub. The pull request from `rc` into `main` is opened by 51Degrees when a release is wanted, as described in [Branching Strategy](#branching-strategy).
 
 ## Merging Policy
 
@@ -123,7 +132,7 @@ If the PR aims to resolve an open issue, the issue should be linked and closed u
 
 The build, test, and publish process is all automated. For details of this, see [common-ci](https://github.com/51degrees/common-ci).
 
-Once a PR has been tested, and is merged into the `main` branch, a release is created on GitHub, and any packages are built and published to the appropriate package manager.
+Once a PR has been tested, it is merged into `rc`, where it waits for the next release. When the release pull request merges `rc` into `main`, a release is created on GitHub, and any packages are built and published to the appropriate package manager.
 
 Versioning is carried out automatically, and may vary based on repository. In general, each new release from `main` results in an increment to the patch version i.e. `1.2.3` becomes `1.2.4`. This is tagged in GitHub, updated in any files where a version is required (e.g. pom.xml for Java) and is the version for released packages. For specific details on versioning, see the branching strategy for the repository of interest.
 
