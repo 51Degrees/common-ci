@@ -4,7 +4,9 @@ param (
     [Parameter(Mandatory=$true)]
     [string]$Version,
     [Parameter(Mandatory=$true)]
-    [string[]]$Packages
+    [string[]]$Packages,
+    # Packages, named as in -Packages, to publish as a source distribution only.
+    [string[]]$SourceOnlyPackages = @()
 )
 
 # GitVersion emits a SemVer string. For `main` this is a clean release (e.g.
@@ -22,6 +24,13 @@ if ($Version -match '^(\d+\.\d+\.\d+)-(?!(?:alpha|beta|rc)[.0-9]*$)(.+)$') {
 
 $packagesDir = New-Item -ItemType directory -Path package -Force
 
+# A package with a C/C++ extension must be published as a source distribution
+# only. `python -m build` also makes a wheel tagged for the build machine
+# (linux_x86_64), which PyPI rejects with a 400, and twine then stops without
+# uploading the packages after it. The first IP Intelligence publish failed
+# that way, leaving one of its six packages released. Which packages those are
+# is the repository's knowledge, so the repository passes them in.
+
 Push-Location $RepoName
 try {
     # Should probably be done in setup-environment.ps1, but it isn't called by
@@ -34,7 +43,7 @@ try {
         Push-Location $package
         try {
             $Version | Out-File version.txt
-            if ($package -eq "fiftyone_devicedetection_onpremise") {
+            if (($package -in $SourceOnlyPackages) -eq $true) {
                 python setup.py sdist || $(throw "failed to build package $package")
             } else {
                 python -m build || $(throw "failed to build package $package")
