@@ -13,18 +13,19 @@ if ($LASTEXITCODE -eq 0) {
     exit 1
 }
 
-# A release that would only carry documentation publishes packages identical to
-# the last ones, so it is not an update. Documentation is any Markdown file and
-# anything under .github/images. Without a release tag there is nothing to
-# compare with, so it is an update as before.
+# A release that would only carry documentation or repository settings
+# publishes packages identical to the last ones, so it is not an update. That is
+# any Markdown file and anything under .github, which holds the workflows,
+# images and templates that no package includes. Without a release tag there is
+# nothing to compare with, so it is an update as before.
 $lastTag = git -C $RepoName describe --tags --abbrev=0 2>$null
 if ($LASTEXITCODE -eq 0 -and $lastTag) {
     $changed = @(git -C $RepoName diff --name-only $lastTag HEAD)
-    $notDocumentation = @($changed | Where-Object {
-        $_ -notmatch '(?i)\.md$' -and $_ -notmatch '^\.github/images/'
+    $packageFiles = @($changed | Where-Object {
+        $_ -notmatch '(?i)\.md$' -and $_ -notmatch '^\.github/'
     })
-    if ($changed.Count -gt 0 -and $notDocumentation.Count -eq 0) {
-        Write-Output "Only documentation changed since $lastTag, no update needed"
+    if ($changed.Count -gt 0 -and $packageFiles.Count -eq 0) {
+        Write-Output "Only documentation and .github files changed since $lastTag, no update needed"
         exit 1
     }
 }

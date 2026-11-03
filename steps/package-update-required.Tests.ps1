@@ -76,12 +76,24 @@ Describe 'package-update-required.ps1' {
         (Invoke-Check $script:Repo '4.5.1').ExitCode | Should -Be 1
     }
 
+    It 'does not publish when only workflows under .github changed' {
+        $script:Repo = New-ReleasedRepo @(, @('.github/workflows/only-rc-into-main.yml'))
+        (Invoke-Check $script:Repo '4.5.1').ExitCode | Should -Be 1
+    }
+
+    It 'does not publish a README, logo and workflow change together' {
+        $script:Repo = New-ReleasedRepo @(
+            @('README.md', '.github/images/logo.png'),
+            @('.github/workflows/only-rc-into-main.yml'))
+        (Invoke-Check $script:Repo '4.5.1').ExitCode | Should -Be 1
+    }
+
     It 'publishes when documentation and code both changed' {
         $script:Repo = New-ReleasedRepo @(@('README.md'), @('engine.c'))
         (Invoke-Check $script:Repo '4.5.1').ExitCode | Should -Be 0
     }
 
-    It 'publishes an image outside .github/images, which may be packaged' {
+    It 'publishes an image outside .github, which may be packaged' {
         $script:Repo = New-ReleasedRepo @(, @('assets/logo.png'))
         (Invoke-Check $script:Repo '4.5.1').ExitCode | Should -Be 0
     }
