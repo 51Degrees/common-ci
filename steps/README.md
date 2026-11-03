@@ -186,8 +186,10 @@ overnight, merged and published with nobody reading it.
 
 `steps/check-version-bump.ps1` refuses a publish whose version moves the major
 or minor place, comparing it with the highest version the repository has
-already tagged. `nightly-publish.yml` runs it in the Configure job, straight
-after the version is worked out and before anything is built or pushed.
+already tagged. A repository that wants the check runs it from its own publish
+workflow, straight after the version is worked out and before anything is
+built or pushed. `nightly-publish.yml` does not run it, because a monorepo
+versions its packages in its own scripts and tags them in its own way.
 
 It is at the publish rather than the merge on purpose. A version can arrive by
 a `+semver` directive, a tag pushed by hand, a version committed in a file, or
