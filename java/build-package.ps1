@@ -11,7 +11,10 @@ param(
     [Parameter(Mandatory)][string]$CodeSigningKeyVaultCertificateName,
     [Parameter(Mandatory)][string]$CodeSigningKeyVaultCertificateData,
     [string]$Name,
-    [string[]]$ExtraArgs
+    [string[]]$ExtraArgs,
+    # Folders to set the version in, relative to the repository. A repository
+    # whose root pom.xml is not the parent of its package trees lists each tree.
+    [string[]]$VersionPaths = @('.')
 )
 $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
@@ -23,8 +26,15 @@ $mvnSettings = "$PWD/java/settings.xml"
 Write-Host "Entering '$RepoName'"
 Push-Location $RepoName
 try {
-    Write-Host "Setting package version to '$Version'"
-    mvn versions:set --batch-mode --no-transfer-progress "-DnewVersion=$Version"
+    foreach ($versionPath in $VersionPaths) {
+        Write-Host "Setting package version to '$Version' in '$versionPath'"
+        Push-Location $versionPath
+        try {
+            mvn versions:set --batch-mode --no-transfer-progress "-DnewVersion=$Version"
+        } finally {
+            Pop-Location
+        }
+    }
 
     Write-Host "Writing certificate chain"
     $vaultCertChain = "$PWD/certchain.pem"
