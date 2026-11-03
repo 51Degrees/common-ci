@@ -11,7 +11,10 @@ param(
     [Parameter(Mandatory)][string]$CodeSigningKeyVaultCertificateName,
     [Parameter(Mandatory)][string]$CodeSigningKeyVaultCertificateData,
     [string]$Name,
-    [string[]]$ExtraArgs
+    [string[]]$ExtraArgs,
+    # Folders to set the version in, relative to the repository. A repository
+    # whose root pom.xml is not the parent of its package trees lists each tree.
+    [string[]]$VersionPaths = @('.')
 )
 $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
@@ -23,8 +26,15 @@ $mvnSettings = "$PWD/java/settings.xml"
 Write-Host "Entering '$RepoName'"
 Push-Location $RepoName
 try {
-    Write-Host "Setting package version to '$Version'"
-    mvn versions:set --batch-mode --no-transfer-progress "-DnewVersion=$Version"
+    foreach ($versionPath in $VersionPaths) {
+        Write-Host "Setting package version to '$Version' in '$versionPath'"
+        Push-Location $versionPath
+        try {
+            mvn versions:set --batch-mode --no-transfer-progress "-DnewVersion=$Version"
+        } finally {
+            Pop-Location
+        }
+    }
 
     Write-Host "Writing certificate chain"
     $vaultCertChain = "$PWD/certchain.pem"
@@ -74,8 +84,17 @@ try {
     Write-Host "Copying 51degrees packages from local repo"
     Copy-Item -Recurse $mvnLocalRepo/com/51degrees $packagePath
 
+    # A reactor that holds several publishing trees writes one bundle for all of
+    # them, under the first tree, so look for it below the repository folder.
     Write-Host "Copying publishing bundle"
-    Copy-Item target/central-publishing/central-bundle.zip $packagePath
+    $bundles = @(Get-ChildItem -Recurse -File -Filter central-bundle.zip |
+        Where-Object { $_.Directory.Name -eq 'central-publishing' })
+    if ($bundles.Count -ne 1) {
+        $found = if ($bundles) { ": $($bundles.FullName -join ', ')" } else { '' }
+        throw "Expected exactly one central-publishing/central-bundle.zip below '$RepoName' but found $($bundles.Count)$found"
+    }
+    Write-Host "Found $($bundles[0].FullName)"
+    Copy-Item $bundles[0].FullName $packagePath
 
     # Maven 3.10 writes local repository files into the staging directory, the
     # publishing plugin bundles them, and Central rejects the bundle because of them.

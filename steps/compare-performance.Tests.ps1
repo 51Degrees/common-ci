@@ -279,6 +279,7 @@ Describe 'compare-performance.ps1' {
                 tight   = New-Results '1000'
                 broken  = New-Results '-5'
                 nothing = New-Results '-5'
+                long    = '{"HigherIsBetter":{"DeviceDetection_DetectionsPerSecond":1000}}'
             }
             $script:Graphs = Invoke-Step -Publish -Current $current -History @{
                 wide   = @((New-Results '1000000'), (New-Results '-1777777'))
@@ -291,13 +292,25 @@ Describe 'compare-performance.ps1' {
         }
 
         It 'draws one for every metric, and still commits them' {
-            $script:Drawn.Count | Should -Be 4
+            $script:Drawn.Count | Should -Be 5
             $script:Graphs.Log | Should -Match 'Add performance graphs'
             foreach ($name in 'wide', 'tight', 'broken', 'nothing') {
                 Join-Path $script:Graphs.Folder `
                     "demo/perf-graph-$name-Rate-latest.png" |
                     Should -Exist
             }
+            Join-Path $script:Graphs.Folder `
+                "demo/perf-graph-long-DeviceDetection_DetectionsPerSecond-latest.png" |
+                Should -Exist
+        }
+
+        It 'makes the label of a long metric name smaller, and only that one' {
+            $sizes = $script:Graphs.Log -split "`n" |
+                Select-String '^Y label size: (\S+)' |
+                ForEach-Object { [double]$_.Matches[0].Groups[1].Value }
+            $sizes.Count | Should -Be 5
+            $sizes[0..3] | Select-Object -Unique | Should -HaveCount 1
+            $sizes[4] | Should -BeLessThan $sizes[0]
         }
 
         It 'stops the axis at zero when the spread is wide' {

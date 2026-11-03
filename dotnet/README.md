@@ -80,6 +80,7 @@ Takes the following additional parameters:
 | --------- | :-------: | ----------- |
 | ApiKey | :check: | Auth key for the NuGet source to publish to. |
 | Source | | NuGet source to publish to. By default this is `https://api.nuget.org/v3/index.json`. |
+| DryRun | | If true, list the packages and do not push them. |
 
 ## Publish Package GitHub
 
@@ -89,6 +90,7 @@ Takes the following additional parameters:
 | Parameter | Mandatory | Description |
 | --------- | :-------: | ----------- |
 | ApiKey | :check: | Auth token for the GitHub repo to publish to. |
+| DryRun | | If true, list the packages and do not push them. |
 
 ## Run Unit Tests
 

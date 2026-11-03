@@ -46,6 +46,11 @@ For a more in depth description of this, see [Performance Tests](/DESIGN.md#perf
 
 Compares the performance test results with previous runs, and outputs a graph to the summary.
 
+Exits with a non-zero code when a metric is outside its accepted range, when a
+results file can't be read, when the graphs can't be published, or when a
+configuration that produced results on earlier runs produced none. A configuration
+that has never produced results gets a warning annotation and is skipped.
+
 For a more in depth description of this, see [Performance Tests](/DESIGN.md#performance-tests)
 
 ## Configure Git
@@ -188,6 +193,17 @@ overnight, merged and published with nobody reading it.
 or minor place, comparing it with the highest version the repository has
 already tagged. `nightly-publish.yml` runs it in the Configure job, straight
 after the version is worked out and before anything is built or pushed.
+
+A repository that gives each package its own version, tagged
+`<package>/<version>`, cannot be checked from the one version the publish
+works out. It provides `ci/check-version-bump.ps1`, which the publish runs in
+place of this script. That script must refuse the same moves, with the same
+exit codes, for every package it is about to publish, usually by running this
+script once for each with `-TagPrefix` or `-ReleasedVersion`. The publish never
+skips the check. Only the repositories named in that step of
+`nightly-publish.yml` may replace it with their own, so a script that checks
+nothing cannot switch it off, and naming another repository is a change to
+common-ci.
 
 It is at the publish rather than the merge on purpose. A version can arrive by
 a `+semver` directive, a tag pushed by hand, a version committed in a file, or

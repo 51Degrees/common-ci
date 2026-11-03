@@ -1,7 +1,8 @@
 param(
     [Parameter(Mandatory)][string]$RepoName,
     [string]$Name,
-    [switch]$AllowSnapshots
+    [switch]$AllowSnapshots,
+    [string[]]$ExtraArgs
 )
 $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
@@ -13,7 +14,7 @@ try {
     mvn versions:update-properties --batch-mode --no-transfer-progress `
         "-DallowMinorUpdates=false" `
         "-DallowSnapshots=$($AllowSnapshots.ToString().ToLower())" `
-        "-DgenerateBackupPoms=false"
+        "-DgenerateBackupPoms=false" $ExtraArgs
 }
 finally {
     Write-Host "Leaving '$RepoName'"

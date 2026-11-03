@@ -156,7 +156,17 @@ function Generate-PerformanceResults {
         # Write to the output image
         $plot.Font.Set([ScottPlot.Fonts]::Monospace)
         Write-Host "Default font: $([ScottPlot.Fonts]::Monospace)"
-        $plot.SavePng("$RepoName/perf-graph-$Name-$MetricName-latest.png", 400, 300)
+
+        # A long metric name, such as one that starts with its product's name,
+        # would run off the image, so its label is made smaller until it fits
+        $width, $height = 400, 300
+        $yLabel = $plot.Axes.Left.Label
+        while ($yLabel.FontSize -gt 8 -and $yLabel.Measure().Width -gt $height - 20) {
+            $yLabel.FontSize--
+        }
+        Write-Host "Y label size: $($yLabel.FontSize)"
+
+        $plot.SavePng("$RepoName/perf-graph-$Name-$MetricName-latest.png", $width, $height)
 
         $limits = $plot.Axes.GetLimits()
         Write-Host "Y axis: from $($limits.Bottom) to $($limits.Top)"
@@ -247,6 +257,7 @@ try {
     $artifactName = "publish_performance_results@$($Branch -replace '[":<>|*?/\\\r\n]', '-')"
     $artifacts = $(gh api -X GET -f per_page=9 -f "name=$artifactName" /repos/$OrgName/$RepoName/actions/artifacts | ConvertFrom-Json).artifacts
 
+    $stoppedGraphs = @()
     foreach ($options in $AllOptions) {
         if (-not $Options.RunPerformance) {
             continue
@@ -256,8 +267,13 @@ try {
         # Get the artifact for the current run
         $currentResultsPath = "results_$($options.Name).json"
         if (!(Test-Path $currentResultsPath)) {
-            Write-Warning "The file '$currentResultsPath' did not exist"
-            exit 0
+            # Earlier results mean this configuration's graph has stopped updating.
+            # Without any, the configuration has no graph to keep up to date.
+            if ($artifacts | Where-Object { Get-Artifact-Result -Artifact $_ -Name $options.Name }) {
+                $stoppedGraphs += $options.Name
+            }
+            Write-Output "::warning::The file '$currentResultsPath' did not exist, so '$($options.Name)' was not compared"
+            continue
         }
         # Get the result for the current artifact
         $currentResult = $currentResults[$options.Name]
@@ -288,7 +304,7 @@ try {
         # }
     }
 
-    if ($Publish) {
+    if ($Publish -and (Test-Path "$RepoName/perf-graph-*-latest.png")) {
         # Commit the images, and change back to the original branch
         git -C $RepoName add '*.png'
         git -C $RepoName status
@@ -298,6 +314,10 @@ try {
         } else {
             git -C $RepoName push --force origin HEAD
         }
+    }
+
+    if ($stoppedGraphs) {
+        throw "No results for '$($stoppedGraphs -join "', '")' although earlier runs produced them, so the graphs have stopped updating"
     }
 } finally {
     # Fails on Windows :(
