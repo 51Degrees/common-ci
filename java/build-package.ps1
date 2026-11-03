@@ -74,8 +74,17 @@ try {
     Write-Host "Copying 51degrees packages from local repo"
     Copy-Item -Recurse $mvnLocalRepo/com/51degrees $packagePath
 
+    # A reactor that holds several publishing trees writes one bundle for all of
+    # them, under the first tree, so look for it below the repository folder.
     Write-Host "Copying publishing bundle"
-    Copy-Item target/central-publishing/central-bundle.zip $packagePath
+    $bundles = @(Get-ChildItem -Recurse -File -Filter central-bundle.zip |
+        Where-Object { $_.Directory.Name -eq 'central-publishing' })
+    if ($bundles.Count -ne 1) {
+        $found = if ($bundles) { ": $($bundles.FullName -join ', ')" } else { '' }
+        throw "Expected exactly one central-publishing/central-bundle.zip below '$RepoName' but found $($bundles.Count)$found"
+    }
+    Write-Host "Found $($bundles[0].FullName)"
+    Copy-Item $bundles[0].FullName $packagePath
 
     # Maven 3.10 writes local repository files into the staging directory, the
     # publishing plugin bundles them, and Central rejects the bundle because of them.
