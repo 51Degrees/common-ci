@@ -43,11 +43,19 @@ without tagging, so there is nothing here to read and the check would pass
 everything. Whoever calls this knows where that number lives, for example the
 registry the package is published to, so they pass it in. Give this or
 -RepoName.
+
+.PARAMETER TagPrefix
+With -RepoName, the package whose release history to read, for a repository
+that releases several packages each with its own version. Only tags of the
+form '<TagPrefix>/<version>' count, so one package is compared with its own
+releases and not with the highest version of any package in the repository.
+Without it every plain version tag counts, as before.
 #>
 param (
     [Parameter(Mandatory)][string]$Version,
     [string]$RepoName,
-    [string]$ReleasedVersion
+    [string]$ReleasedVersion,
+    [string]$TagPrefix
 )
 $ErrorActionPreference = "Stop"
 
@@ -87,7 +95,12 @@ elseif ($RepoName) {
 
     $highest = $null
     foreach ($tag in $tags) {
-        $p = Get-Parts $tag
+        $tagVersion = $tag
+        if ($TagPrefix) {
+            if ($tag.StartsWith("$TagPrefix/") -eq $false) { continue }
+            $tagVersion = $tag.Substring($TagPrefix.Length + 1)
+        }
+        $p = Get-Parts $tagVersion
         if ($null -eq $p) { continue }
         if ($null -eq $highest -or
             $p.Major -gt $highest.Major -or
@@ -102,6 +115,34 @@ else {
 }
 
 if ($null -eq $highest) {
+    # A branch with no tags has never released, and GitVersion then answers
+    # 0.0.1 rather than failing. Nothing else stopped that number, so the first
+    # publish released it: this is how fiftyone_ipintelligence_cloud 0.0.1
+    # reached PyPI on 28 October 2026, a number PyPI never gives back. So a
+    # first release from a branch with no tags is refused, whatever its
+    # version, and someone decides the number by tagging. The version itself
+    # is not judged, because a package may rightly start on 0.x. A branch that
+    # has tags, but none for this package, is a repository releasing a new
+    # package beside others, and its number was chosen there. See
+    # common-ci#251.
+    # Only -RepoName reaches here: -ReleasedVersion always sets $highest.
+    Push-Location $RepoName
+    try {
+        $branchTags = @(git tag --merged HEAD)
+    } finally {
+        Pop-Location
+    }
+    if ($branchTags.Count -eq 0) {
+        Write-Output ("::error title=First release refused::This branch has " +
+            "no tags, so nothing has decided where its versions start, and " +
+            "$Version would be published as the first. With no tags GitVersion " +
+            "answers 0.0.1.")
+        Write-Output ""
+        Write-Output ("Nothing is published. Decide the first version, then tag " +
+            "main with the version the release should follow on from, and run " +
+            "the workflow again.")
+        exit 1
+    }
     Write-Output "No released version to compare with, so $Version is the first. Nothing to check."
     exit 0
 }
