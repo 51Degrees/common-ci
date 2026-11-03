@@ -1,6 +1,7 @@
 param(
     [Parameter(Mandatory)][string]$RepoName,
-    [string]$Name
+    [string]$Name,
+    [string[]]$ExtraArgs
 )
 $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
@@ -8,7 +9,7 @@ $PSNativeCommandUseErrorActionPreference = $true
 Push-Location $RepoName
 try {
     Write-Host "Building $Name..."
-    mvn install --batch-mode --no-transfer-progress -DskipTests 
+    mvn install --batch-mode --no-transfer-progress -DskipTests $ExtraArgs
 } finally {
     Pop-Location
 }
