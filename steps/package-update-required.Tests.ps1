@@ -40,14 +40,14 @@ BeforeAll {
     }
 }
 
-AfterEach {
-    if ($script:Repo -and (Test-Path $script:Repo)) {
-        Remove-Item -Recurse -Force $script:Repo
-    }
-    $script:Repo = $null
-}
-
 Describe 'package-update-required.ps1' {
+
+    AfterEach {
+        if ($script:Repo -and (Test-Path $script:Repo)) {
+            Remove-Item -Recurse -Force $script:Repo
+        }
+        $script:Repo = $null
+    }
 
     It 'does not publish a version that is already tagged' {
         $script:Repo = New-ReleasedRepo @()
