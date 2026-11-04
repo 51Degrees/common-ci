@@ -29,6 +29,51 @@ $curlFlags = @(
     '--max-time', 600
 )
 
+# The free data files and test evidence come from the data repository,
+# https://github.com/51Degrees/data, keyed here by asset name. A file stored
+# there as a .link is downloaded by that repository's own script, which follows
+# the link, so the download rules live in one place.
+$dataFiles = @{
+    '51Degrees-LiteV4.1.hash' = 'device-detection/51Degrees-LiteV4.1.hash'
+    '20000 Evidence Records.yml' = 'device-detection/20000 Evidence Records.yml'
+    '20000 User Agents.csv' = 'device-detection/20000 User Agents.csv'
+    '51Degrees-LiteIpiV41.ipi' = 'ip-intelligence/51Degrees-LiteV41.ipi'
+    '51Degrees-IPIV4AsnIpiV41.ipi' = 'ip-intelligence/51Degrees-IPIV4AsnIpiV41.ipi'
+    'ip-intelligence-evidence.yml' = 'ip-intelligence/evidence.yml'
+}
+$dataRepository = $null
+# Downloads are tried again after a reset connection, as the curl flags above
+# do for the other assets.
+$DataAttempts = 3
+$DataRetrySeconds = 30
+
+function Get-FromData {
+    param (
+        [Parameter(Mandatory)][string]$Asset,
+        [Parameter(Mandatory)][string]$Path
+    )
+    # One shallow clone serves every asset in this run.
+    if (-not $script:dataRepository) {
+        $script:dataRepository = Join-Path ([IO.Path]::GetTempPath()) "data-$PID"
+        git clone --quiet --depth 1 https://github.com/51Degrees/data.git $script:dataRepository
+    }
+    $file = Join-Path $script:dataRepository $Path
+    if (Test-Path -LiteralPath "$file.link") {
+        for ($attempt = 1; ; $attempt++) {
+            # The script sets an exit code only when it fails, so any earlier
+            # code is cleared first.
+            $global:LASTEXITCODE = 0
+            & (Join-Path $script:dataRepository 'get-data-files.ps1') (Split-Path $Path -Leaf)
+            if (-not $LASTEXITCODE) { break }
+            if ($attempt -eq $DataAttempts) {
+                throw "The data repository's script did not download $Path"
+            }
+            Start-Sleep -Seconds $DataRetrySeconds
+        }
+    }
+    Copy-Item -LiteralPath $file -Destination (Join-Path $cache $Asset)
+}
+
 function Get-FromBulkData {
     param (
         [Parameter(Mandatory)][string]$License,
@@ -76,13 +121,14 @@ foreach ($asset in $Assets) {
     }
     Write-Host "Fetching '$asset'"
     try {
+        if ($dataFiles.ContainsKey($asset)) {
+            Get-FromData -Asset $asset -Path $dataFiles[$asset]
+            continue
+        }
         switch -Exact -CaseSensitive ($asset) {
             "TAC-HashV41.hash" {
                 & $PSScriptRoot/fetch-hash-assets.ps1 -RepoName . -LicenseKey $DeviceDetection -Url $DeviceDetectionUrl
                 Move-Item -Path $_ -Destination $cache
-            }
-            "51Degrees-LiteV4.1.hash" {
-                curl -fLo $cache/$_ @curlFlags "https://media.githubusercontent.com/media/51Degrees/device-detection-data/main/51Degrees-LiteV4.1.hash"
             }
             "51Degrees-EnterpriseIpiV41.ipi" {
                 & $PSScriptRoot/fetch-hash-assets.ps1 -RepoName . -ArchiveName "$_.gz" -LicenseKey $IpIntelligence -DataType IPIV41 -Product IPIV4Enterprise -Url $IpIntelligenceUrl
@@ -92,17 +138,6 @@ foreach ($asset in $Assets) {
                 # Only uses URL
                 & $PSScriptRoot/fetch-hash-assets.ps1 -RepoName . -ArchiveName "$_.gz" -Url $IpIntelligenceUrl
                 Move-Item -Path $_ -Destination $cache
-            }
-            "51Degrees-LiteIpiV41.ipi" {
-                & $PSScriptRoot/fetch-hash-assets.ps1 -RepoName . -ArchiveName "$_.gz" -Url "https://51ddatafiles.blob.core.windows.net/enterpriseipi/51Degrees-IPIV4LiteIpiV41.ipi.gz"
-                Move-Item -Path $_ -Destination $cache
-
-            }
-            "20000 Evidence Records.yml" {
-                curl -fLo $cache/$_ @curlFlags "https://media.githubusercontent.com/media/51Degrees/device-detection-data/main/20000%20Evidence%20Records.yml"
-            }
-            "20000 User Agents.csv" {
-                curl -fLo $cache/$_ @curlFlags "https://media.githubusercontent.com/media/51Degrees/device-detection-data/main/20000%20User%20Agents.csv"
             }
             "51Degrees.csv" {
                 & $PSScriptRoot/download-data-file.ps1 -LicenseKey:$DeviceDetection -DataType 'CSV' -Product 'V4TAC' -Url:$CsvUrl -FullFilePath "$_.zip"
@@ -116,9 +151,6 @@ foreach ($asset in $Assets) {
             }
             "51Degrees-Tac.zip" {  # same as the CSV above, without extracting
                 & $PSScriptRoot/download-data-file.ps1 -LicenseKey:$DeviceDetection -DataType 'CSV' -Product 'V4TAC' -Url:$CsvUrl -FullFilePath "$cache/$_"
-            }
-            "ip-intelligence-evidence.yml" {
-                curl -fLo $cache/$_ @curlFlags "https://raw.githubusercontent.com/51Degrees/ip-intelligence-data/main/evidence.yml"
             }
             "chargify.json" {
                 Get-FromBulkData -License:$DeviceDetection -Data 'chargify' -Output $cache/$_
@@ -136,4 +168,8 @@ foreach ($asset in $Assets) {
         }
         throw
     }
+}
+
+if ($dataRepository) {
+    Remove-Item -Recurse -Force -LiteralPath $dataRepository
 }
