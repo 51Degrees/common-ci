@@ -161,6 +161,13 @@ The `RepoName`, `OrgName`, and `DryRun` parameters will always be available to t
 
 For a more detailed description of options usage, see [Options](/DESIGN.md#build-options).
 
+## Select Options
+**Script: `select-options.ps1`**
+
+Chooses the entries of a repository's `options.json` that a pull request is built on, and sets them as JSON under the variable name provided. The Configure job of `nightly-pull-request.yml` calls it for a pull request when the repository has `ci/select-options.ps1`.
+
+It lists the files the pull request changes against the branch it merges into. When every one is a Markdown file or sits in a docs folder, it chooses nothing. Otherwise it passes the files that are not documentation to the repository's script, which returns the entries to build. Where that script asks for them, it also passes the files whose change touches only comments, as `comment-only.ps1` decides. It fails, and so stops the build, when that script fails or returns anything that is not a single entry of `options.json`. See [Select Options](/REPO_SCRIPTS.md#select-options).
+
 ## Set Resource Keys
 **Script: `set-resource-keys.ps1`**
 
