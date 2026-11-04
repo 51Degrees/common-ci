@@ -60,6 +60,9 @@ function Get-FromData {
     $file = Join-Path $script:dataRepository $Path
     if (Test-Path -LiteralPath "$file.link") {
         for ($attempt = 1; ; $attempt++) {
+            # The script sets an exit code only when it fails, so any earlier
+            # code is cleared first.
+            $global:LASTEXITCODE = 0
             & (Join-Path $script:dataRepository 'get-data-files.ps1') (Split-Path $Path -Leaf)
             if (-not $LASTEXITCODE) { break }
             if ($attempt -eq $DataAttempts) {
