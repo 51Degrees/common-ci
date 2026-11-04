@@ -20,6 +20,7 @@ The reader should be familiar with:
 - [Issues](#issues)
 - [Changes](#changes)
   - [Branching Strategy](#branching-strategy)
+  - [Releasing at most once a week](#releasing-at-most-once-a-week)
   - [Commenting](#commenting)
   - [Code Style](#code-style)
   - [Tests](#tests)
@@ -48,13 +49,25 @@ When a release is wanted:
 
 1. Merge `main` into `rc`, because nightly data file and submodule updates still reach `main`.
 2. Open a pull request from `rc` into `main`, naming every issue its changes fix, because GitHub closes an issue only when its fix reaches `main`.
-3. Keep that pull request a draft until it is merged, because the nightly merges any pull request into `main` that is not a draft.
+3. Say in that pull request when the last one from `rc` into `main` merged, which `gh pr list --base main --head rc --state merged --limit 1 --json mergedAt` shows. In a repository that publishes packages it must be at least seven days before, as [Releasing at most once a week](#releasing-at-most-once-a-week) explains.
+4. Keep that pull request a draft until it is merged, because the nightly merges any pull request into `main` that is not a draft.
 
 For a more in depth descriptions, see [Feature Branch Workflow](https://www.atlassian.com/git/tutorials/comparing-workflows/feature-branch-workflow").
 
 There are some exceptions to this, which will be stated per repository.
 
 Branch naming should be brief but descriptive, under either `feature/` or `bug/`, and kebab-case is prefered e.g. `feature/ui-example`.
+
+## Releasing at most once a week
+
+A repository that publishes packages releases `rc` into `main` at most once a week. Changes collect on `rc` during the week and reach `main` together, so each package gets at most one new version a week. Fewer versions are easier for the people who use the packages to keep up with, and they keep the packages in search. nuget.org asks search engines not to index a package's page while the oldest of its 20 newest versions is less than 90 days old, so a package that releases more often than once every four and a half days drops out of search. Weekly keeps every package clear of that, with room for an urgent fix. Publish only the packages that changed, because a new version of an unchanged package uses up its allowance for nothing.
+
+Two checks hold to this. Both count whole calendar days in UTC, so a release on a Wednesday allows the next from the following Wednesday, at any time of day.
+
+- The "Only rc into main" check fails a pull request from `rc` into `main` when the last one merged less than seven days before. It names the last release and the first day the next may go.
+- The publish refuses to release when the newest version tag is less than seven days old, so a release that reaches `main` another way waits as well.
+
+An early release needs James Rosewell's permission for that release. With it, add the label `early-release` to the release pull request, then re-run the "Only rc into main" check, because adding a label does not run it again. After the merge, run the repository's Publish workflow with `allow-early-release` set, because the nightly publish refuses an early release. Without permission, re-run the check on or after the day it names.
 
 ## Commenting
 
