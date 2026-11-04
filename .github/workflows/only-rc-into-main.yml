@@ -13,24 +13,95 @@ name: Only rc into main
 #     rc:
 #       name: Only rc into main
 #       uses: 51Degrees/common-ci/.github/workflows/only-rc-into-main.yml@main
+#
+# In a repository that publishes packages it also fails a release, being a
+# pull request from rc into the default branch, that comes less than a week
+# after the last one merged, unless the label early-release is on it. That
+# applies from the date in the configuration variable WEEKLY_RELEASES_FROM,
+# and before it, or with the variable unset, the check only reports. See
+# steps/check-release-pull-request.ps1.
 
 on:
   workflow_call:
+    inputs:
+      common-ci-ref:
+        description: 'The common-ci ref to take the release check from. Empty means its default branch.'
+        type: string
+        default: ''
 
 jobs:
   check:
     runs-on: ubuntu-latest
+    # Reads the repository's pull requests and their labels, and nothing else.
+    permissions:
+      contents: read
+      pull-requests: read
+    env:
+      BASE: ${{ github.base_ref }}
+      HEAD: ${{ github.head_ref }}
+      DEFAULT: ${{ github.event.repository.default_branch }}
+      HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+      REPOSITORY: ${{ github.repository }}
     steps:
       - name: Refuse a pull request into the default branch from any branch but rc
-        env:
-          BASE: ${{ github.base_ref }}
-          HEAD: ${{ github.head_ref }}
-          DEFAULT: ${{ github.event.repository.default_branch }}
-          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
-          REPOSITORY: ${{ github.repository }}
         run: |
           if [ "$BASE" = "$DEFAULT" ] && { [ "$HEAD" != "rc" ] || [ "$HEAD_REPOSITORY" != "$REPOSITORY" ]; }; then
             echo "::error title=Only rc merges into $DEFAULT::This pull request merges $HEAD_REPOSITORY:$HEAD into $DEFAULT. Open it against rc instead, as only rc merges into $DEFAULT."
             exit 1
           fi
           echo "$HEAD_REPOSITORY:$HEAD into $BASE is allowed."
+
+      # The repositories that publish packages, to a registry or as the
+      # versions other packages are built from. Only their releases are held
+      # to one a week.
+      - name: Find whether this is a release of packages
+        id: release
+        env:
+          PACKAGE_REPOSITORIES: >-
+            51Degrees/51degrees-cxx
+            51Degrees/51degrees-dotnet
+            51Degrees/51degrees-go
+            51Degrees/51degrees-java
+            51Degrees/51degrees-nginx
+            51Degrees/51degrees-node
+            51Degrees/51degrees-php
+            51Degrees/51degrees-python
+            51Degrees/51degrees-rust
+            51Degrees/51degrees-varnish
+            51Degrees/pipeline-wordpress
+            51Degrees/ua-parser-js
+        run: |
+          release=false
+          if [ "$BASE" = "$DEFAULT" ] && [ "$HEAD" = "rc" ] && [ "$HEAD_REPOSITORY" = "$REPOSITORY" ]; then
+            for package in $PACKAGE_REPOSITORIES; do
+              if [ "${package,,}" = "${REPOSITORY,,}" ]; then
+                release=true
+              fi
+            done
+          fi
+          echo "release=$release" >> "$GITHUB_OUTPUT"
+          echo "A release of packages: $release."
+
+      - name: Checkout the release check
+        if: steps.release.outputs.release == 'true'
+        uses: actions/checkout@v6
+        with:
+          repository: 51Degrees/common-ci
+          ref: ${{ inputs.common-ci-ref }}
+          path: common-ci
+          sparse-checkout: steps
+          persist-credentials: false
+
+      - name: Refuse a release less than a week after the last
+        if: steps.release.outputs.release == 'true'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ github.event.pull_request.number }}
+          # The calling repository's variable, or the organisation's.
+          WEEKLY_RELEASES_FROM: ${{ vars.WEEKLY_RELEASES_FROM }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          ./common-ci/steps/check-release-pull-request.ps1 `
+            -Repository $env:REPOSITORY -PullRequest $env:NUMBER `
+            -DefaultBranch $env:DEFAULT -RunUrl $env:RUN_URL

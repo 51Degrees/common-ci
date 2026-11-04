@@ -46,6 +46,12 @@ This should make use of the common version which returns the versions from GitVe
 
 Only for a repository that gives each package its own version, and only when `nightly-publish.yml` names the repository in its version check step. The publish then runs it in place of `steps/check-version-bump.ps1`, with `RepoName` and `Version`, from the `common-ci` root. It must exit with 1, and so stop the publish, when any package it is about to publish would move the major or minor place, unless `ALLOW_VERSION_BUMP` is `true`. Running `steps/check-version-bump.ps1` once for each package does this.
 
+## Check Release Interval
+
+**Script: `check-release-interval.ps1`** (optional)
+
+Only for a repository that tags each package `<package>/<version>`, and only when `nightly-publish.yml` names the repository in its release interval step. When there is something to publish, the publish then runs it in place of `steps/check-release-interval.ps1`, with `RepoName`, `Repository` and `HowToAllow`, from the `common-ci` root. It must exit with 1, and so stop the publish, when any package it is about to publish was last released less than seven days before, unless `ALLOW_EARLY_RELEASE` is `true` or the rule has not started under `WEEKLY_RELEASES_FROM`. Running `steps/check-release-interval.ps1` with `-TagPrefix` once for each package does this, passing `Repository` and `HowToAllow` on, as it reads both variables itself.
+
 ## Install Package
 
 **Script: `install-package.ps1`**
