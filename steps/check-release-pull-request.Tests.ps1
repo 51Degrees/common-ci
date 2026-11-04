@@ -39,10 +39,21 @@ BeforeEach {
     $global:Labels = @()
     $global:Closed = @()
     $global:GhCalls = @()
+    # The rule applies unless a test says otherwise.
+    $env:WEEKLY_RELEASES_FROM = '2026-01-01'
 }
 
 AfterEach {
     $env:ALLOW_EARLY_RELEASE = $null
+    $env:WEEKLY_RELEASES_FROM = $null
+}
+
+It 'reports and passes a release two days after the last before the rule starts' {
+    $env:WEEKLY_RELEASES_FROM = $null
+    $global:Closed = @(@{ Number = 95; MergedAt = '2026-11-02T19:30:25Z' })
+    $result = Invoke-Check '2026-11-04T10:00:00Z'
+    $result.ExitCode | Should -Be 0
+    $result.Output | Should -Match 'Weekly release rule not enforced'
 }
 
 It 'passes the first release from rc' {

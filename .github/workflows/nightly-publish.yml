@@ -196,7 +196,9 @@ jobs:
       # week across its packages. Only the repositories named here may check
       # each package on its own instead, with the same exit codes, by running
       # steps/check-release-interval.ps1 with -TagPrefix for each package
-      # about to be published.
+      # about to be published. The rule applies from the date in the
+      # configuration variable WEEKLY_RELEASES_FROM, and before it, or with
+      # the variable unset, the check only reports.
       - name: Refuse a release less than a week after the last
         if: steps.configure.outputs.update_required == 'true'
         continue-on-error: ${{ inputs.dryrun }}
@@ -206,6 +208,8 @@ jobs:
           GH_TOKEN: ${{ secrets.token }}
           REPO_NAME: ${{ inputs.repo-name }}
           REPOSITORY: ${{ inputs.org-name }}/${{ inputs.repo-name }}
+          # The calling repository's variable, or the organisation's.
+          WEEKLY_RELEASES_FROM: ${{ vars.WEEKLY_RELEASES_FROM }}
         run: |
           $OwnCheck = @('51degrees-dotnet')
           $HowToAllow = "run this repository's Publish workflow with allow-early-release set."

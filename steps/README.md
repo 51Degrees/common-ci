@@ -237,6 +237,13 @@ at most once a week, so each package gets at most one new version a week. See
 [Releasing at most once a week](/CONTRIBUTING.md#releasing-at-most-once-a-week)
 for why.
 
+The rule applies from the date in `WEEKLY_RELEASES_FROM`, which both
+workflows take from the GitHub Actions configuration variable of that name.
+GitHub gives a called workflow the variables of the calling repository, with a
+repository's own variable in place of the organisation's of the same name.
+While the variable is not set, or its date is still ahead, the script reports
+what it would decide and passes.
+
 It runs in two places.
 
 - `.github/workflows/only-rc-into-main.yml` runs

@@ -21,6 +21,12 @@ next from the following Wednesday, at any time of day.
 To release early, set ALLOW_EARLY_RELEASE to 'true'. That is a decision made
 for one release, as a major or minor version bump is.
 
+The rule applies from the date in WEEKLY_RELEASES_FROM, such as 2026-11-03,
+which the workflows take from the GitHub configuration variable of the same
+name, the repository's own where it has one and otherwise the organisation's.
+Unset, or set to a date still ahead, the check reports what it would decide
+and passes, so the rule starts without a change to the code.
+
 .PARAMETER LastRelease
 When the last release went out, such as 2026-11-04T10:15:00Z. A time with no
 offset is read as UTC. Empty when nothing has been released. Give this, even
@@ -145,12 +151,31 @@ if ($RepoName) {
     throw "Give -RepoName, whose version tags are the releases, or -LastRelease, empty when there has been none."
 }
 
+$today = ($Now ? (ConvertTo-UtcTime $Now) : [DateTimeOffset]::UtcNow).UtcDateTime.Date
+
+# Read first, so a value that cannot be read is reported whatever the release.
+$from = $env:WEEKLY_RELEASES_FROM
+if ($from) {
+    try {
+        $fromDay = (ConvertTo-UtcTime $from).UtcDateTime.Date
+    } catch {
+        throw "WEEKLY_RELEASES_FROM is '$from', which is not a date such as 2026-11-03. Correct the configuration variable of that name."
+    }
+    $enforced = $today -ge $fromDay
+    $state = $enforced `
+        ? "The weekly release rule applies from $(Format-Day $fromDay), the date in WEEKLY_RELEASES_FROM." `
+        : "The weekly release rule is not enforced until $(Format-Day $fromDay), the date in WEEKLY_RELEASES_FROM."
+} else {
+    $enforced = $false
+    $state = "The weekly release rule is not enforced, as WEEKLY_RELEASES_FROM is not set."
+}
+Write-Output $state
+
 if ($null -eq $last) {
     Write-Output "Nothing has been released before, so this is the first release. Nothing to check."
     exit 0
 }
 
-$today = ($Now ? (ConvertTo-UtcTime $Now) : [DateTimeOffset]::UtcNow).UtcDateTime.Date
 $lastDay = $last.UtcDateTime.Date
 $firstDay = $lastDay.AddDays($DaysBetweenReleases)
 $facts = ("The last release, $LastReleaseName, was on $(Format-Day $lastDay), " +
@@ -158,6 +183,11 @@ $facts = ("The last release, $LastReleaseName, was on $(Format-Day $lastDay), " 
 
 if ($today -ge $firstDay) {
     Write-Output "$facts This one is on $(Format-Day $today), so it may go."
+    exit 0
+}
+
+if (-not $enforced) {
+    Write-Output "::notice title=Weekly release rule not enforced::$facts Under the rule this one, on $(Format-Day $today), would be refused. $state"
     exit 0
 }
 

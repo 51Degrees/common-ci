@@ -50,7 +50,7 @@ Only for a repository that gives each package its own version, and only when `ni
 
 **Script: `check-release-interval.ps1`** (optional)
 
-Only for a repository that tags each package `<package>/<version>`, and only when `nightly-publish.yml` names the repository in its release interval step. When there is something to publish, the publish then runs it in place of `steps/check-release-interval.ps1`, with `RepoName`, `Repository` and `HowToAllow`, from the `common-ci` root. It must exit with 1, and so stop the publish, when any package it is about to publish was last released less than seven days before, unless `ALLOW_EARLY_RELEASE` is `true`. Running `steps/check-release-interval.ps1` with `-TagPrefix` once for each package does this, passing `Repository` and `HowToAllow` on.
+Only for a repository that tags each package `<package>/<version>`, and only when `nightly-publish.yml` names the repository in its release interval step. When there is something to publish, the publish then runs it in place of `steps/check-release-interval.ps1`, with `RepoName`, `Repository` and `HowToAllow`, from the `common-ci` root. It must exit with 1, and so stop the publish, when any package it is about to publish was last released less than seven days before, unless `ALLOW_EARLY_RELEASE` is `true` or the rule has not started under `WEEKLY_RELEASES_FROM`. Running `steps/check-release-interval.ps1` with `-TagPrefix` once for each package does this, passing `Repository` and `HowToAllow` on, as it reads both variables itself.
 
 ## Install Package
 

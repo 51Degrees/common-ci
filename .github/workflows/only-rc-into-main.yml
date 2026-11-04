@@ -16,7 +16,9 @@ name: Only rc into main
 #
 # In a repository that publishes packages it also fails a release, being a
 # pull request from rc into the default branch, that comes less than a week
-# after the last one merged, unless the label early-release is on it. See
+# after the last one merged, unless the label early-release is on it. That
+# applies from the date in the configuration variable WEEKLY_RELEASES_FROM,
+# and before it, or with the variable unset, the check only reports. See
 # steps/check-release-pull-request.ps1.
 
 on:
@@ -96,6 +98,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           NUMBER: ${{ github.event.pull_request.number }}
+          # The calling repository's variable, or the organisation's.
+          WEEKLY_RELEASES_FROM: ${{ vars.WEEKLY_RELEASES_FROM }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           ./common-ci/steps/check-release-pull-request.ps1 `

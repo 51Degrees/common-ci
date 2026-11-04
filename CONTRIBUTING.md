@@ -69,6 +69,14 @@ Two checks hold to this. Both count whole calendar days in UTC, so a release on 
 
 An early release needs James Rosewell's permission for that release. With it, add the label `early-release` to the release pull request, then re-run the "Only rc into main" check, because adding a label does not run it again. After the merge, run the repository's Publish workflow with `allow-early-release` set, because the nightly publish refuses an early release. Without permission, re-run the check on or after the day it names.
 
+The checks apply the rule from the date in the GitHub Actions configuration variable `WEEKLY_RELEASES_FROM`. While it is not set, or its date is still ahead, they report what they would decide and pass. An organisation owner sets it for every repository with this command.
+
+```
+gh variable set WEEKLY_RELEASES_FROM --org 51Degrees --visibility all --body 2026-11-03
+```
+
+`--visibility all` matters, because without it `gh` makes an organisation variable visible to private repositories only, and the package repositories are public. A repository variable of the same name takes the place of the organisation's for that repository, so a repository can start later, for example with `gh variable set WEEKLY_RELEASES_FROM --repo 51Degrees/51degrees-go --body 2026-12-01`. Deleting the organisation variable with `gh variable delete WEEKLY_RELEASES_FROM --org 51Degrees` stops the rule again everywhere that has no variable of its own.
+
 ## Commenting
 
 Where code has been changed, there MUST be appropriate comments to make it clear what is happening.

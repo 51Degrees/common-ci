@@ -56,6 +56,8 @@ Describe 'check-release-interval.ps1' {
 BeforeEach {
     $global:Releases = @()
     $global:GhCalls = @()
+    # The rule applies unless a test says otherwise.
+    $env:WEEKLY_RELEASES_FROM = '2026-01-01'
 }
 
 AfterEach {
@@ -64,6 +66,61 @@ AfterEach {
     }
     $script:Repo = $null
     $env:ALLOW_EARLY_RELEASE = $null
+    $env:WEEKLY_RELEASES_FROM = $null
+}
+
+Describe 'with the date the rule starts from in WEEKLY_RELEASES_FROM' {
+    # Each release here comes two days after the last, which the rule refuses.
+
+    It 'reports and passes when the variable is not set' {
+        $env:WEEKLY_RELEASES_FROM = $null
+        $result = Invoke-Check @{
+            LastRelease = '2026-11-04T09:00:00Z'; Now = '2026-11-06T09:00:00Z' }
+        $result.ExitCode | Should -Be 0
+        $result.Output | Should -Match 'Weekly release rule not enforced'
+        $result.Output | Should -Match 'would be refused'
+        $result.Output | Should -Match 'WEEKLY_RELEASES_FROM is not set'
+    }
+
+    It 'reports and passes before a date still ahead' {
+        $env:WEEKLY_RELEASES_FROM = '2026-11-10'
+        $result = Invoke-Check @{
+            LastRelease = '2026-11-04T09:00:00Z'; Now = '2026-11-06T09:00:00Z' }
+        $result.ExitCode | Should -Be 0
+        $result.Output | Should -Match 'not enforced until 10 November 2026'
+    }
+
+    It 'refuses from a date already past' {
+        $env:WEEKLY_RELEASES_FROM = '2026-11-03'
+        $result = Invoke-Check @{
+            LastRelease = '2026-11-04T09:00:00Z'; Now = '2026-11-06T09:00:00Z' }
+        $result.ExitCode | Should -Be 1
+        $result.Output | Should -Match 'applies from 3 November 2026'
+    }
+
+    It 'refuses on the date itself' {
+        $env:WEEKLY_RELEASES_FROM = '2026-11-06'
+        (Invoke-Check @{
+            LastRelease = '2026-11-04T09:00:00Z'; Now = '2026-11-06T09:00:00Z' }
+        ).ExitCode | Should -Be 1
+    }
+
+    It 'follows a repository''s own later date over the organisation''s' {
+        # GitHub gives a workflow the repository's variable in place of the
+        # organisation's of the same name, so a repository still moving can
+        # start later than the organisation's 3 November.
+        $env:WEEKLY_RELEASES_FROM = '2026-12-01'
+        $result = Invoke-Check @{
+            LastRelease = '2026-11-04T09:00:00Z'; Now = '2026-11-06T09:00:00Z' }
+        $result.ExitCode | Should -Be 0
+        $result.Output | Should -Match 'not enforced until 1 December 2026'
+    }
+
+    It 'stops on a value it cannot read, naming the variable' {
+        $env:WEEKLY_RELEASES_FROM = 'soon'
+        { & $script:Check -LastRelease '2026-11-04T09:00:00Z' -Now '2026-11-06T09:00:00Z' } |
+            Should -Throw "*WEEKLY_RELEASES_FROM is 'soon'*"
+    }
 }
 
 Describe 'with the date of the last release given' {
