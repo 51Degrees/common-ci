@@ -25,6 +25,10 @@ on:
         description: 'Publish even though the version moves the major or minor place.'
         type: boolean
         default: false
+      allow-early-release:
+        description: 'Publish even though the last release was less than a week ago.'
+        type: boolean
+        default: false
       cache-assets:
         type: boolean
         default: false
@@ -183,6 +187,34 @@ jobs:
           } else {
             ./steps/check-version-bump.ps1 -Version '${{ steps.configure.outputs.version }}' -RepoName '${{ inputs.repo-name }}'
           }
+
+      # A package repository releases at most once a week, so each package
+      # gets at most one new version a week. Only a run with something to
+      # publish is checked, and a dry run, which publishes nothing, reports a
+      # refusal without stopping. Every version tag counts, so a repository
+      # that tags each package '<package>/<version>' is held to one release a
+      # week across its packages. Only the repositories named here may check
+      # each package on its own instead, with the same exit codes, by running
+      # steps/check-release-interval.ps1 with -TagPrefix for each package
+      # about to be published.
+      - name: Refuse a release less than a week after the last
+        if: steps.configure.outputs.update_required == 'true'
+        continue-on-error: ${{ inputs.dryrun }}
+        shell: pwsh
+        env:
+          ALLOW_EARLY_RELEASE: ${{ inputs.allow-early-release }}
+          GH_TOKEN: ${{ secrets.token }}
+          REPO_NAME: ${{ inputs.repo-name }}
+          REPOSITORY: ${{ inputs.org-name }}/${{ inputs.repo-name }}
+        run: |
+          $OwnCheck = @('51degrees-dotnet')
+          $HowToAllow = "run this repository's Publish workflow with allow-early-release set."
+          if ($env:REPO_NAME -in $OwnCheck -and (Test-Path "./$env:REPO_NAME/ci/check-release-interval.ps1")) {
+            & "./$env:REPO_NAME/ci/check-release-interval.ps1" -RepoName $env:REPO_NAME -Repository $env:REPOSITORY -HowToAllow $HowToAllow
+          } else {
+            ./steps/check-release-interval.ps1 -RepoName $env:REPO_NAME -Repository $env:REPOSITORY -HowToAllow $HowToAllow
+          }
+
       - name: Prefetch assets
         id: prefetch-assets
         if: inputs.cache-assets
