@@ -138,6 +138,10 @@ Describe 'with the date of the last release given' {
         { & $script:Check -LastRelease 'last Tuesday' -Now '2026-11-04T10:00:00Z' } |
             Should -Throw '*not a date and time*'
     }
+
+    It 'stops when told nothing about the last release, rather than passing' {
+        { & $script:Check -Now '2026-11-04T10:00:00Z' } | Should -Throw '*Give -RepoName*'
+    }
 }
 
 Describe 'with the last release read from the tags of a checkout' {

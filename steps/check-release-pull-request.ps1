@@ -66,6 +66,7 @@ foreach ($line in $closed) {
 
 $rerun = $RunUrl ? "re-run this check from $RunUrl" : 're-run this check'
 $arguments = @{
+    LastRelease = ''
     HowToAllow = ("add the label '$Label' to this pull request, then " +
         "$rerun, as adding a label does not run it.")
 }

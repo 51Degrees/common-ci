@@ -23,8 +23,8 @@ for one release, as a major or minor version bump is.
 
 .PARAMETER LastRelease
 When the last release went out, such as 2026-11-04T10:15:00Z. A time with no
-offset is read as UTC. Empty when nothing has been released. Give this or
--RepoName.
+offset is read as UTC. Empty when nothing has been released. Give this, even
+when empty, or -RepoName.
 
 .PARAMETER LastReleaseName
 What the last release was, for the message, such as 'pull request #95'.
@@ -110,9 +110,11 @@ function Get-LastTaggedRelease {
         # An annotated tag records when it was made. A lightweight one does
         # not, so its GitHub release dates it, and failing that its commit.
         if ($type -eq 'tag' -and $taggerDate) {
-            $date = $taggerDate; $source = 'its tag'
+            $date = $taggerDate
+            $source = 'its tag'
         } elseif ($published.ContainsKey($name)) {
-            $date = $published[$name]; $source = 'its GitHub release'
+            $date = $published[$name]
+            $source = 'its GitHub release'
         } else {
             $date = $commitDate ? $commitDate : $targetDate
             $source = 'its commit, as it has no GitHub release'
@@ -136,11 +138,11 @@ if ($RepoName) {
     } else {
         $last = $null
     }
-} elseif ($LastRelease) {
-    $last = ConvertTo-UtcTime $LastRelease
+} elseif ($PSBoundParameters.ContainsKey('LastRelease')) {
+    $last = $LastRelease ? (ConvertTo-UtcTime $LastRelease) : $null
     if (-not $LastReleaseName) { $LastReleaseName = 'the last release' }
 } else {
-    $last = $null
+    throw "Give -RepoName, whose version tags are the releases, or -LastRelease, empty when there has been none."
 }
 
 if ($null -eq $last) {
