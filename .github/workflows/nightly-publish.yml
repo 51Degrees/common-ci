@@ -44,6 +44,17 @@ on:
         description: 'Examples repo branch for the tests; empty keeps the one in options.json'
         type: string
         default: ''
+      package-in-caller:
+        description: 'Skip the Package job, because the caller packages and pushes in a job of its own. nuget.org trusted publishing gives a key only to a job in a workflow file of the repository being published.'
+        type: boolean
+        default: false
+    outputs:
+      update-required:
+        description: 'Whether there is a new version to publish.'
+        value: ${{ jobs.Configure.outputs.update_required }}
+      version:
+        description: 'The version to publish.'
+        value: ${{ jobs.Configure.outputs.version }}
     secrets:
       # PAT that we use to authenticate on behalf of GitHub Actions.
       token:
@@ -426,7 +437,8 @@ jobs:
     runs-on: ${{ inputs.build-platform }}
     needs: [Configure, Test, ComparePerformance]
     if: >
-      !cancelled() && needs.Configure.outputs.update_required == 'true' &&
+      !cancelled() && !inputs.package-in-caller &&
+      needs.Configure.outputs.update_required == 'true' &&
       (needs.Test.result == 'success' || (inputs.skip-tests && needs.Test.result == 'skipped')) &&
       (needs.ComparePerformance.result == 'success' || needs.ComparePerformance.result == 'skipped')
     steps:
