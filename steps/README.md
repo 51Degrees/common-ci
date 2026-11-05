@@ -150,6 +150,13 @@ Creates a pull request to the main branch of the repository.
 
 Push any committed changes in the repo to the branch that is currently checked out.
 
+## Release Plan
+**Script: `release-plan.ps1`**
+
+Dot-sourced, rather than run, by the scripts of a repository that gives each package its own version, which lists its packages in `ci/packages.json` (see [Packages](/REPO_SCRIPTS.md#packages)).
+
+`Get-ReleasePlan` gives the packages a publish of `HEAD` releases, in the order to publish them, each with its version and the reason. A package is released when a file under its folders changed since its last tag, `<package>/<version>`, and every package that depends on it is released with it, because its requirement moves. Each version is the package's last tag plus one patch, and a package with no tag starts at its `FirstVersion`. A package already tagged at `HEAD` is left out, so a second publish of the same commit releases nothing, and a package marked as not published, such as the examples, never is.
+
 ## Run Repo Script
 **Script: `run-script.ps1`**
 
