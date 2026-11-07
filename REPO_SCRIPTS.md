@@ -126,6 +126,18 @@ Run any unit tests for the project. This should use language specific scripts in
 
 Results should be written to the `[repo]/test-results/unit` directory. Supported formats can be found on the [publish-unit-test-result](https://github.com/EnricoMi/publish-unit-test-result-action#generating-test-result-files) action readme.
 
+## Select Options
+
+**Script: `select-options.ps1`** (optional)
+
+Chooses the `options.json` entries a pull request is built on, so that a change is not built on every configuration when it only needs some. [`steps/select-options.ps1`](/steps/select-options.ps1) calls it from the pull request's Configure job with two parameters. `Options` is every entry, each as a hashtable. `ChangedFiles` is the files the pull request changes against the branch it merges into, less any Markdown file and anything in a docs folder. A change to those alone builds nothing, and the script is not called.
+
+Where it declares a third parameter, `CommentOnlyFiles`, it is also given those of the changed files whose change touches only comments and blank lines. [`steps/comment-only.ps1`](/steps/comment-only.ps1) finds them by removing the comments from the old and the new text of each file and comparing what is left, for the languages it knows by file extension. A comment can still break a build, for example through a documentation comment that a compiler checks, so such a change should still be built, on fewer entries.
+
+It writes the entries to build to its output, and may change them, for example setting `RunPerformance` to false or adding a `Depth` for the repository's own scripts to read. It writes anything else with `Write-Host`, because anything on its output is read as an entry. A failure, or an output that is not a single entry of `options.json`, stops the build. A path it does not recognise should build more rather than less.
+
+It is not called for the branch itself, which is pull request 0, for a release pull request, or when `full-matrix` is set, so those build every entry as `options.json` gives it.
+
 ## Setup Environment
 
 **Script: `setup-environment.ps1`**
