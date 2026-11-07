@@ -15,7 +15,11 @@
 # still has changed files once the globs have left theirs out, as
 #   & <script> -RepoPath <path> -Package <entry> -From <last tag> -Files <files>
 # where Files are paths from the repository root, and it returns the files
-# that count. A package with none that count is not released.
+# that count, each exactly as it was given. A package with none that count is
+# not released.
+#
+# A submodule in Path or ExtraPaths changes as one path, its own, so any move
+# of it counts. Neither the globs nor the filter see inside it.
 #
 # Each entry in ci/packages.json has:
 #   Name            the package's name, which its tags start with
@@ -24,7 +28,7 @@
 #   Ignore          globs, from the repository root, of files under those
 #                   folders whose changes do not count, optional
 #   IgnoreDefaults  false to count the files $ReleasePlanDefaultIgnore
-#                   matches, optional
+#                   matches, optional, and a JSON true or false when given
 #   DependsOn       the names of the packages it requires
 #   Publish         false for a package that is never released, such as examples
 #   FirstVersion    the version of its first release, for a package with no tag
@@ -71,9 +75,14 @@ function Test-PathUnder([string]$Path, [string]$Folder) {
 # holds a '*' with the files it matches, if any. Each of these starts with
 # ':(', which no file in a checkout starts with, so git receives it as written.
 function Get-PackageExcludes($Package) {
+    $defaults = $Package.IgnoreDefaults
+    if ($null -ne $defaults -and $defaults -isnot [bool]) {
+        throw "$($Package.Name) gives IgnoreDefaults as '$defaults', where " +
+            "packages.json must give true or false."
+    }
     $excludes = @($Package.Ignore | Where-Object { $_ } |
         ForEach-Object { ":(exclude,glob)$_" })
-    if ($Package.IgnoreDefaults -ne $false) {
+    if ($defaults -ne $false) {
         # The defaults ignore case, as one language names a folder Tests or
         # Examples where another names it tests or examples.
         $excludes = @($ReleasePlanDefaultIgnore |
@@ -98,7 +107,9 @@ function Get-ChangedFiles([string]$RepoPath, $Package, [string]$From) {
 
 # The files that count among a package's changed files. A repository's
 # ci/release-plan-filter.ps1 decides when there is one, and otherwise every
-# file counts.
+# file counts. A path the filter returns that it was not given stops the
+# plan, because a filter that rewrote a path would otherwise release a
+# package on a file that never changed.
 function Select-CountedFiles([string]$RepoPath, $Package, [string]$From,
         [string[]]$Files) {
     $filter = Join-Path $RepoPath 'ci/release-plan-filter.ps1'
@@ -106,8 +117,15 @@ function Select-CountedFiles([string]$RepoPath, $Package, [string]$From,
         return $Files
     }
     $filter = (Resolve-Path $filter).ProviderPath
-    return @(& $filter -RepoPath $RepoPath -Package $Package -From $From `
+    $kept = @(& $filter -RepoPath $RepoPath -Package $Package -From $From `
         -Files $Files | Where-Object { $_ })
+    foreach ($file in $kept) {
+        if ($Files -cnotcontains $file) {
+            throw "ci/release-plan-filter.ps1 returned '$file' for " +
+                "$($Package.Name), which is not one of the files it was given."
+        }
+    }
+    return $kept
 }
 
 # The names of the given packages and of every package that depends on one of

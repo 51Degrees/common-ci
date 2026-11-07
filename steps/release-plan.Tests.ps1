@@ -415,6 +415,25 @@ Describe 'Get-ReleasePlan, for files that do not count' {
         @(Get-ReleasePlan $script:Repo $script:Graph).Name | Should -Be @('ipi')
         $LASTEXITCODE | Should -Be 0
     }
+
+    It 'stops on a path the filter returns that it was not given' {
+        Add-Commit $script:Repo @('device/dd/a.py')
+        $null = New-Item -ItemType Directory -Force (Join-Path $script:Repo 'ci')
+        Set-Content (Join-Path $script:Repo 'ci' 'release-plan-filter.ps1') @(
+            'param($RepoPath, $Package, $From, [string[]]$Files)'
+            '$Files | ForEach-Object { $_.ToUpperInvariant() }')
+        { Get-ReleasePlan $script:Repo $script:Graph } |
+            Should -Throw '*DEVICE/DD/A.PY*dd*not one of the files*'
+    }
+
+    It 'refuses IgnoreDefaults given as text' {
+        $graph = Set-Package $script:Graph (New-Package 'dd' 'device/dd' @('engines'))
+        $graph | Where-Object Name -eq 'dd' |
+            Add-Member -NotePropertyName IgnoreDefaults -NotePropertyValue 'false' -Force
+        Add-Commit $script:Repo @('device/dd/a.py')
+        { Get-ReleasePlan $script:Repo $graph } |
+            Should -Throw "*dd gives IgnoreDefaults as 'false'*true or false*"
+    }
 }
 
 }
