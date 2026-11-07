@@ -61,11 +61,19 @@ Only for a repository that gives each package its own version. An array with one
 - `Name`, the package's name, which its tags start with, as `<Name>/<version>`.
 - `Path`, its folder from the repository root.
 - `ExtraPaths`, optional, other folders it takes files from at build time, such as a submodule it vendors.
+- `Ignore`, optional, globs from the repository root of files under those folders whose changes do not release the package.
+- `IgnoreDefaults`, optional, false to count changes to the documentation, tests, examples and LICENSE files the release plan otherwise leaves out.
 - `DependsOn`, the names of the packages it requires.
 - `Publish`, false for a package that is never released, such as the examples.
 - `FirstVersion`, the version of its first release, needed only while the package has no tag.
 
 A repository can add fields of its own, which the release plan ignores.
+
+## Release Plan Filter
+
+**Script: `release-plan-filter.ps1`** (optional)
+
+Only for a repository that gives each package its own version. [`steps/release-plan.ps1`](/steps/README.md#release-plan) runs it for each package with changed files left once the ignore globs have left theirs out, with `RepoPath`, `Package` (the package's entry from `packages.json`), `From` (the package's last tag) and `Files` (the changed files, from the repository root). It returns the files whose change releases the package, so a package with none left is not released. A repository uses it for a rule only its language can apply, such as leaving out a manifest whose only change is to a link.
 
 ## Install Package
 
