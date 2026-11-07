@@ -150,6 +150,13 @@ Creates a pull request to the main branch of the repository.
 
 Push any committed changes in the repo to the branch that is currently checked out.
 
+## Release Plan
+**Script: `release-plan.ps1`**
+
+Dot-sourced, rather than run, by the scripts of a repository that gives each package its own version, which lists its packages in `ci/packages.json` (see [Packages](/REPO_SCRIPTS.md#packages)).
+
+`Get-ReleasePlan` gives the packages a publish of `HEAD` releases, in the order to publish them, each with its version and the reason. A package is released when a file under its folders changed since its last tag, `<package>/<version>`, and every package that depends on it is released with it, because its requirement moves. Each version is the package's last tag plus one patch, and a package with no tag starts at its `FirstVersion`. A package already tagged at `HEAD` is left out, so a second publish of the same commit releases nothing, and a package marked as not published, such as the examples, never is.
+
 ## Run Repo Script
 **Script: `run-script.ps1`**
 
@@ -234,3 +241,41 @@ publish is where they all meet.
 To release a bump deliberately, run the workflow with `allow-version-bump`
 set. That is a decision with somebody's name on it rather than something a
 commit message does quietly.
+
+## Release interval
+
+`steps/check-release-interval.ps1` refuses a release that comes less than
+seven calendar days, counted in UTC, after the last one, unless
+`ALLOW_EARLY_RELEASE` is `true`. A repository that publishes packages releases
+at most once a week, so each package gets at most one new version a week. See
+[Releasing at most once a week](/CONTRIBUTING.md#releasing-at-most-once-a-week)
+for why.
+
+The rule applies from the date in `WEEKLY_RELEASES_FROM`, which both
+workflows take from the GitHub Actions configuration variable of that name.
+GitHub gives a called workflow the variables of the calling repository, with a
+repository's own variable in place of the organisation's of the same name.
+While the variable is not set, or its date is still ahead, the script reports
+what it would decide and passes.
+
+It runs in two places.
+
+- `.github/workflows/only-rc-into-main.yml` runs
+  `steps/check-release-pull-request.ps1` on a pull request from `rc` into the
+  default branch of a repository listed there. The last release is the pull
+  request from that repository's `rc` merged most recently, and the label
+  `early-release` on the pull request allows an early one. The label is read
+  when the check runs, because a re-run reuses the event of the first run.
+- `nightly-publish.yml` runs it in the Configure job, beside the version bump
+  check, when there is something to publish. The last release is the newest
+  version tag. An annotated tag is dated by when it was made. A lightweight
+  tag is dated by the GitHub release made with it, because the commit it
+  points at can be a day or more older than the release. The
+  `allow-early-release` input allows an early one, and a dry run reports a
+  refusal without stopping.
+
+Every version tag counts at the publish, plain or `<package>/<version>`, so a
+repository that tags each package is held to one release a week across its
+packages. A repository named in that step of `nightly-publish.yml` may check
+each package on its own instead, in `ci/check-release-interval.ps1`, by
+running this script with `-TagPrefix` for each package it is about to publish.
