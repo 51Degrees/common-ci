@@ -103,6 +103,8 @@ Describe 'select-options.ps1' {
 
     It 'gives the repository both sides of a move' {
         $script:Repo = New-Repo $script:KeepLinux @() -Base @('src/dd/a.c')
+        # git mv does not create the folder it moves into.
+        New-Item -ItemType Directory (Join-Path $script:Repo 'src/ipi') | Out-Null
         git -C $script:Repo mv src/dd/a.c src/ipi/a.c
         git -C $script:Repo -c user.name=test -c user.email=test@example.com `
             commit --quiet -m 'Move'
