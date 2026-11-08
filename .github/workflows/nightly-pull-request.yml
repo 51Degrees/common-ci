@@ -47,6 +47,14 @@ on:
         description: 'Examples repo branch for the tests; empty keeps the one in options.json'
         type: string
         default: ''
+      fail-fast:
+        description: 'Cancel the other configurations when one fails'
+        type: boolean
+        default: true
+      full-matrix:
+        description: 'Build every entry in ci/options.json, even where ci/select-options.ps1 would choose fewer'
+        type: boolean
+        default: false
     secrets:
       token:
         required: true
@@ -91,6 +99,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       options: ${{ steps.configure.outputs.options }}
+      build: ${{ steps.configure.outputs.build }}
       asset_cache_key: ${{ steps.prefetch-assets.outputs.cache-key }}
     steps:
       - name: Checkout Common
@@ -102,6 +111,7 @@ jobs:
       - name: Configure
         id: configure
         run: |
+          $FullMatrix = [bool]::Parse("${{ inputs.full-matrix }}")
           ./nightly-pull-request.configure-pr.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
@@ -110,7 +120,8 @@ jobs:
           -GitHubOutput $Env:GITHUB_OUTPUT `
           -PullRequestId ${{ inputs.pull-request-id }} `
           -GitHubUser ${{ inputs.user }} `
-          -GitHubEmail ${{ inputs.email }}
+          -GitHubEmail ${{ inputs.email }} `
+          -FullMatrix $FullMatrix
 
       - name: Prefetch assets
         id: prefetch-assets
@@ -122,7 +133,10 @@ jobs:
 
   BuildAndTest:
     needs: Configure
+    # Configure chose no entry, as for a change to documentation alone.
+    if: needs.Configure.outputs.build != 'false'
     strategy:
+      fail-fast: ${{ inputs.fail-fast }}
       matrix:
         options: ${{ fromJSON(needs.configure.outputs.options ) }}
     name: Build and Test - ${{ inputs.pull-request-id }} - ${{ matrix.options.name }}
@@ -261,13 +275,17 @@ jobs:
           Write-Output "::error title=Compare Performance failed::See the log of the Compare Performance - ${{ inputs.pull-request-id }} job. The performance graphs may not have updated."
           exit 1
 
+  # BuildAndTest counts as passed when skipped only because Configure chose no
+  # entry to build.
   Complete:
     runs-on: ubuntu-latest
     name: Complete ${{ inputs.pull-request-id }}
-    needs: [ BuildAndTest, ComparePerformance ]
+    needs: [ Configure, BuildAndTest, ComparePerformance ]
     if: >
       !cancelled() &&
-      needs.BuildAndTest.result == 'success' &&
+      needs.Configure.result == 'success' &&
+      (needs.BuildAndTest.result == 'success' ||
+        (needs.BuildAndTest.result == 'skipped' && needs.Configure.outputs.build == 'false')) &&
       (needs.ComparePerformance.result == 'success' || needs.ComparePerformance.result == 'skipped')
     steps:
       - name: Checkout Common
