@@ -181,7 +181,7 @@ jobs:
         env:
           ALLOW_VERSION_BUMP: ${{ inputs.allow-version-bump }}
         run: |
-          $OwnCheck = @('51degrees-dotnet')
+          $OwnCheck = @('51degrees-dotnet', '51degrees-go', '51degrees-java', '51degrees-node', '51degrees-php')
           if ('${{ inputs.repo-name }}' -in $OwnCheck -and (Test-Path ./${{ inputs.repo-name }}/ci/check-version-bump.ps1)) {
             ./${{ inputs.repo-name }}/ci/check-version-bump.ps1 -RepoName '${{ inputs.repo-name }}' -Version '${{ steps.configure.outputs.version }}'
           } else {
@@ -211,7 +211,7 @@ jobs:
           # The calling repository's variable, or the organisation's.
           WEEKLY_RELEASES_FROM: ${{ vars.WEEKLY_RELEASES_FROM }}
         run: |
-          $OwnCheck = @('51degrees-dotnet')
+          $OwnCheck = @('51degrees-dotnet', '51degrees-go', '51degrees-java', '51degrees-node', '51degrees-php')
           $HowToAllow = "run this repository's Publish workflow with allow-early-release set."
           if ($env:REPO_NAME -in $OwnCheck -and (Test-Path "./$env:REPO_NAME/ci/check-release-interval.ps1")) {
             & "./$env:REPO_NAME/ci/check-release-interval.ps1" -RepoName $env:REPO_NAME -Repository $env:REPOSITORY -HowToAllow $HowToAllow
