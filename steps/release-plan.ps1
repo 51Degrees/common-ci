@@ -98,7 +98,7 @@ function Get-ChangedFiles([string]$RepoPath, $Package, [string]$From) {
     # preference. Set for this function only.
     $PSNativeCommandUseErrorActionPreference = $false
     $pathspecs = @(Get-PackagePaths $Package) + @(Get-PackageExcludes $Package)
-    $files = @(& git -C $RepoPath diff --name-only $From HEAD -- $pathspecs)
+    $files = @(& git -C $RepoPath -c core.quotePath=false diff --name-only $From HEAD -- $pathspecs)
     if ($LASTEXITCODE -ne 0) {
         throw "git could not list the changes to $($Package.Name) since $From."
     }
