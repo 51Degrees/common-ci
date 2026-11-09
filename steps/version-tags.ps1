@@ -5,12 +5,19 @@
 # repository tags each package on its own, and after a 'v' where it wants
 # one, as Go does:
 #   4.5.103   v4.5.29   pipeline/4.5.129   pipeline/v4.5.171
-# The version is major.minor.patch. A fourth number, as in 4.4.3.0, or build
-# metadata, as in 4.3.5+2, may follow and is ignored, as Semantic Versioning
-# ignores build metadata. A pre-release, such as 4.5.8-49 or v4.5.0-alpha.1,
-# is not a release, and nor is any other tag.
-$VersionTagPattern = '^(?:(?<prefix>.+)/)?v?(?<version>[0-9]+\.[0-9]+\.[0-9]+)' +
-    '(?:\.[0-9]+)?(?:\+[0-9A-Za-z.-]+)?$'
+# The version is major.minor.patch, each number with no leading zero, as
+# Semantic Versioning 2.0.0 item 2 requires. Build metadata, as in 4.3.5+2,
+# may follow and is ignored, as item 10 requires.
+#
+# Two rules are ours, not Semantic Versioning's. A fourth number, as in
+# 4.4.3.0, may follow and is ignored, because some repositories have such
+# tags. A pre-release, such as 4.5.8-49 or v4.5.0-alpha.1, is never a
+# release, so a version is judged against the last normal version. Item 9
+# only ranks a pre-release below its own normal version, and item 11 ranks
+# 4.6.0-alpha.1 above 4.5.96. No other tag is a release either.
+$VersionTagPattern = '^(?:(?<prefix>.+)/)?v?' +
+    '(?<version>(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*))' +
+    '(?:\.(?:0|[1-9][0-9]*))?(?:\+[0-9A-Za-z.-]+)?$'
 
 # The parts of a version such as 4.5.38, or $null for anything else.
 function ConvertTo-VersionParts([string]$Text) {

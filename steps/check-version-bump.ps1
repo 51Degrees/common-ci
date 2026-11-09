@@ -185,28 +185,19 @@ else {
 }
 
 if ($null -eq $highest) {
-    # A branch with no tags has never released, and GitVersion then answers
-    # 0.0.1 rather than failing. Nothing else stopped that number, so the first
-    # publish released it: this is how fiftyone_ipintelligence_cloud 0.0.1
-    # reached PyPI on 28 October 2026, a number PyPI never gives back. So a
-    # first release from a branch with no tags is refused, whatever its
-    # version, and someone decides the number by tagging. The version itself
-    # is not judged, because a package may rightly start on 0.x. A branch that
-    # has tags, but none for this package, is a repository releasing a new
-    # package beside others, and its number was chosen there. See
-    # common-ci#251.
-    # Only -RepoName reaches here: -ReleasedVersion always sets $highest.
-    Push-Location $RepoName
-    try {
-        $branchTags = @(git tag --merged HEAD)
-    } finally {
-        Pop-Location
-    }
-    if ($branchTags.Count -eq 0) {
+    # A branch with no release tag has never released, and GitVersion then
+    # answers 0.0.1 rather than failing. So a first release from such a branch
+    # is refused, whatever its version, and someone decides the number by
+    # tagging. The version itself is not judged, because a package may rightly
+    # start on 0.x. A branch that has release tags, but none for this package,
+    # is a repository releasing a new package beside others, and its number
+    # was chosen there. Only -RepoName reaches here, because -ReleasedVersion
+    # always sets $highest.
+    if (@(Get-VersionTags $RepoName -AnyPrefix -Merged).Count -eq 0) {
         Write-Output ("::error title=First release refused::This branch has " +
-            "no tags, so nothing has decided where its versions start, and " +
-            "$Version would be published as the first. With no tags GitVersion " +
-            "answers 0.0.1.")
+            "no release tag, so nothing has decided where its versions start, " +
+            "and $Version would be published as the first. With no tags " +
+            "GitVersion answers 0.0.1.")
         Write-Output ""
         Write-Output ("Nothing is published. Decide the first version, then tag " +
             "main with the version the release should follow on from, and run " +

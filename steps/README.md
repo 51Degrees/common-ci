@@ -138,7 +138,9 @@ than documentation has changed since the last release tag. It exits 1 when the
 version is already tagged, or when every file changed since the last release
 tag is a Markdown file or sits under `.github`, which holds the workflows,
 images and templates that no package includes, because that release would
-publish the same packages again.
+publish the same packages again. The last release tag is the highest release
+tag of any package on `HEAD` or before it, as
+[Version Tags](#version-tags) describes.
 
 ## PR to Main
 **Script: `pull-request-to-main.ps1`**
@@ -199,7 +201,7 @@ A GitHub release is then created from the tag containing a description generated
 ## Version Tags
 **Script: `version-tags.ps1`**
 
-Dot-sourced by `release-plan.ps1`, `check-version-bump.ps1` and `check-release-interval.ps1`, so that all three take the same tags as releases. A release tag is a version, after a package's name and a `/` where the repository tags each package on its own, and after a `v` where it wants one, as Go does, such as `4.5.103`, `v4.5.29`, `pipeline/4.5.129` or `pipeline/v4.5.171`. A fourth number, as in `4.4.3.0`, or build metadata, as in `4.3.5+2`, may follow and is ignored. A pre-release, such as `4.5.8-49` or `v4.5.0-alpha.1`, is not a release, and nor is any other tag. `Get-VersionTags` lists the release tags of a checkout with their versions, highest last, and `ConvertFrom-VersionTag` reads one tag.
+Dot-sourced by `release-plan.ps1`, `check-version-bump.ps1`, `check-release-interval.ps1` and `package-update-required.ps1`, so that all four take the same tags as releases. A release tag is a version, after a package's name and a `/` where the repository tags each package on its own, and after a `v` where it wants one, as Go does, such as `4.5.103`, `v4.5.29`, `pipeline/4.5.129` or `pipeline/v4.5.171`. Each number of the version has no leading zero, as [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html) item 2 requires, and build metadata, as in `4.3.5+2`, may follow and is ignored, as item 10 requires. Two rules are ours rather than Semantic Versioning's. A fourth number, as in `4.4.3.0`, may follow and is ignored. A pre-release, such as `4.5.8-49` or `v4.5.0-alpha.1`, is never a release, so a version is judged against the last normal version. Item 9 only ranks a pre-release below its own normal version, and item 11 ranks `4.6.0-alpha.1` above `4.5.96`. No other tag is a release either. `Get-VersionTags` lists the release tags of a checkout with their versions, highest last, and `ConvertFrom-VersionTag` reads one tag.
 
 ## Version directives
 

@@ -60,6 +60,31 @@ Describe 'a branch with no tags' {
         (Invoke-Check @{ Version = '0.0.1'; RepoName = $script:Repo }).ExitCode | Should -Be 1
     }
 
+    It 'refuses a branch whose only tags are not releases' {
+        $script:Repo = New-TaggedRepo @('4.5.0-alpha.1', 'zig')
+        $result = Invoke-Check @{ Version = '4.5.0'; RepoName = $script:Repo }
+        $result.ExitCode | Should -Be 1
+        $result.Output | Should -Match 'First release refused'
+    }
+
+    It 'refuses a new package when no package has a release tag' {
+        $script:Repo = New-TaggedRepo @('fiftyone_pipeline_core/4.5.38-alpha.1')
+        (Invoke-Check @{
+            Version = '4.5.0'; RepoName = $script:Repo; TagPrefix = 'fiftyone_ipintelligence' }
+        ).ExitCode | Should -Be 1
+    }
+
+    It 'refuses a new package when the only release tag is off the branch' {
+        $script:Repo = New-TaggedRepo @()
+        git -C $script:Repo -c user.name=test -c user.email=test@example.com `
+            commit --quiet --allow-empty -m 'Elsewhere'
+        git -C $script:Repo tag 'fiftyone_pipeline_core/4.5.38'
+        git -C $script:Repo reset --quiet --hard HEAD~1
+        (Invoke-Check @{
+            Version = '4.5.0'; RepoName = $script:Repo; TagPrefix = 'fiftyone_ipintelligence' }
+        ).ExitCode | Should -Be 1
+    }
+
 }
 
 Describe 'a package on a 0.x line' {
