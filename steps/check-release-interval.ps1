@@ -31,13 +31,6 @@ Without it every version tag counts, with or without a package name, so the
 newest release of any package is the last. version-tags.ps1 says which tags
 are releases.
 
-.PARAMETER Plan
-With -RepoName, the packages about to be published, for a repository that
-gives each package its own version, such as Get-ReleasePlan's output. Each
-entry needs a Name, which its tags start with. Each package is checked as
--TagPrefix checks one, and the release is refused when any package is. A plan
-with nothing in it passes.
-
 .PARAMETER Repository
 With -RepoName, the repository on GitHub, such as 51Degrees/51degrees-cxx. A
 lightweight tag has no date of its own, and the commit it points at can be a
@@ -50,16 +43,26 @@ How to release early where this runs, ending the sentence "With it, ...".
 
 .PARAMETER Now
 The time to judge against, for tests. Defaults to now.
+
+.PARAMETER Plan
+With -RepoName, the release plan, being the packages about to be published,
+for a repository that gives each package its own version, such as
+Get-ReleasePlan's output. Give the plan and not every package, because a
+package released less than a week ago that this release leaves alone would be
+refused. Each entry needs a Name, which its tags start with. Each package is
+checked as -TagPrefix checks one, and the release is refused when any package
+is. A plan with nothing in it passes. It is the last parameter, so that the
+others keep their positions.
 #>
 param (
     [string]$LastRelease,
     [string]$LastReleaseName,
     [string]$RepoName,
     [string]$TagPrefix,
-    [object[]]$Plan,
     [string]$Repository,
     [string]$HowToAllow = "run this again with ALLOW_EARLY_RELEASE set to 'true'.",
-    [string]$Now
+    [string]$Now,
+    [object[]]$Plan
 )
 $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true

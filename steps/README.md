@@ -240,8 +240,11 @@ common-ci.
 
 With `-Plan`, this script and `check-release-interval.ps1` check every package
 of a release plan in one call, each against its own tags, and refuse when any
-package is refused. This script's `-RegistryVersionScript` also compares each
-package with the version its registry has released. See
+package is refused. The plan is the packages about to be published, and not
+every package, which the interval check would refuse when one was released
+less than a week ago. This script's `-RegistryVersionScript` also compares
+each package with the version its registry has released, and refuses a
+package with no tag that its registry has not released. See
 [Check Version Bump](/REPO_SCRIPTS.md#check-version-bump).
 
 It is at the publish rather than the merge on purpose. A version can arrive by

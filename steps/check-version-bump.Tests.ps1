@@ -246,6 +246,45 @@ Describe 'several packages, with -Plan' {
         $result.Output | Should -Match 'dd 4\.5\.97, against 4\.5\.96 in its registry'
     }
 
+    It 'refuses a package with no tag that the registry gives as $null' {
+        # As a .NET family with no tag and no listed NuGet version.
+        $result = Invoke-Check @{
+            RepoName = $script:Repo; RegistryVersionScript = $script:Registry
+            Plan = @(
+                [pscustomobject]@{ Name = 'core'; Version = '4.5.39' }
+                [pscustomobject]@{ Name = 'ipi'; Version = '4.5.0' }) }
+        $result.ExitCode | Should -Be 1
+        $result.Output | Should -Match 'First release refused::ipi has no tag here'
+        $result.Output | Should -Match 'these packages were refused: ipi\.'
+    }
+
+    It 'refuses a package with no tag that the registry gives nothing for' {
+        # As a Node package with no tag that npm does not have.
+        $none = Join-Path $TestDrive 'registry-none.ps1'
+        Set-Content $none 'param([string]$RepoName, $Package)'
+        $result = Invoke-Check @{
+            RepoName = $script:Repo; RegistryVersionScript = $none
+            Plan = @([pscustomobject]@{ Name = 'ipi'; Version = '4.5.0' }) }
+        $result.ExitCode | Should -Be 1
+        $result.Output | Should -Match 'First release refused::ipi has no tag here'
+    }
+
+    It 'checks a package with no tag against the version the registry gives' {
+        $global:Registry = @{ ipi = '4.5.0' }
+        $result = Invoke-Check @{
+            RepoName = $script:Repo; RegistryVersionScript = $script:Registry
+            Plan = @([pscustomobject]@{ Name = 'ipi'; Version = '4.5.1' }) }
+        $result.ExitCode | Should -Be 0
+        $result.Output | Should -Match 'ipi 4\.5\.1, against 4\.5\.0 in its registry'
+        $result.Output | Should -Not -Match 'First release refused'
+    }
+
+    It 'stops when given a registry script without a plan' {
+        { & $script:Check -RepoName $script:Repo -Version '4.5.39' `
+            -TagPrefix 'core' -RegistryVersionScript $script:Registry } |
+            Should -Throw '*Give -RegistryVersionScript only with -Plan*'
+    }
+
     It 'stops on an entry with no Version' {
         { & $script:Check -RepoName $script:Repo -Plan @(
             [pscustomobject]@{ Name = 'core' }) } |
