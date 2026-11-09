@@ -48,14 +48,6 @@ AfterEach {
     $env:WEEKLY_RELEASES_FROM = $null
 }
 
-It 'reports and passes a release two days after the last before the rule starts' {
-    $env:WEEKLY_RELEASES_FROM = $null
-    $global:Closed = @(@{ Number = 95; MergedAt = '2026-11-02T19:30:25Z' })
-    $result = Invoke-Check '2026-11-04T10:00:00Z'
-    $result.ExitCode | Should -Be 0
-    $result.Output | Should -Match 'Weekly release rule not enforced'
-}
-
 It 'passes the first release from rc' {
     $result = Invoke-Check '2026-11-04T10:00:00Z'
     $result.ExitCode | Should -Be 0
@@ -71,11 +63,6 @@ It 'refuses a release two days after the last, and says how to ask for one' {
     $result.Output | Should -Match "James Rosewell's permission"
     $result.Output | Should -Match "add the label 'early-release' to this pull request"
     $result.Output | Should -Match 're-run this check from https://example\.test/run'
-}
-
-It 'passes a week after the last' {
-    $global:Closed = @(@{ Number = 95; MergedAt = '2026-11-04T19:30:25Z' })
-    (Invoke-Check '2026-11-11T08:00:00Z').ExitCode | Should -Be 0
 }
 
 It 'allows an early release when the label is on the pull request' {

@@ -175,7 +175,7 @@ For a more detailed description of options usage, see [Options](/DESIGN.md#build
 
 Chooses the entries of a repository's `options.json` that a pull request is built on, and sets them as JSON under the variable name provided. The Configure job of `nightly-pull-request.yml` calls it for a pull request when the repository has `ci/select-options.ps1`.
 
-It lists the files the pull request changes against the branch it merges into. When every one is a Markdown file or sits in a docs folder, it chooses nothing. Otherwise it passes the files that are not documentation to the repository's script, which returns the entries to build. Where that script asks for them, it also passes the files whose change touches only comments, as `comment-only.ps1` decides. It fails, and so stops the build, when that script fails or returns anything that is not a single entry of `options.json`. See [Select Options](/REPO_SCRIPTS.md#select-options).
+[Select Options](/REPO_SCRIPTS.md#select-options) describes what it gives that script and what the script returns.
 
 ## Set Resource Keys
 **Script: `set-resource-keys.ps1`**
@@ -235,7 +235,7 @@ works out. It provides `ci/check-version-bump.ps1`, which the publish runs in
 place of this script. That script must refuse the same moves, with the same
 exit codes, for every package it is about to publish, usually by running this
 script once for each with `-TagPrefix` or `-ReleasedVersion`. The publish never
-skips the check. Only the repositories named in that step of
+skips the check. Only the repositories named in `OWN_CHECK` in
 `nightly-publish.yml` may replace it with their own, so a script that checks
 nothing cannot switch it off, and naming another repository is a change to
 common-ci.
@@ -258,37 +258,11 @@ commit message does quietly.
 ## Release interval
 
 `steps/check-release-interval.ps1` refuses a release that comes less than
-seven calendar days, counted in UTC, after the last one, unless
-`ALLOW_EARLY_RELEASE` is `true`. A repository that publishes packages releases
-at most once a week, so each package gets at most one new version a week. See
+seven calendar days, counted in UTC, after the last one, as
 [Releasing at most once a week](/CONTRIBUTING.md#releasing-at-most-once-a-week)
-for why.
-
-The rule applies from the date in `WEEKLY_RELEASES_FROM`, which both
-workflows take from the GitHub Actions configuration variable of that name.
-GitHub gives a called workflow the variables of the calling repository, with a
-repository's own variable in place of the organisation's of the same name.
-While the variable is not set, or its date is still ahead, the script reports
-what it would decide and passes.
-
-It runs in two places.
-
-- `.github/workflows/only-rc-into-main.yml` runs
-  `steps/check-release-pull-request.ps1` on a pull request from `rc` into the
-  default branch of a repository listed there. The last release is the pull
-  request from that repository's `rc` merged most recently, and the label
-  `early-release` on the pull request allows an early one. The label is read
-  when the check runs, because a re-run reuses the event of the first run.
-- `nightly-publish.yml` runs it in the Configure job, beside the version bump
-  check, when there is something to publish. The last release is the newest
-  version tag. An annotated tag is dated by when it was made. A lightweight
-  tag is dated by the GitHub release made with it, because the commit it
-  points at can be a day or more older than the release. The
-  `allow-early-release` input allows an early one, and a dry run reports a
-  refusal without stopping.
-
-Every version tag counts at the publish, plain or `<package>/<version>`, so a
-repository that tags each package is held to one release a week across its
-packages. A repository named in that step of `nightly-publish.yml` may check
-each package on its own instead, in `ci/check-release-interval.ps1`, by
-running this script with `-TagPrefix` for each package it is about to publish.
+explains. `nightly-publish.yml` runs it on the newest version tag, and a
+repository named in that workflow's `OWN_CHECK` runs it for each package about
+to be published. `.github/workflows/only-rc-into-main.yml` runs it, through
+`steps/check-release-pull-request.ps1`, on a pull request from `rc` into the
+default branch, counting from the last one merged. Each script's help says how
+it dates the last release.
