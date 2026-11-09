@@ -238,6 +238,12 @@ skips the check. Only the repositories named in that step of
 nothing cannot switch it off, and naming another repository is a change to
 common-ci.
 
+With `-Plan`, this script and `check-release-interval.ps1` check every package
+of a release plan in one call, each against its own tags, and refuse when any
+package is refused. This script's `-RegistryVersionScript` also compares each
+package with the version its registry has released. See
+[Check Version Bump](/REPO_SCRIPTS.md#check-version-bump).
+
 It is at the publish rather than the merge on purpose. A version can arrive by
 a `+semver` directive, a tag pushed by hand, a version committed in a file, or
 one typed into a dispatch. Gating any one of those leaves the others open. The

@@ -321,4 +321,66 @@ Describe 'with the last release read from the tags of a checkout' {
     }
 }
 
+Describe 'several packages, with -Plan' {
+    BeforeEach {
+        # caching last released nine days before 'Now', the Go module
+        # pipeline eight days before and dd one day before.
+        $script:Repo = New-TaggedRepo @(
+            @{ Name = 'caching/4.5.2'; Commit = '2026-10-30T10:00:00Z' },
+            @{ Name = 'pipeline/v4.5.171'; Commit = '2026-10-31T10:00:00Z' },
+            @{ Name = 'dd/4.5.180'; Commit = '2026-11-07T10:00:00Z' })
+    }
+
+    It 'passes when every package last released a week or more ago' {
+        $result = Invoke-Check @{
+            RepoName = $script:Repo; Now = '2026-11-08T12:00:00Z'; Plan = @(
+                [pscustomobject]@{ Name = 'caching'; Version = '4.5.3' }
+                [pscustomobject]@{ Name = 'pipeline'; Version = '4.5.172' }) }
+        $result.ExitCode | Should -Be 0
+        $result.Output | Should -Match 'caching/4\.5\.2'
+        $result.Output | Should -Match 'pipeline/v4\.5\.171'
+    }
+
+    It 'refuses when any package released less than a week ago, naming those refused' {
+        $result = Invoke-Check @{
+            RepoName = $script:Repo; Now = '2026-11-08T12:00:00Z'
+            HowToAllow = 'add the label.'; Plan = @(
+                [pscustomobject]@{ Name = 'caching'; Version = '4.5.3' }
+                [pscustomobject]@{ Name = 'dd'; Version = '4.5.181' }) }
+        $result.ExitCode | Should -Be 1
+        $result.Output | Should -Match 'With it, add the label\.'
+        $result.Output | Should -Match 'released less than a week ago: dd\.'
+    }
+
+    It 'allows an early release of every package when ALLOW_EARLY_RELEASE is set' {
+        $env:ALLOW_EARLY_RELEASE = 'true'
+        (Invoke-Check @{
+            RepoName = $script:Repo; Now = '2026-11-08T12:00:00Z'; Plan = @(
+                [pscustomobject]@{ Name = 'dd'; Version = '4.5.181' }) }
+        ).ExitCode | Should -Be 0
+    }
+
+    It 'dates each package by its GitHub release' {
+        $global:Releases = @(@{ Tag = 'caching/4.5.2'; Published = '2026-11-04T02:48:00Z' })
+        $result = Invoke-Check @{
+            RepoName = $script:Repo; Repository = '51Degrees/example'
+            Now = '2026-11-08T12:00:00Z'; Plan = @(
+                [pscustomobject]@{ Name = 'caching'; Version = '4.5.3' }) }
+        $result.ExitCode | Should -Be 1
+        $result.Output | Should -Match 'by its GitHub release'
+    }
+
+    It 'passes a plan with nothing in it' {
+        $result = Invoke-Check @{ RepoName = $script:Repo; Plan = @() }
+        $result.ExitCode | Should -Be 0
+        $result.Output | Should -Match 'nothing to check'
+    }
+
+    It 'stops when given a plan and a prefix' {
+        { & $script:Check -RepoName $script:Repo -TagPrefix 'dd' -Plan @(
+            [pscustomobject]@{ Name = 'dd' }) } |
+            Should -Throw '*Give -Plan with -RepoName*'
+    }
+}
+
 }
