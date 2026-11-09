@@ -53,17 +53,22 @@ any package in the repository. Without it only the tags with no package
 prefix count. version-tags.ps1 says which tags are releases.
 
 .PARAMETER Plan
-With -RepoName, the packages about to be published, for a repository that
-gives each package its own version, such as Get-ReleasePlan's output. Each
-entry needs a Name, which its tags start with, and a Version. Each package is
+With -RepoName, the release plan, being the packages about to be published,
+for a repository that gives each package its own version, such as
+Get-ReleasePlan's output. Give the plan and not every package, because
+check-release-interval.ps1 takes the same plan and would refuse a package
+released less than a week ago that this publish does not release. Each entry
+needs a Name, which its tags start with, and a Version. Each package is
 checked as -Version with -TagPrefix checks one, and the publish is refused
 when any package is. A plan with nothing in it passes.
 
 .PARAMETER RegistryVersionScript
-With -Plan, a script giving the highest version a package's registry has
+With -Plan only, a script giving the highest version a package's registry has
 released, which the package is also checked against. It is called as
   & <script> -RepoName <path> -Package <entry of the plan>
-and returns that version, or nothing when the registry has none.
+and returns that version, or nothing when the registry has none. A package
+with no tag of its own that the registry has not released either is refused,
+because nothing has decided where its versions start.
 #>
 param (
     [string]$Version,
@@ -75,6 +80,11 @@ param (
 )
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot 'version-tags.ps1')
+
+if ($RegistryVersionScript -and
+        -not $PSBoundParameters.ContainsKey('Plan')) {
+    throw "Give -RegistryVersionScript only with -Plan."
+}
 
 # Each package of a plan is checked by running this script again for it, so
 # it is judged exactly as a single package is.
@@ -110,6 +120,18 @@ if ($PSBoundParameters.ContainsKey('Plan')) {
                 & $PSCommandPath -Version $package.Version `
                     -ReleasedVersion "$($released[0])"
                 $passed = $passed -and $LASTEXITCODE -eq 0
+            } elseif (@(Get-VersionTags $RepoName `
+                    -Prefix $package.Name).Count -eq 0) {
+                # Neither a tag nor the registry says where the package's
+                # versions start, and its FirstVersion is a file anyone can
+                # change.
+                Write-Output ("::error title=First release refused::" +
+                    "$($package.Name) has no tag here and its registry has " +
+                    "not released it, so nothing has decided where its " +
+                    "versions start. Before its first release, tag it " +
+                    "'$($package.Name)/<version>' with the version that " +
+                    "release follows on from, then run the workflow again.")
+                $passed = $false
             }
         }
         if ($passed -eq $false) {
@@ -163,28 +185,19 @@ else {
 }
 
 if ($null -eq $highest) {
-    # A branch with no tags has never released, and GitVersion then answers
-    # 0.0.1 rather than failing. Nothing else stopped that number, so the first
-    # publish released it: this is how fiftyone_ipintelligence_cloud 0.0.1
-    # reached PyPI on 28 October 2026, a number PyPI never gives back. So a
-    # first release from a branch with no tags is refused, whatever its
-    # version, and someone decides the number by tagging. The version itself
-    # is not judged, because a package may rightly start on 0.x. A branch that
-    # has tags, but none for this package, is a repository releasing a new
-    # package beside others, and its number was chosen there. See
-    # common-ci#251.
-    # Only -RepoName reaches here: -ReleasedVersion always sets $highest.
-    Push-Location $RepoName
-    try {
-        $branchTags = @(git tag --merged HEAD)
-    } finally {
-        Pop-Location
-    }
-    if ($branchTags.Count -eq 0) {
+    # A branch with no release tag has never released, and GitVersion then
+    # answers 0.0.1 rather than failing. So a first release from such a branch
+    # is refused, whatever its version, and someone decides the number by
+    # tagging. The version itself is not judged, because a package may rightly
+    # start on 0.x. A branch that has release tags, but none for this package,
+    # is a repository releasing a new package beside others, and its number
+    # was chosen there. Only -RepoName reaches here, because -ReleasedVersion
+    # always sets $highest.
+    if (@(Get-VersionTags $RepoName -AnyPrefix -Merged).Count -eq 0) {
         Write-Output ("::error title=First release refused::This branch has " +
-            "no tags, so nothing has decided where its versions start, and " +
-            "$Version would be published as the first. With no tags GitVersion " +
-            "answers 0.0.1.")
+            "no release tag, so nothing has decided where its versions start, " +
+            "and $Version would be published as the first. With no tags " +
+            "GitVersion answers 0.0.1.")
         Write-Output ""
         Write-Output ("Nothing is published. Decide the first version, then tag " +
             "main with the version the release should follow on from, and run " +

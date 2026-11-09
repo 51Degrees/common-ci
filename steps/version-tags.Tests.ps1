@@ -37,6 +37,7 @@ Describe 'ConvertFrom-VersionTag' {
         @{ Tag = 'v4.5.29'; Version = '4.5.29' }
         @{ Tag = '4.4.3.0'; Version = '4.4.3' }
         @{ Tag = '4.3.5+2'; Version = '4.3.5' }
+        @{ Tag = '0.10.0'; Version = '0.10.0' }
     ) {
         ConvertFrom-VersionTag $Tag | Should -Be ([version]$Version)
     }
@@ -68,6 +69,16 @@ Describe 'ConvertFrom-VersionTag' {
         @{ Tag = 'examples-assets-v1.0.0' }
         @{ Tag = 'V4.5.1' }
         @{ Tag = '4.5.1.0.0' }
+    ) {
+        ConvertFrom-VersionTag $Tag -AnyPrefix | Should -BeNullOrEmpty
+    }
+
+    It 'does not take <Tag>, with a leading zero, as a release' -TestCases @(
+        @{ Tag = '04.5.1' }
+        @{ Tag = '4.05.1' }
+        @{ Tag = 'v4.5.01' }
+        @{ Tag = 'pipeline/4.5.01' }
+        @{ Tag = '4.5.1.00' }
     ) {
         ConvertFrom-VersionTag $Tag -AnyPrefix | Should -BeNullOrEmpty
     }
