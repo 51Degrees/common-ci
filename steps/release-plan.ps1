@@ -1,37 +1,12 @@
 # Dot-sourced by the scripts of a repository that gives each package its own
 # version. Reads the packages from the repository's ci/packages.json and works
-# out which of them a publish releases, at which version.
+# out which of them a publish releases, at which version. A package is
+# released when a file that counts under its folders changed since its last
+# '<package>/<version>' tag, or when a package it depends on is released, and
+# only the patch number moves.
 #
-# Each package is tagged '<package>/<version>'. A package is released when a
-# file that counts under its folders changed since its last tag, or when a
-# package it depends on is released, because its requirement on that package
-# moves. Only the patch number moves.
-#
-# Every file counts except those matched by the package's Ignore globs and,
-# unless its IgnoreDefaults is false, by $ReleasePlanDefaultIgnore, so a change
-# only to documentation, tests or examples releases nothing. A repository can
-# leave out more, such as a manifest change that only moves a link, with a
-# ci/release-plan-filter.ps1. That script is called for each package that
-# still has changed files once the globs have left theirs out, as
-#   & <script> -RepoPath <path> -Package <entry> -From <last tag> -Files <files>
-# where Files are paths from the repository root, and it returns the files
-# that count, each exactly as it was given. A package with none that count is
-# not released.
-#
-# A submodule in Path or ExtraPaths changes as one path, its own, so any move
-# of it counts. Neither the globs nor the filter see inside it.
-#
-# Each entry in ci/packages.json has:
-#   Name            the package's name, which its tags start with
-#   Path            its folder, from the repository root
-#   ExtraPaths      other folders it takes files from at build time, optional
-#   Ignore          globs, from the repository root, of files under those
-#                   folders whose changes do not count, optional
-#   IgnoreDefaults  false to count the files $ReleasePlanDefaultIgnore
-#                   matches, optional, and a JSON true or false when given
-#   DependsOn       the names of the packages it requires
-#   Publish         false for a package that is never released, such as examples
-#   FirstVersion    the version of its first release, for a package with no tag
+# REPO_SCRIPTS.md describes the fields of ci/packages.json, under "Packages",
+# and the optional ci/release-plan-filter.ps1, under "Release Plan Filter".
 
 # The files whose changes do not release a package, being documentation,
 # tests, examples and LICENSE files wherever they sit and whatever their case,
@@ -47,8 +22,7 @@ $ReleasePlanDefaultIgnore = @(
     '**/LICENSE*'
 )
 
-# Reads ci/packages.json. Kept as a function so the tests can give their own
-# list.
+# The entries of the repository's ci/packages.json.
 function Get-Packages([string]$RepoPath) {
     return Get-Content -Raw (Join-Path $RepoPath 'ci/packages.json') |
         ConvertFrom-Json
