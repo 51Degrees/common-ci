@@ -196,6 +196,11 @@ Tags the repository with the version supplied, and pushed to GitHub.
 
 A GitHub release is then created from the tag containing a description generated from the PRs linked to the tag.
 
+## Version Tags
+**Script: `version-tags.ps1`**
+
+Dot-sourced by `release-plan.ps1`, `check-version-bump.ps1` and `check-release-interval.ps1`, so that all three take the same tags as releases. A release tag is a version, after a package's name and a `/` where the repository tags each package on its own, and after a `v` where it wants one, as Go does, such as `4.5.103`, `v4.5.29`, `pipeline/4.5.129` or `pipeline/v4.5.171`. A fourth number, as in `4.4.3.0`, or build metadata, as in `4.3.5+2`, may follow and is ignored. A pre-release, such as `4.5.8-49` or `v4.5.0-alpha.1`, is not a release, and nor is any other tag. `Get-VersionTags` lists the release tags of a checkout with their versions, highest last, and `ConvertFrom-VersionTag` reads one tag.
+
 ## Version directives
 
 `+semver: minor` and `+semver: major` in a commit message are **never** taken

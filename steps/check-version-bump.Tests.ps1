@@ -94,6 +94,36 @@ Describe 'a repository with plain version tags' {
     }
 }
 
+Describe 'the tag forms version-tags.ps1 reads' {
+    It 'reads a ''v'' before the version' {
+        $script:Repo = New-TaggedRepo @('v4.5.29')
+        (Invoke-Check @{ Version = '4.5.30'; RepoName = $script:Repo }).ExitCode | Should -Be 0
+        (Invoke-Check @{ Version = '4.6.0'; RepoName = $script:Repo }).ExitCode | Should -Be 1
+    }
+
+    It 'reads a Go module''s tags with -TagPrefix' {
+        $script:Repo = New-TaggedRepo @('pipeline/v4.5.171', 'common/v4.6.0')
+        $result = Invoke-Check @{
+            Version = '4.5.172'; RepoName = $script:Repo; TagPrefix = 'pipeline' }
+        $result.ExitCode | Should -Be 0
+        $result.Output | Should -Match 'against 4\.5\.171 already released'
+    }
+
+    It 'reads build metadata and a fourth number as the version before them' {
+        $script:Repo = New-TaggedRepo @('4.4.49+2', '4.4.3.0')
+        $result = Invoke-Check @{ Version = '4.4.50'; RepoName = $script:Repo }
+        $result.ExitCode | Should -Be 0
+        $result.Output | Should -Match 'against 4\.4\.49 already released'
+    }
+
+    It 'does not take a pre-release of a minor version as releasing it' {
+        $script:Repo = New-TaggedRepo @('4.5.96', '4.6.0-alpha.1')
+        $result = Invoke-Check @{ Version = '4.6.0'; RepoName = $script:Repo }
+        $result.ExitCode | Should -Be 1
+        $result.Output | Should -Match 'against 4\.5\.96 already released'
+    }
+}
+
 Describe 'one package of a monorepo, with -TagPrefix' {
     It 'compares with that package''s own tags only' {
         # The repository holds a package at 4.5.96; this one is at 4.5.38 and

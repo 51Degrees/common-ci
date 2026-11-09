@@ -46,10 +46,11 @@ registry the package is published to, so they pass it in. Give this or
 
 .PARAMETER TagPrefix
 With -RepoName, the package whose release history to read, for a repository
-that releases several packages each with its own version. Only tags of the
-form '<TagPrefix>/<version>' count, so one package is compared with its own
-releases and not with the highest version of any package in the repository.
-Without it every plain version tag counts, as before.
+that releases several packages each with its own version. Only the package's
+own tags, '<TagPrefix>/<version>' or '<TagPrefix>/v<version>', count, so one
+package is compared with its own releases and not with the highest version of
+any package in the repository. Without it only the tags with no package
+prefix count. version-tags.ps1 says which tags are releases.
 #>
 param (
     [Parameter(Mandatory)][string]$Version,
@@ -58,6 +59,7 @@ param (
     [string]$TagPrefix
 )
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot 'version-tags.ps1')
 
 function Get-Parts ([string]$v) {
     $m = [regex]::Match($v, '^v?(\d+)\.(\d+)\.(\d+)')
@@ -86,29 +88,8 @@ elseif ($RepoName) {
     # The highest version already tagged, which is what this repository has
     # released. Read from the checkout rather than from a registry, so this
     # works the same for every language and needs no package name.
-    Push-Location $RepoName
-    try {
-        $tags = git tag --list
-    } finally {
-        Pop-Location
-    }
-
-    $highest = $null
-    foreach ($tag in $tags) {
-        $tagVersion = $tag
-        if ($TagPrefix) {
-            if ($tag.StartsWith("$TagPrefix/") -eq $false) { continue }
-            $tagVersion = $tag.Substring($TagPrefix.Length + 1)
-        }
-        $p = Get-Parts $tagVersion
-        if ($null -eq $p) { continue }
-        if ($null -eq $highest -or
-            $p.Major -gt $highest.Major -or
-            ($p.Major -eq $highest.Major -and $p.Minor -gt $highest.Minor) -or
-            ($p.Major -eq $highest.Major -and $p.Minor -eq $highest.Minor -and $p.Patch -gt $highest.Patch)) {
-            $highest = $p
-        }
-    }
+    $tags = @(Get-VersionTags $RepoName -Prefix $TagPrefix)
+    $highest = $tags.Count -gt 0 ? (Get-Parts "$($tags[-1].Version)") : $null
 }
 else {
     throw "Give -RepoName, whose tags are the release history, or -ReleasedVersion where they are not."

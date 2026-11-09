@@ -2,10 +2,11 @@
 # version. Reads the packages from the repository's ci/packages.json and works
 # out which of them a publish releases, at which version.
 #
-# Each package is tagged '<package>/<version>'. A package is released when a
-# file that counts under its folders changed since its last tag, or when a
-# package it depends on is released, because its requirement on that package
-# moves. Only the patch number moves.
+# Each package is tagged '<package>/<version>', or '<package>/v<version>' as a
+# Go module is, and version-tags.ps1 says which tags count. A package is
+# released when a file that counts under its folders changed since its last
+# tag, or when a package it depends on is released, because its requirement on
+# that package moves. Only the patch number moves.
 #
 # Every file counts except those matched by the package's Ignore globs and,
 # unless its IgnoreDefaults is false, by $ReleasePlanDefaultIgnore, so a change
@@ -32,6 +33,8 @@
 #   DependsOn       the names of the packages it requires
 #   Publish         false for a package that is never released, such as examples
 #   FirstVersion    the version of its first release, for a package with no tag
+
+. (Join-Path $PSScriptRoot 'version-tags.ps1')
 
 # The files whose changes do not release a package, being documentation,
 # tests, examples and LICENSE files wherever they sit and whatever their case,
@@ -178,33 +181,11 @@ function Sort-ByDependency($Packages, [string[]]$Names) {
     return @($sorted)
 }
 
-# The parts of a version such as 4.5.38, or $null for anything else.
-function ConvertTo-VersionParts([string]$Text) {
-    $match = [regex]::Match($Text, '^(\d+)\.(\d+)\.(\d+)$')
-    if ($match.Success -eq $false) {
-        return $null
-    }
-    return [version]::new([int]$match.Groups[1].Value,
-        [int]$match.Groups[2].Value, [int]$match.Groups[3].Value)
-}
-
-# The package's released versions, read from its '<package>/<version>' tags,
-# highest last. The '/' after the name keeps a package from reading the tags
-# of another whose name starts with its own.
+# The package's released versions, read from its tags, highest last.
 function Get-ReleasedVersions([string]$RepoPath, [string]$Name,
         [switch]$AtHead) {
-    # Tags are found by prefix, not with a 'name/*' pattern, because PowerShell
-    # on Linux and macOS expands a '*' in an argument to a native command into
-    # matching files, and would give git file names.
-    $arguments = @('-C', $RepoPath, 'for-each-ref',
-        '--format=%(refname:strip=2)', "refs/tags/$Name/")
-    if ($AtHead -eq $true) {
-        $arguments += @('--points-at', 'HEAD')
-    }
-    $versions = foreach ($tag in (& git @arguments)) {
-        ConvertTo-VersionParts $tag.Substring($Name.Length + 1)
-    }
-    return @($versions | Where-Object { $null -ne $_ } | Sort-Object)
+    return @(Get-VersionTags $RepoPath -Prefix $Name -AtHead:$AtHead |
+        ForEach-Object Version)
 }
 
 # What a publish of HEAD releases: one entry per package, in the order to
@@ -228,7 +209,7 @@ function Get-ReleasePlan([string]$RepoPath, $Packages = $null) {
         if ($atHead.Count -gt 0) {
             continue
         }
-        $released = Get-ReleasedVersions $RepoPath $package.Name
+        $released = @(Get-VersionTags $RepoPath -Prefix $package.Name)
         if ($released.Count -eq 0) {
             if ([string]::IsNullOrEmpty($package.FirstVersion) -eq $true) {
                 throw "$($package.Name) has never been released and " +
@@ -238,9 +219,9 @@ function Get-ReleasePlan([string]$RepoPath, $Packages = $null) {
             $reasons[$package.Name] = 'first release'
             continue
         }
-        $last = $released[-1]
+        $last = $released[-1].Version
         $previous[$package.Name] = $last
-        $tag = "$($package.Name)/$last"
+        $tag = $released[-1].Tag
         $files = @(Get-ChangedFiles $RepoPath $package $tag)
         $counted = @(Select-CountedFiles $RepoPath $package $tag $files)
         if ($counted.Count -gt 0) {
