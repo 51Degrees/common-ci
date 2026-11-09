@@ -36,13 +36,14 @@ BeforeAll {
         return $path
     }
 
-    # Stands in for gh, answering a releases request as the --jq filter in the
-    # check would, with one line of tag, publish date and draft per release.
+    # Stands in for gh, answering a release list as the --jq filter in the
+    # check would, with one line of tag and publish date per release. A draft
+    # is left out only with --exclude-drafts, as gh does.
     function global:gh {
         $global:GhCalls += , ($args -join ' ')
         foreach ($release in $global:Releases) {
-            $draft = ([bool]$release.Draft).ToString().ToLowerInvariant()
-            "$($release.Tag)`t$($release.Published)`t$draft"
+            if ($release.Draft -and $args -contains '--exclude-drafts') { continue }
+            "$($release.Tag)`t$($release.Published)"
         }
     }
 }
@@ -205,7 +206,7 @@ Describe 'with the last release read from the tags of a checkout' {
         $result.ExitCode | Should -Be 1
         $result.Output | Should -Match 'by its GitHub release'
         $result.Output | Should -Match 'The last release, 4\.5\.102, was on 4 November 2026'
-        $global:GhCalls[0] | Should -Match 'repos/51Degrees/example/releases'
+        $global:GhCalls[0] | Should -Match 'release list -R 51Degrees/example'
     }
 
     It 'leaves out a draft release' {

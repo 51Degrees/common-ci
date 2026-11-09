@@ -98,11 +98,12 @@ function Get-LastTaggedRelease {
     $published = @{}
     if ($Repository) {
         # The newest hundred releases. An older release cannot be the last.
-        $releases = gh api "repos/$Repository/releases?per_page=100" `
-            --jq '.[] | [.tag_name, (.published_at // ""), .draft] | @tsv'
+        $releases = gh release list -R $Repository --exclude-drafts `
+            --limit 100 --json tagName,publishedAt `
+            --jq '.[] | [.tagName, (.publishedAt // "")] | @tsv'
         foreach ($line in $releases) {
-            $tag, $date, $draft = $line -split "`t"
-            if ($date -and $draft -ne 'true') { $published[$tag] = $date }
+            $tag, $date = $line -split "`t"
+            if ($date) { $published[$tag] = $date }
         }
     }
 
