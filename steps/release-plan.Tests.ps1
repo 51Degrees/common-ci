@@ -324,6 +324,18 @@ Describe 'Get-PackageVersions' {
         $versions['dd'].Path | Should -Be 'device/dd'
     }
 
+    It 'gives a package tagged at HEAD its tag, as unchanged' {
+        # The release plan leaves out a package already released from HEAD.
+        $script:Repo = New-Repo $script:AllFiles ($script:AllTags + 'ipi/4.5.0')
+        Add-Commit $script:Repo @('pipeline/engines/a.py')
+        git -C $script:Repo tag 'engines/4.5.39'
+        $engines = (Get-PackageVersions $script:Repo $script:Graph)['engines']
+        $engines.Version | Should -Be '4.5.39'
+        $engines.Previous | Should -Be ([version]'4.5.39')
+        $engines.Release | Should -BeFalse
+        $engines.Reason | Should -Be 'unchanged since 4.5.39'
+    }
+
     It 'gives a first release its FirstVersion and no previous release' {
         $script:Repo = New-Repo $script:AllFiles $script:AllTags
         Add-Commit $script:Repo @()
@@ -359,6 +371,27 @@ Describe 'Get-PackageVersions' {
         $versions = Get-PackageVersions $script:Repo
         $versions['location'].Version | Should -Be '4.5.5'
         @($versions.Keys).Count | Should -Be 6
+    }
+
+    It 'binds to a [hashtable] parameter, whose entries need .Version' {
+        # The signature of Set-PomVersions in 51degrees-java's ci/release.ps1,
+        # which writes $Versions[<name>] into each pom.xml. It writes one
+        # element as that does and one reading .Version.
+        function Set-PomVersions([string]$RepoPath, [hashtable]$Versions) {
+            $pom = [xml]'<project><entry/><version/></project>'
+            $pom.project['entry'].InnerText = $Versions['engines']
+            $pom.project['version'].InnerText = $Versions['engines'].Version
+            return [pscustomobject]@{ Versions = $Versions; Pom = $pom }
+        }
+        $script:Repo = New-Repo $script:AllFiles ($script:AllTags + 'ipi/4.5.0')
+        Add-Commit $script:Repo @('pipeline/engines/a.py')
+        $given = Set-PomVersions $script:Repo (
+            Get-PackageVersions $script:Repo $script:Graph)
+        $given.Versions.GetType() | Should -Be ([hashtable])
+        @($given.Versions.Keys).Count | Should -Be 6
+        $given.Pom.project['version'].InnerText | Should -Be '4.5.39'
+        $given.Pom.project['entry'].InnerText |
+            Should -BeLike '@{Name=engines; *Version=4.5.39;*}'
     }
 }
 

@@ -257,7 +257,10 @@ function Get-ReleasePlan([string]$RepoPath, $Packages = $null) {
 #   Release   whether the plan releases it
 #   Reason    why it is released, or that it is unchanged
 # $Packages defaults to ci/packages.json and $Plan to its release plan. A
-# package that has never been released and is not in the plan stops it.
+# package that has never been released and is not in the plan stops it. The
+# values are every published package, so they are not a plan for the -Plan of
+# check-version-bump.ps1 or check-release-interval.ps1, which would refuse a
+# package released less than a week ago that this release leaves alone.
 function Get-PackageVersions([string]$RepoPath, $Packages = $null,
         $Plan = $null) {
     if ($null -eq $Packages) {
