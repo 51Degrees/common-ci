@@ -21,6 +21,7 @@ $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
 
 . $PSScriptRoot/comment-only.ps1
+. $PSScriptRoot/documentation-pattern.ps1
 
 # The text of a file at a revision, or null where the file is not there.
 function Get-FileText([string]$Revision, [string]$Path) {
@@ -43,9 +44,7 @@ Write-Host "$($changed.Count) files changed against $Branch"
 $changed | ForEach-Object { Write-Host "  $_" }
 
 $entries = @(ConvertFrom-Json $Options -AsHashtable)
-$code = @($changed | Where-Object {
-    $_ -notmatch '(?i)\.md$' -and $_ -notmatch '(^|/)docs/'
-})
+$code = @($changed | Where-Object { $_ -notmatch $DocumentationPattern })
 
 if ($changed.Count -gt 0 -and $code.Count -eq 0) {
     Write-Host "Only documentation changed, so no entry is built"
