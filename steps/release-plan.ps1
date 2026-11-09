@@ -47,8 +47,7 @@ $ReleasePlanDefaultIgnore = @(
     '**/LICENSE*'
 )
 
-# Reads ci/packages.json. Kept as a function so the tests can give their own
-# list.
+# The entries of the repository's ci/packages.json.
 function Get-Packages([string]$RepoPath) {
     return Get-Content -Raw (Join-Path $RepoPath 'ci/packages.json') |
         ConvertFrom-Json
