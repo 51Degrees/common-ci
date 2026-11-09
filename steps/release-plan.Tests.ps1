@@ -316,6 +316,62 @@ Describe 'Get-ReleasePlan' {
     }
 }
 
+Describe 'Get-PackageVersions' {
+    It 'gives each published package its planned version or its last release' {
+        $script:Repo = New-Repo $script:AllFiles ($script:AllTags + 'ipi/4.5.0')
+        Add-Commit $script:Repo @('pipeline/engines/a.py')
+        $versions = Get-PackageVersions $script:Repo $script:Graph
+        @($versions.Keys) | Should -Be @(
+            'core', 'engines', 'did', 'dd', 'location', 'ipi')
+        @($versions.Values.Version) | Should -Be @(
+            '4.5.38', '4.5.39', '4.5.38', '4.5.97', '4.5.4', '4.5.1')
+        @($versions.Values.Release) | Should -Be @(
+            $false, $true, $false, $true, $false, $true)
+        $versions['engines'].Previous | Should -Be ([version]'4.5.38')
+        $versions['engines'].Reason | Should -Be 'changed since 4.5.38 (1 file)'
+        $versions['core'].Previous | Should -Be ([version]'4.5.38')
+        $versions['core'].Reason | Should -Be 'unchanged since 4.5.38'
+        $versions['dd'].Path | Should -Be 'device/dd'
+    }
+
+    It 'gives a first release its FirstVersion and no previous release' {
+        $script:Repo = New-Repo $script:AllFiles $script:AllTags
+        Add-Commit $script:Repo @()
+        $ipi = (Get-PackageVersions $script:Repo $script:Graph)['ipi']
+        $ipi.Version | Should -Be '4.5.0'
+        $ipi.Previous | Should -BeNullOrEmpty
+        $ipi.Release | Should -BeTrue
+    }
+
+    It 'takes a plan the caller already has' {
+        $script:Repo = New-Repo $script:AllFiles ($script:AllTags + 'ipi/4.5.0')
+        $plan = @([pscustomobject]@{
+            Name = 'dd'; Path = 'device/dd'; Version = '4.5.97'
+            Previous = [version]'4.5.96'; Reason = 'given' })
+        $versions = Get-PackageVersions $script:Repo $script:Graph $plan
+        $versions['dd'].Version | Should -Be '4.5.97'
+        $versions['dd'].Reason | Should -Be 'given'
+        $versions['engines'].Release | Should -BeFalse
+    }
+
+    It 'stops on a package never released that the plan leaves out' {
+        $script:Repo = New-Repo $script:AllFiles $script:AllTags
+        { Get-PackageVersions $script:Repo $script:Graph @() } |
+            Should -Throw '*ipi has never been released*'
+    }
+
+    It 'reads ci/packages.json when given no package list' {
+        $script:Repo = New-Repo $script:AllFiles ($script:AllTags + 'ipi/4.5.0')
+        $null = New-Item -ItemType Directory -Force (Join-Path $script:Repo 'ci')
+        $script:Graph | ConvertTo-Json |
+            Set-Content (Join-Path $script:Repo 'ci' 'packages.json')
+        Add-Commit $script:Repo @('location/setup.py')
+        $versions = Get-PackageVersions $script:Repo
+        $versions['location'].Version | Should -Be '4.5.5'
+        @($versions.Keys).Count | Should -Be 6
+    }
+}
+
 Describe 'Get-ReleasePlan, for files that do not count' {
     BeforeEach {
         $script:Repo = New-Repo $script:AllFiles ($script:AllTags + 'ipi/4.5.0')

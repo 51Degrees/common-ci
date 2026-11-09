@@ -269,3 +269,51 @@ function Get-ReleasePlan([string]$RepoPath, $Packages = $null) {
         }
     }
 }
+
+# The version of every published package once HEAD is released, in the order
+# of the package list, as an ordered dictionary from each package's name to an
+# entry with:
+#   Name      the package's name
+#   Path      its folder
+#   Version   its version in the release plan, or its last release when the
+#             plan leaves it out
+#   Previous  its last release, or $null before its first
+#   Release   whether the plan releases it
+#   Reason    why it is released, or that it is unchanged
+# $Packages defaults to ci/packages.json and $Plan to its release plan. A
+# package that has never been released and is not in the plan stops it.
+function Get-PackageVersions([string]$RepoPath, $Packages = $null,
+        $Plan = $null) {
+    if ($null -eq $Packages) {
+        $Packages = Get-Packages $RepoPath
+    }
+    if ($null -eq $Plan) {
+        $Plan = @(Get-ReleasePlan $RepoPath $Packages)
+    }
+    $versions = [ordered]@{}
+    foreach ($package in @($Packages | Where-Object { $_.Publish -eq $true })) {
+        $release = $Plan | Where-Object { $_.Name -eq $package.Name }
+        if ($null -ne $release) {
+            $version = $release.Version
+            $previous = $release.Previous
+            $reason = $release.Reason
+        } else {
+            $previous = @(Get-ReleasedVersions $RepoPath $package.Name)[-1]
+            if ($null -eq $previous) {
+                throw "$($package.Name) has never been released and is not " +
+                    "in the release plan."
+            }
+            $version = "$previous"
+            $reason = "unchanged since $previous"
+        }
+        $versions[$package.Name] = [pscustomobject]@{
+            Name = $package.Name
+            Path = $package.Path
+            Version = $version
+            Previous = $previous
+            Release = $null -ne $release
+            Reason = $reason
+        }
+    }
+    return $versions
+}
