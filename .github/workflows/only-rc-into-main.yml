@@ -16,10 +16,8 @@ name: Only rc into main
 #
 # In a repository that publishes packages it also fails a release, being a
 # pull request from rc into the default branch, that comes less than a week
-# after the last one merged, unless the label early-release is on it. That
-# applies from the date in the configuration variable WEEKLY_RELEASES_FROM,
-# and before it, or with the variable unset, the check only reports. See
-# steps/check-release-pull-request.ps1.
+# after the last one merged, unless the label early-release is on it, as
+# CONTRIBUTING.md explains under "Releasing at most once a week".
 
 on:
   workflow_call:

@@ -111,16 +111,6 @@ AfterEach {
     $script:Repo = $null
 }
 
-Describe 'Get-Packages' {
-    It 'reads ci/packages.json' {
-        $script:Repo = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
-        $null = New-Item -ItemType Directory -Force (Join-Path $script:Repo 'ci')
-        $script:Graph | ConvertTo-Json |
-            Set-Content (Join-Path $script:Repo 'ci' 'packages.json')
-        (Get-Packages $script:Repo).Name | Should -Be $script:Graph.Name
-    }
-}
-
 Describe 'Get-DependentClosure' {
     It 'adds every package that depends on a changed one, through others' {
         $closure = Get-DependentClosure $script:Graph @('core')

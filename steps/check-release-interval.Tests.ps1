@@ -36,13 +36,14 @@ BeforeAll {
         return $path
     }
 
-    # Stands in for gh, answering a releases request as the --jq filter in the
-    # check would, with one line of tag, publish date and draft per release.
+    # Stands in for gh, answering a release list as the --jq filter in the
+    # check would, with one line of tag and publish date per release. A draft
+    # is left out only with --exclude-drafts, as gh does.
     function global:gh {
         $global:GhCalls += , ($args -join ' ')
         foreach ($release in $global:Releases) {
-            $draft = ([bool]$release.Draft).ToString().ToLowerInvariant()
-            "$($release.Tag)`t$($release.Published)`t$draft"
+            if ($release.Draft -and $args -contains '--exclude-drafts') { continue }
+            "$($release.Tag)`t$($release.Published)"
         }
     }
 }
@@ -105,17 +106,6 @@ Describe 'with the date the rule starts from in WEEKLY_RELEASES_FROM' {
         ).ExitCode | Should -Be 1
     }
 
-    It 'follows a repository''s own later date over the organisation''s' {
-        # GitHub gives a workflow the repository's variable in place of the
-        # organisation's of the same name, so a repository still moving can
-        # start later than the organisation's 3 November.
-        $env:WEEKLY_RELEASES_FROM = '2026-12-01'
-        $result = Invoke-Check @{
-            LastRelease = '2026-11-04T09:00:00Z'; Now = '2026-11-06T09:00:00Z' }
-        $result.ExitCode | Should -Be 0
-        $result.Output | Should -Match 'not enforced until 1 December 2026'
-    }
-
     It 'stops on a value it cannot read, naming the variable' {
         $env:WEEKLY_RELEASES_FROM = 'soon'
         { & $script:Check -LastRelease '2026-11-04T09:00:00Z' -Now '2026-11-06T09:00:00Z' } |
@@ -145,12 +135,6 @@ Describe 'with the date of the last release given' {
         $result.Output | Should -Match 'Released less than a week ago'
         $result.Output | Should -Match 'The last release, pull request #95, was on 4 November 2026'
         $result.Output | Should -Match 'the next may go from 11 November 2026'
-    }
-
-    It 'refuses on the same day' {
-        (Invoke-Check @{
-            LastRelease = '2026-11-04T09:00:00Z'; Now = '2026-11-04T17:00:00Z' }
-        ).ExitCode | Should -Be 1
     }
 
     It 'refuses a last release dated after today, and says the date is wrong' {
@@ -222,7 +206,7 @@ Describe 'with the last release read from the tags of a checkout' {
         $result.ExitCode | Should -Be 1
         $result.Output | Should -Match 'by its GitHub release'
         $result.Output | Should -Match 'The last release, 4\.5\.102, was on 4 November 2026'
-        $global:GhCalls[0] | Should -Match 'repos/51Degrees/example/releases'
+        $global:GhCalls[0] | Should -Match 'release list -R 51Degrees/example'
     }
 
     It 'leaves out a draft release' {

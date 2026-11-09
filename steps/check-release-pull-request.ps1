@@ -4,13 +4,9 @@ Refuses a pull request from rc into the default branch that comes less than a
 week after the last one merged, unless it carries the early release label.
 
 .DESCRIPTION
-A pull request from rc into the default branch is a release, so the last
-release is the one of those merged most recently. check-release-interval.ps1
-makes the decision and says why.
-
-The label is read from GitHub when this runs rather than from the event,
-because a re-run of the check reuses the event of the first run. Adding a
-label does not run the check again, so the refusal says to re-run it.
+The last release is the pull request from rc merged most recently, and
+check-release-interval.ps1 makes the decision. The label is read from GitHub
+rather than from the event, because a re-run reuses the event of the first run.
 
 .PARAMETER Repository
 The repository on GitHub, such as 51Degrees/51degrees-cxx.
@@ -53,16 +49,10 @@ $owner = $Repository.Split('/')[0]
 $closed = gh api ("repos/$Repository/pulls?state=closed&base=$DefaultBranch" +
     "&head=${owner}:rc&sort=updated&direction=desc&per_page=100") `
     --jq '.[] | [.number, (.merged_at // "")] | @tsv'
-$last = $null
-foreach ($line in $closed) {
-    $number, $mergedAt = $line -split "`t"
-    if (-not $mergedAt -or [int]$number -eq $PullRequest) { continue }
-    $time = [DateTimeOffset]::Parse($mergedAt,
-        [Globalization.CultureInfo]::InvariantCulture)
-    if ($null -eq $last -or $time -gt $last.Time) {
-        $last = [pscustomobject]@{ Number = $number; Time = $time }
-    }
-}
+# GitHub gives every time in UTC ending in Z, so the times sort as text.
+$last = $closed | ConvertFrom-Csv -Delimiter "`t" -Header Number, MergedAt |
+    Where-Object { $_.MergedAt -and [int]$_.Number -ne $PullRequest } |
+    Sort-Object MergedAt | Select-Object -Last 1
 
 $rerun = $RunUrl ? "re-run this check from $RunUrl" : 're-run this check'
 $arguments = @{
@@ -71,7 +61,7 @@ $arguments = @{
         "$rerun, as adding a label does not run it.")
 }
 if ($last) {
-    $arguments.LastRelease = $last.Time.ToString('o')
+    $arguments.LastRelease = $last.MergedAt
     $arguments.LastReleaseName = "pull request #$($last.Number)"
 }
 if ($Now) { $arguments.Now = $Now }
