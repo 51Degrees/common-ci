@@ -64,13 +64,9 @@ if ($changed.Count -gt 0 -and $code.Count -eq 0) {
             Write-Host "Only comments changed in $_"
         }
     }
-    # An exit code is checked as well as an exception, as run-script.ps1 does,
-    # so a failing script stops the build rather than choosing nothing.
-    $global:LASTEXITCODE = 0
-    $selected = @(& $select @arguments)
-    if ($LASTEXITCODE -ne 0) {
-        throw "ci/select-options.ps1 failed with code $LASTEXITCODE"
-    }
+    # run-script.ps1 fails on an exit code as well as an exception, so a
+    # failing script stops the build rather than choosing nothing.
+    $selected = @(& $PSScriptRoot/run-script.ps1 $select $arguments)
 }
 
 # Anything the script writes to its output is read as an entry, so a stray
@@ -84,9 +80,6 @@ foreach ($entry in $selected) {
         throw "ci/select-options.ps1 returned '$what', which is not a single entry of ci/options.json"
     }
     $kept += $entry.Name
-}
-foreach ($name in $names) {
-    Write-Host ($kept -ccontains $name ? "Building $name" : "Not building $name")
 }
 
 $json = ConvertTo-Json -InputObject $selected -Depth 10 -Compress
