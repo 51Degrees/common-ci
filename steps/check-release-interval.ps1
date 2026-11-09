@@ -4,28 +4,13 @@ Refuses a release that comes less than a week after the last one, unless an
 early release has been allowed.
 
 .DESCRIPTION
-A package repository releases at most once a week. Changes collect on rc and
-reach the default branch together in one release, so each package gets at
-most one new version a week.
+A package repository releases at most once a week, as CONTRIBUTING.md
+explains under "Releasing at most once a week". Days are whole calendar days
+in UTC.
 
-Search is as much the reason as the people who use the packages. nuget.org
-asks search engines not to index a package's page while the oldest of its 20
-newest versions is less than 90 days old (BlockSearchEngineIndexing in
-NuGetGallery's DisplayPackageViewModel.cs). A package that releases more often
-than once every four and a half days drops out of search. Weekly keeps every
-package clear of that, with room for an urgent fix.
-
-Days are whole calendar days in UTC, so a release on a Wednesday allows the
-next from the following Wednesday, at any time of day.
-
-To release early, set ALLOW_EARLY_RELEASE to 'true'. That is a decision made
-for one release, as a major or minor version bump is.
-
-The rule applies from the date in WEEKLY_RELEASES_FROM, such as 2026-11-03,
-which the workflows take from the GitHub configuration variable of the same
-name, the repository's own where it has one and otherwise the organisation's.
-Unset, or set to a date still ahead, the check reports what it would decide
-and passes, so the rule starts without a change to the code.
+ALLOW_EARLY_RELEASE set to 'true' allows an early release. The rule applies
+from the date in WEEKLY_RELEASES_FROM, such as 2026-11-03. Unset, or set to a
+date still ahead, the check reports what it would decide and passes.
 
 .PARAMETER LastRelease
 When the last release went out, such as 2026-11-04T10:15:00Z. A time with no
@@ -206,10 +191,7 @@ if ($lastDay -gt $today) {
     Write-Output ""
 }
 Write-Output ("Nothing is released. A package repository releases at most once a " +
-    "week, so each package gets at most one new version a week. nuget.org asks " +
-    "search engines not to index a package's page while the oldest of its 20 " +
-    "newest versions is under 90 days old, so a package that releases more often " +
-    "drops out of search.")
+    "week, for the reasons in https://github.com/51Degrees/common-ci/blob/main/CONTRIBUTING.md#releasing-at-most-once-a-week")
 Write-Output ""
 Write-Output "Without permission, run this again on or after $(Format-Day $firstDay)."
 exit 1

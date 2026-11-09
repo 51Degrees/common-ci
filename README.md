@@ -283,7 +283,7 @@ All tests associated with the repository are run only at this point to avoid rep
 
 Pull Requests can only be initiated by a project Contributor, Administrator, or GitHub actions.
 
-A repository can build each pull request on only the entries of `ci/options.json` its changes need, by adding `ci/select-options.ps1` (see [Select Options](./REPO_SCRIPTS.md#select-options)). A change to documentation alone then builds nothing. Without that script every entry is built, as before. The branch itself, which is pull request 0, and a run with `full-matrix` always build every entry. [`release-pull-request.yml`](.github/workflows/release-pull-request.yml) builds the release pull request from `rc` into the default branch on every entry, as a dry run that merges nothing, so everything a release carries is built and tested in full before it reaches the default branch.
+A repository can build each pull request on only the entries of `ci/options.json` its changes need, by adding `ci/select-options.ps1`, as [Select Options](./REPO_SCRIPTS.md#select-options) describes. Without that script every entry is built. [`release-pull-request.yml`](.github/workflows/release-pull-request.yml) builds the release pull request from `rc` into the default branch on every entry, as a dry run that merges nothing, so everything a release carries is built and tested in full before it reaches the default branch.
 
 These inputs of `nightly-pull-requests.yml` keep the behaviour described above unless a repository changes them.
 

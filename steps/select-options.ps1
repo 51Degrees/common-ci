@@ -7,16 +7,9 @@ param (
     [string]$SetVariable = "Options"
 )
 # Chooses the ci/options.json entries a pull request is built on, from the
-# files it changes, and sets $SetVariable to them as JSON.
-#
-# A change to documentation alone builds nothing. That is every Markdown file
-# and anything in a docs folder, the files steps/package-update-required.ps1
-# leaves out of a release, less .github, because a workflow change has to be
-# tried. Otherwise the repository's ci/select-options.ps1 chooses. It is given
-# every entry and the changed files that are not documentation, and returns
-# the entries to build, which it may change, for example to add a Depth that
-# its own scripts read. Where it declares a CommentOnlyFiles parameter, it is
-# also given those of the files whose change touches only comments.
+# files it changes, and sets $SetVariable to them as JSON. A change to
+# documentation alone builds nothing, and otherwise the repository's
+# ci/select-options.ps1 chooses, as REPO_SCRIPTS.md "Select Options" describes.
 $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
 
@@ -44,6 +37,8 @@ Write-Host "$($changed.Count) files changed against $Branch"
 $changed | ForEach-Object { Write-Host "  $_" }
 
 $entries = @(ConvertFrom-Json $Options -AsHashtable)
+# Unlike package-update-required.ps1, this keeps a change under .github,
+# because a workflow change has to be tried.
 $code = @($changed | Where-Object { $_ -notmatch $DocumentationPattern })
 
 if ($changed.Count -gt 0 -and $code.Count -eq 0) {

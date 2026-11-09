@@ -4,13 +4,9 @@ Refuses a pull request from rc into the default branch that comes less than a
 week after the last one merged, unless it carries the early release label.
 
 .DESCRIPTION
-A pull request from rc into the default branch is a release, so the last
-release is the one of those merged most recently. check-release-interval.ps1
-makes the decision and says why.
-
-The label is read from GitHub when this runs rather than from the event,
-because a re-run of the check reuses the event of the first run. Adding a
-label does not run the check again, so the refusal says to re-run it.
+The last release is the pull request from rc merged most recently, and
+check-release-interval.ps1 makes the decision. The label is read from GitHub
+rather than from the event, because a re-run reuses the event of the first run.
 
 .PARAMETER Repository
 The repository on GitHub, such as 51Degrees/51degrees-cxx.
