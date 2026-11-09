@@ -228,7 +228,7 @@ works out. It provides `ci/check-version-bump.ps1`, which the publish runs in
 place of this script. That script must refuse the same moves, with the same
 exit codes, for every package it is about to publish, usually by running this
 script once for each with `-TagPrefix` or `-ReleasedVersion`. The publish never
-skips the check. Only the repositories named in that step of
+skips the check. Only the repositories named in `OWN_CHECK` in
 `nightly-publish.yml` may replace it with their own, so a script that checks
 nothing cannot switch it off, and naming another repository is a change to
 common-ci.
@@ -276,6 +276,6 @@ It runs in two places.
 
 Every version tag counts at the publish, plain or `<package>/<version>`, so a
 repository that tags each package is held to one release a week across its
-packages. A repository named in that step of `nightly-publish.yml` may check
+packages. A repository named in `OWN_CHECK` in `nightly-publish.yml` may check
 each package on its own instead, in `ci/check-release-interval.ps1`, by
 running this script with `-TagPrefix` for each package it is about to publish.
