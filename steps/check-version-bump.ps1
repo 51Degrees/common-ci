@@ -21,9 +21,9 @@ unpublish, and PyPI burns the number even when a release is deleted. And
 callers on the previous line do not receive the release, so a fix published
 this way does not reach them.
 
-On 18 September 2026 one directive in one commit took sixteen NuGet packages,
-three npm packages, five PyPI projects and three crates to 4.6 overnight, and
-withdrawing them took a day and could not be completed.
+This check guards against one directive in one commit moving every package a
+repository publishes to a new minor version in a single run, in every
+registry at once.
 
 To publish a bump deliberately, set ALLOW_VERSION_BUMP to 'true' in the
 workflow run. That is a decision someone makes with their name on it rather
