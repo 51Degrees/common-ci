@@ -28,8 +28,12 @@ Write-Output "::group::Checkout PR"
 Write-Output "::endgroup::"
 
 Write-Output "::group::Get Build Options"
-$Options = Get-Content $RepoName/ci/options.json -Raw
-$Options = $Options -replace "`r?`n", ""
+# This branch builds pull requests without the macOS entries, so that their
+# full builds leave the macOS runners free.
+$Entries = Get-Content $RepoName/ci/options.json -Raw | ConvertFrom-Json
+$Kept = @($Entries | Where-Object { $_.Image -notlike 'macos*' })
+Write-Output "Left out $($Entries.Count - $Kept.Count) macOS entries"
+$Options = ConvertTo-Json -InputObject $Kept -Compress -Depth 20
 Write-Output $Options
 Write-Output options=$Options | Out-File $GitHubOutput -Append
 Write-Output "::endgroup::"
