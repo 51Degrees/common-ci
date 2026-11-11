@@ -98,6 +98,7 @@ on:
       MaxioApiKeyUsSandbox:
       MaxioApiKeyEuSandbox:
       PearlTableauToken:
+      PearlMatomoToken:
 
 defaults:
   run:
