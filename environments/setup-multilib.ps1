@@ -40,5 +40,18 @@ if ($architecture -ne [Runtime.InteropServices.Architecture]::X64) {
 }
 
 Write-Output "Installing $($Packages -join ' ')"
-sudo apt-get update
-sudo apt-get install -y @Packages
+try {
+    sudo apt-get update
+    sudo apt-get install -y @Packages
+} catch {
+    # The runner's own mirror can stop resolving for a while. The main Ubuntu
+    # archive holds the same packages, so try it once before failing.
+    Write-Output "apt failed on the runner's mirror, so trying archive.ubuntu.com"
+    foreach ($file in @("/etc/apt/apt-mirrors.txt", "/etc/apt/sources.list.d/ubuntu.sources", "/etc/apt/sources.list")) {
+        if (Test-Path $file) {
+            sudo sed -i "s#azure.archive.ubuntu.com#archive.ubuntu.com#g" $file
+        }
+    }
+    sudo apt-get update
+    sudo apt-get install -y @Packages
+}
