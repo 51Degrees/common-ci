@@ -158,6 +158,12 @@ foreach ($asset in $Assets) {
             "entitlement.json" {
                 Get-FromBulkData -License:$DeviceDetection -Data 'entitlement' -Output $cache/$_
             }
+            # The Cloud's browser tests baseline, key maps, gatherer script
+            # and raster bank. Pearl publishes them daily as their own data
+            # source so they never go into the data file customers are sent.
+            "browser-tests.json" {
+                Get-FromBulkData -License:$DeviceDetection -Data 'browser-tests' -Output $cache/$_
+            }
             default { Write-Error "Unknown asset: $_" }
         }
     } catch {
