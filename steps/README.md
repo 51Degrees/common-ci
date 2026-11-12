@@ -150,6 +150,13 @@ Creates a pull request to the main branch of the repository.
 
 Push any committed changes in the repo to the branch that is currently checked out.
 
+## Release Plan
+**Script: `release-plan.ps1`**
+
+Dot-sourced, rather than run, by the scripts of a repository that gives each package its own version, which lists its packages in `ci/packages.json` (see [Packages](/REPO_SCRIPTS.md#packages)).
+
+`Get-ReleasePlan` gives the packages a publish of `HEAD` releases, in the order to publish them, each with its version and the reason. A package is released when a file that counts under its folders changed since its last tag, `<package>/<version>`, and every package that depends on it is released with it, because its requirement moves. A change only to documentation, tests, examples or a LICENSE file does not count, whatever the case of its name, unless the package sets `IgnoreDefaults` to false, and nor does a file the package's `Ignore` globs match. A repository can leave out more with a `ci/release-plan-filter.ps1` (see [Release Plan Filter](/REPO_SCRIPTS.md#release-plan-filter)). Each version is the package's last tag plus one patch, and a package with no tag starts at its `FirstVersion`. A package already tagged at `HEAD` is left out, so a second publish of the same commit releases nothing, and a package marked as not published, such as the examples, never is.
+
 ## Run Repo Script
 **Script: `run-script.ps1`**
 
@@ -160,6 +167,13 @@ required by the repo script, and used when calling the repo script.
 The `RepoName`, `OrgName`, and `DryRun` parameters will always be available to the repo script, and do not need to be added to the options object.
 
 For a more detailed description of options usage, see [Options](/DESIGN.md#build-options).
+
+## Select Options
+**Script: `select-options.ps1`**
+
+Chooses the entries of a repository's `options.json` that a pull request is built on, and sets them as JSON under the variable name provided. The Configure job of `nightly-pull-request.yml` calls it for a pull request when the repository has `ci/select-options.ps1`.
+
+[Select Options](/REPO_SCRIPTS.md#select-options) describes what it gives that script and what the script returns.
 
 ## Set Resource Keys
 **Script: `set-resource-keys.ps1`**
@@ -214,7 +228,7 @@ works out. It provides `ci/check-version-bump.ps1`, which the publish runs in
 place of this script. That script must refuse the same moves, with the same
 exit codes, for every package it is about to publish, usually by running this
 script once for each with `-TagPrefix` or `-ReleasedVersion`. The publish never
-skips the check. Only the repositories named in that step of
+skips the check. Only the repositories named in `OWN_CHECK` in
 `nightly-publish.yml` may replace it with their own, so a script that checks
 nothing cannot switch it off, and naming another repository is a change to
 common-ci.
@@ -227,3 +241,15 @@ publish is where they all meet.
 To release a bump deliberately, run the workflow with `allow-version-bump`
 set. That is a decision with somebody's name on it rather than something a
 commit message does quietly.
+
+## Release interval
+
+`steps/check-release-interval.ps1` refuses a release that comes less than
+seven calendar days, counted in UTC, after the last one, as
+[Releasing at most once a week](/CONTRIBUTING.md#releasing-at-most-once-a-week)
+explains. `nightly-publish.yml` runs it on the newest version tag, and a
+repository named in that workflow's `OWN_CHECK` runs it for each package about
+to be published. `.github/workflows/only-rc-into-main.yml` runs it, through
+`steps/check-release-pull-request.ps1`, on a pull request from `rc` into the
+default branch, counting from the last one merged. Each script's help says how
+it dates the last release.

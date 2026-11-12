@@ -7,7 +7,10 @@ param (
     [Parameter(Mandatory=$true)]
     [string]$GitHubToken,
     [Parameter(Mandatory=$true)]
-    [string]$GitHubOutput
+    [string]$GitHubOutput,
+    # When no pull request is eligible, build the branch itself, as pull
+    # request 0. A run started by hand can leave that to the nightly.
+    [bool]$BuildWithoutPullRequests = $true
 )
 $ErrorActionPreference = "Stop"
 
@@ -31,5 +34,9 @@ if ($env:PULL_REQUEST_IDS) {
 
 Write-Output "::group::Get Pull Requests"
 ./steps/get-pull-requests.ps1 -RepoName $RepoName -OrgName $OrgName -Branch $Branch -SetVariable PullRequestIds
+if (!$BuildWithoutPullRequests -and "$PullRequestIds" -eq '0') {
+    Write-Output "No pull request is eligible, so nothing is built"
+    $PullRequestIds = @()
+}
 Write-Output "pull_request_ids=[$($PullRequestIds -Join ',')]" | Out-File $GitHubOutput -Append
 Write-Output "::endgroup::"
