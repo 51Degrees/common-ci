@@ -79,6 +79,13 @@
           "stopsBeingReadIn": ""
         },
         {
+          "name": "CLOUD_ENDPOINT",
+          "languages": [
+            "python"
+          ],
+          "stopsBeingReadIn": ""
+        },
+        {
           "name": "FIFTYONE_CLOUD_ENDPOINT",
           "languages": [
             "dotnet"
@@ -183,6 +190,15 @@
           "stopsBeingReadIn": ""
         }
       ]
+    },
+    {
+      "name": "_51DEGREES_DEPRECATED_NAMES_CHILD_EXPECTS",
+      "holds": "Set by a Rust test for the child process it starts, saying what the child should find. Nobody else needs to set it.",
+      "readByPackages": false,
+      "languages": [
+        "rust"
+      ],
+      "deprecated": []
     },
     {
       "name": "_51DEGREES_DERIVED_PROPERTIES_COMMIT",
@@ -505,7 +521,15 @@
       "languages": [
         "php"
       ],
-      "deprecated": []
+      "deprecated": [
+        {
+          "name": "AcceptChBrowserKey",
+          "languages": [
+            "php"
+          ],
+          "stopsBeingReadIn": ""
+        }
+      ]
     },
     {
       "name": "_51DEGREES_RESOURCE_KEY_ACCEPTCH_HARDWARE",
@@ -514,7 +538,15 @@
       "languages": [
         "php"
       ],
-      "deprecated": []
+      "deprecated": [
+        {
+          "name": "AcceptChHardwareKey",
+          "languages": [
+            "php"
+          ],
+          "stopsBeingReadIn": ""
+        }
+      ]
     },
     {
       "name": "_51DEGREES_RESOURCE_KEY_ACCEPTCH_NONE",
@@ -523,7 +555,15 @@
       "languages": [
         "php"
       ],
-      "deprecated": []
+      "deprecated": [
+        {
+          "name": "AcceptChNoneKey",
+          "languages": [
+            "php"
+          ],
+          "stopsBeingReadIn": ""
+        }
+      ]
     },
     {
       "name": "_51DEGREES_RESOURCE_KEY_ACCEPTCH_PLATFORM",
@@ -532,7 +572,15 @@
       "languages": [
         "php"
       ],
-      "deprecated": []
+      "deprecated": [
+        {
+          "name": "AcceptChPlatformKey",
+          "languages": [
+            "php"
+          ],
+          "stopsBeingReadIn": ""
+        }
+      ]
     },
     {
       "name": "_51DEGREES_RESOURCE_KEY_BASIC",
@@ -669,6 +717,24 @@
       "deprecated": []
     },
     {
+      "name": "_51DEGREES_TEST_BOTH",
+      "holds": "A name the PHP environment variable tests set and read back to test the reader. Nobody else needs to set it.",
+      "readByPackages": false,
+      "languages": [
+        "php"
+      ],
+      "deprecated": []
+    },
+    {
+      "name": "_51DEGREES_TEST_EMPTY",
+      "holds": "A name the PHP environment variable tests set and read back to test the reader. Nobody else needs to set it.",
+      "readByPackages": false,
+      "languages": [
+        "php"
+      ],
+      "deprecated": []
+    },
+    {
       "name": "_51DEGREES_TEST_FILTER",
       "holds": "A filter that limits which .NET tests the CI scripts run.",
       "readByPackages": false,
@@ -691,6 +757,42 @@
       "readByPackages": false,
       "languages": [
         "python"
+      ],
+      "deprecated": []
+    },
+    {
+      "name": "_51DEGREES_TEST_NEITHER",
+      "holds": "A name the PHP environment variable tests set and read back to test the reader. Nobody else needs to set it.",
+      "readByPackages": false,
+      "languages": [
+        "php"
+      ],
+      "deprecated": []
+    },
+    {
+      "name": "_51DEGREES_TEST_ONCE",
+      "holds": "A name the PHP environment variable tests set and read back to test the reader. Nobody else needs to set it.",
+      "readByPackages": false,
+      "languages": [
+        "php"
+      ],
+      "deprecated": []
+    },
+    {
+      "name": "_51DEGREES_TEST_PLACEHOLDER",
+      "holds": "A name the PHP environment variable tests set and read back to test the reader. Nobody else needs to set it.",
+      "readByPackages": false,
+      "languages": [
+        "php"
+      ],
+      "deprecated": []
+    },
+    {
+      "name": "_51DEGREES_TEST_UNSET",
+      "holds": "A name the PHP environment variable tests set and read back to test the reader. Nobody else needs to set it.",
+      "readByPackages": false,
+      "languages": [
+        "php"
       ],
       "deprecated": []
     },
@@ -858,6 +960,22 @@
         "php",
         "python",
         "rust"
+      ]
+    },
+    {
+      "name": "FIFTYONE_AGENT_SIGNATURE_NETWORK_TESTS",
+      "holds": "Set to 1 to let the .NET agent signature tests reach the network.",
+      "setBy": "Whoever runs those tests",
+      "languages": [
+        "dotnet"
+      ]
+    },
+    {
+      "name": "FIFTYONE_WRAPPER",
+      "holds": "The path of a wrapper file the PHP fork safety test used to load. The file has gone, so the test only reports that the name is deprecated and nothing replaces it.",
+      "setBy": "Whoever runs that test",
+      "languages": [
+        "php"
       ]
     },
     {

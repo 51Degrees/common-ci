@@ -12,10 +12,11 @@ Every current name starts `_51DEGREES_`. "Packages" means a published package re
 
 | Name | What it holds | Read by | Languages | Deprecated names |
 | --- | --- | --- | --- | --- |
-| `_51DEGREES_CLOUD_ENDPOINT` | The address of the 51Degrees cloud service to send requests to, in place of the public service. | Packages | .NET, Go, Java, Node.js, PHP, Python, Rust | `FOD_CLOUD_API_URL` (.NET, Go, Java, Node.js, PHP, Python, Rust), `51DEGREES_CLOUD_ENDPOINT` (.NET, Rust), `cloud_endpoint` (PHP, Python), `FIFTYONE_CLOUD_ENDPOINT` (.NET), `51D_CLOUD_ENDPOINT` (.NET) |
+| `_51DEGREES_CLOUD_ENDPOINT` | The address of the 51Degrees cloud service to send requests to, in place of the public service. | Packages | .NET, Go, Java, Node.js, PHP, Python, Rust | `FOD_CLOUD_API_URL` (.NET, Go, Java, Node.js, PHP, Python, Rust), `51DEGREES_CLOUD_ENDPOINT` (.NET, Rust), `cloud_endpoint` (PHP, Python), `CLOUD_ENDPOINT` (Python), `FIFTYONE_CLOUD_ENDPOINT` (.NET), `51D_CLOUD_ENDPOINT` (.NET) |
 | `_51DEGREES_CLOUD_REQUEST_ORIGIN` | The Origin header the cloud examples send, for a resource key that only accepts requests from listed origins. | Tests, examples and CI | Python | `cloud_request_origin` (Python) |
 | `_51DEGREES_CXX_DIR` | The folder of a 51degrees-cxx source tree for the Rust -sys crates to build from, in place of the copy in the crate. | Packages | Rust | `FIFTYONE_CXX_DIR` (Rust) |
 | `_51DEGREES_DD_PATH` | The path of a Device Detection data file (.hash) for tests and examples to use. | Tests, examples and CI | .NET, Go, Java, Node.js, PHP, Python, Rust | `51DEGREES_DD_PATH` (.NET, Java, Node.js, PHP, Python, Rust), `DEVICEDETECTIONDATAFILE` (.NET), `FIFTYONE_DATA_FILE` (PHP), `DATA_FILE` (Go), `DD_DATA_FILE` (Go) |
+| `_51DEGREES_DEPRECATED_NAMES_CHILD_EXPECTS` | Set by a Rust test for the child process it starts, saying what the child should find. Nobody else needs to set it. | Tests, examples and CI | Rust |  |
 | `_51DEGREES_DERIVED_PROPERTIES_COMMIT` | The commit of the derived-properties repository the Rust crate was built from. Its build script sets it, so nobody else needs to. | Packages | Rust |  |
 | `_51DEGREES_EVIDENCE_YAML` | The path of a YAML file of evidence for the examples to process. | Tests, examples and CI | Go | `EVIDENCE_YAML` (Go) |
 | `_51DEGREES_EXAMPLE_HTTPS_PORTS` | The HTTPS ports the .NET web examples listen on. | Tests, examples and CI | .NET |  |
@@ -33,10 +34,10 @@ Every current name starts `_51DEGREES_`. "Packages" means a published package re
 | `_51DEGREES_REQUIRE_TAC` | When set, tests that need the TAC and NativeModel properties fail rather than skip when the Device Detection data file lacks them. | Tests, examples and CI | Rust |  |
 | `_51DEGREES_RESOURCE_KEY` | A resource key for the 51Degrees cloud service, for tests and examples. When it is unset, the .NET examples take the first variable, in name order, whose name starts _51DEGREES_RESOURCE_KEY, such as one for each data tier. | Tests, examples and CI | .NET, Go, Java, Node.js, PHP, Python, Rust | `RESOURCE_KEY` (.NET, Java, Node.js, PHP, Python), `resource_key` (PHP, Python), `51DEGREES_RESOURCE_KEY` (.NET, Java, Node.js, Rust), `SUPER_RESOURCE_KEY` (.NET, Java), `51D_RESOURCE_KEY` (.NET) |
 | `_51DEGREES_RESOURCE_KEY_51DID` | A resource key for the 51Did live tests and examples. | Tests, examples and CI | .NET, Rust |  |
-| `_51DEGREES_RESOURCE_KEY_ACCEPTCH_BROWSER` | A resource key for the Accept-CH tests, whose properties need the browser client hints. | Tests, examples and CI | PHP |  |
-| `_51DEGREES_RESOURCE_KEY_ACCEPTCH_HARDWARE` | A resource key for the Accept-CH tests, whose properties need the hardware client hints. | Tests, examples and CI | PHP |  |
-| `_51DEGREES_RESOURCE_KEY_ACCEPTCH_NONE` | A resource key for the Accept-CH tests, whose properties need no client hints. | Tests, examples and CI | PHP |  |
-| `_51DEGREES_RESOURCE_KEY_ACCEPTCH_PLATFORM` | A resource key for the Accept-CH tests, whose properties need the platform client hints. | Tests, examples and CI | PHP |  |
+| `_51DEGREES_RESOURCE_KEY_ACCEPTCH_BROWSER` | A resource key for the Accept-CH tests, whose properties need the browser client hints. | Tests, examples and CI | PHP | `AcceptChBrowserKey` (PHP) |
+| `_51DEGREES_RESOURCE_KEY_ACCEPTCH_HARDWARE` | A resource key for the Accept-CH tests, whose properties need the hardware client hints. | Tests, examples and CI | PHP | `AcceptChHardwareKey` (PHP) |
+| `_51DEGREES_RESOURCE_KEY_ACCEPTCH_NONE` | A resource key for the Accept-CH tests, whose properties need no client hints. | Tests, examples and CI | PHP | `AcceptChNoneKey` (PHP) |
+| `_51DEGREES_RESOURCE_KEY_ACCEPTCH_PLATFORM` | A resource key for the Accept-CH tests, whose properties need the platform client hints. | Tests, examples and CI | PHP | `AcceptChPlatformKey` (PHP) |
 | `_51DEGREES_RESOURCE_KEY_BASIC` | A resource key on the basic data tier, for tests of what that tier can and cannot read. | Tests, examples and CI | .NET, Rust |  |
 | `_51DEGREES_RESOURCE_KEY_BESPOKE` | A resource key that carries the CloudV5Bespoke product, for live cloud tests. | Tests, examples and CI | .NET, Java, Node.js, Python, Rust |  |
 | `_51DEGREES_RESOURCE_KEY_BROWSER` | A resource key for the Accept-CH tests, whose properties need the browser client hints. | Tests, examples and CI | Node.js | `TEST_BROWSER_RESOURCE_KEY` (Node.js) |
@@ -46,8 +47,14 @@ Every current name starts `_51DEGREES_`. "Packages" means a published package re
 | `_51DEGREES_RESOURCE_KEY_SUPER` | A resource key that carries every property, for tests. | Tests, examples and CI | Node.js | `TEST_SUPER_RESOURCE_KEY` (Node.js) |
 | `_51DEGREES_RUN_PERFORMANCE_TESTS` | When set, the Python example tests also run the performance examples. | Tests, examples and CI | Python | `run_performance_tests` (Python) |
 | `_51DEGREES_RUSTC_VERSION` | The version of the Rust compiler, which usage sharing reports as the language version. The crate's build script sets it, so nobody else needs to. | Packages | Rust |  |
+| `_51DEGREES_TEST_BOTH` | A name the PHP environment variable tests set and read back to test the reader. Nobody else needs to set it. | Tests, examples and CI | PHP |  |
+| `_51DEGREES_TEST_EMPTY` | A name the PHP environment variable tests set and read back to test the reader. Nobody else needs to set it. | Tests, examples and CI | PHP |  |
 | `_51DEGREES_TEST_FILTER` | A filter that limits which .NET tests the CI scripts run. | Tests, examples and CI | .NET | `FIFTYONE_TEST_FILTER` (.NET) |
 | `_51DEGREES_TEST_NAMED_KEY` | A name the test of the Python shared key helper sets and reads back. Nobody else needs to set it. | Tests, examples and CI | Python |  |
+| `_51DEGREES_TEST_NEITHER` | A name the PHP environment variable tests set and read back to test the reader. Nobody else needs to set it. | Tests, examples and CI | PHP |  |
+| `_51DEGREES_TEST_ONCE` | A name the PHP environment variable tests set and read back to test the reader. Nobody else needs to set it. | Tests, examples and CI | PHP |  |
+| `_51DEGREES_TEST_PLACEHOLDER` | A name the PHP environment variable tests set and read back to test the reader. Nobody else needs to set it. | Tests, examples and CI | PHP |  |
+| `_51DEGREES_TEST_UNSET` | A name the PHP environment variable tests set and read back to test the reader. Nobody else needs to set it. | Tests, examples and CI | PHP |  |
 | `_51DEGREES_TRANSLATIONS_DIR` | The folder of IP Intelligence translation files the Rust crate builds in. Its build script sets it, so nobody else needs to. | Packages | Rust |  |
 | `_51DEGREES_UA_CSV` | The path of a CSV file of User-Agents for the PHP fork safety test. | Tests, examples and CI | PHP | `FIFTYONE_UA_CSV` (PHP) |
 | `_51DEGREES_WEB_ETAG_CHILD` | Set by a web test for the child process it starts, so the child knows its part. Nobody else needs to set it. | Tests, examples and CI | Go, Rust |  |
@@ -56,7 +63,7 @@ Every current name starts `_51DEGREES_`. "Packages" means a published package re
 
 Each deprecated name is shown with the languages that read it in place of the current name. A release is shown where it has been decided which release stops reading the name.
 
-The list holds 35 deprecated names, and no release has been decided yet for any of them to stop being read.
+The list holds 40 deprecated names, and no release has been decided yet for any of them to stop being read.
 
 ## Other names
 
@@ -78,6 +85,8 @@ These names do not start `_51DEGREES_`, and 51Degrees files read them. Each is a
 | `directory` | The folder the Node.js examples and tests find their files from. The example tests set it to the example's own folder, and each reader uses its own folder when it is unset. | The Node.js example tests, or whoever runs an example | Node.js |
 | `EXAMPLE_LANG` | The language of the example under test, for the browser test suite. | The shared browser test suite in 51Degrees/selenium-api-tests, which every language's CI starts | .NET, Java, Node.js, PHP, Python, Rust |
 | `EXAMPLE_URL` | The address of the running example the browser test suite opens. | The shared browser test suite in 51Degrees/selenium-api-tests, which every language's CI starts | .NET, Java, Node.js, PHP, Python, Rust |
+| `FIFTYONE_AGENT_SIGNATURE_NETWORK_TESTS` | Set to 1 to let the .NET agent signature tests reach the network. | Whoever runs those tests | .NET |
+| `FIFTYONE_WRAPPER` | The path of a wrapper file the PHP fork safety test used to load. The file has gone, so the test only reports that the name is deprecated and nothing replaces it. | Whoever runs that test | PHP |
 | `FROM_FORK` | Whether the pull request comes from a fork, for the Rust examples workflow. | The workflow step that reads it, from its own env block | Rust |
 | `IPINTELLIGENCELICENSEKEY_DOTNET` | A licence key for the .NET IP Intelligence data file update tests. | The .NET CI scripts | .NET |
 | `LicenseKey` | A licence key for the Java and Node.js data file update examples, read as LicenseKey and then as LICENSEKEY. | Whoever runs those examples | Java, Node.js |
