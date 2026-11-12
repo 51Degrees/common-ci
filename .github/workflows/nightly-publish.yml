@@ -25,6 +25,10 @@ on:
         description: 'Publish even though the version moves the major or minor place.'
         type: boolean
         default: false
+      allow-early-release:
+        description: 'Publish even though the last release was less than a week ago.'
+        type: boolean
+        default: false
       cache-assets:
         type: boolean
         default: false
@@ -128,6 +132,14 @@ defaults:
 jobs:
   Configure:
     runs-on: ubuntu-latest
+    env:
+      # The repositories that give each package its own version, which check
+      # every package they are about to publish in their own
+      # ci/check-version-bump.ps1 and ci/check-release-interval.ps1, with the
+      # same exit codes, because one version or tag cannot speak for them all.
+      # Only these may replace the shared checks, so a script that checks
+      # nothing cannot switch a check off.
+      OWN_CHECK: 51degrees-dotnet 51degrees-go 51degrees-java 51degrees-node 51degrees-php
     outputs:
       asset_cache_key: ${{ steps.prefetch-assets.outputs.cache-key }}
       options: ${{ steps.configure.outputs.options }}
@@ -166,23 +178,42 @@ jobs:
       # Every route to a version meets here: a '+semver' directive, a tag
       # pushed by hand, a version committed in a file, or one typed into a
       # dispatch. Gating any one of them leaves the others open, so the
-      # check is at the publish rather than at the merge. A repository that
-      # gives each package its own version checks every package it is about
-      # to publish in its own ci/check-version-bump.ps1, with the same exit
-      # codes, because one version cannot speak for them all. Only the
-      # repositories named here may replace the shared check, so a script that
-      # checks nothing cannot switch the check off.
+      # check is at the publish rather than at the merge.
       - name: Refuse a version bump nobody asked for
         shell: pwsh
         env:
           ALLOW_VERSION_BUMP: ${{ inputs.allow-version-bump }}
         run: |
-          $OwnCheck = @('51degrees-dotnet')
+          $OwnCheck = $env:OWN_CHECK -split ' '
           if ('${{ inputs.repo-name }}' -in $OwnCheck -and (Test-Path ./${{ inputs.repo-name }}/ci/check-version-bump.ps1)) {
             ./${{ inputs.repo-name }}/ci/check-version-bump.ps1 -RepoName '${{ inputs.repo-name }}' -Version '${{ steps.configure.outputs.version }}'
           } else {
             ./steps/check-version-bump.ps1 -Version '${{ steps.configure.outputs.version }}' -RepoName '${{ inputs.repo-name }}'
           }
+
+      # One release a week, as CONTRIBUTING.md "Releasing at most once a week"
+      # explains. Only a run with something to publish is checked, and a dry
+      # run, which publishes nothing, reports a refusal without stopping.
+      - name: Refuse a release less than a week after the last
+        if: steps.configure.outputs.update_required == 'true'
+        continue-on-error: ${{ inputs.dryrun }}
+        shell: pwsh
+        env:
+          ALLOW_EARLY_RELEASE: ${{ inputs.allow-early-release }}
+          GH_TOKEN: ${{ secrets.token }}
+          REPO_NAME: ${{ inputs.repo-name }}
+          REPOSITORY: ${{ inputs.org-name }}/${{ inputs.repo-name }}
+          # The calling repository's variable, or the organisation's.
+          WEEKLY_RELEASES_FROM: ${{ vars.WEEKLY_RELEASES_FROM }}
+        run: |
+          $OwnCheck = $env:OWN_CHECK -split ' '
+          $HowToAllow = "run this repository's Publish workflow with allow-early-release set."
+          if ($env:REPO_NAME -in $OwnCheck -and (Test-Path "./$env:REPO_NAME/ci/check-release-interval.ps1")) {
+            & "./$env:REPO_NAME/ci/check-release-interval.ps1" -RepoName $env:REPO_NAME -Repository $env:REPOSITORY -HowToAllow $HowToAllow
+          } else {
+            ./steps/check-release-interval.ps1 -RepoName $env:REPO_NAME -Repository $env:REPOSITORY -HowToAllow $HowToAllow
+          }
+
       - name: Prefetch assets
         id: prefetch-assets
         if: inputs.cache-assets

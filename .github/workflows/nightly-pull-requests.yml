@@ -41,6 +41,18 @@ on:
         description: 'Examples repo branch for the tests; empty keeps the one in options.json'
         type: string
         default: ''
+      fail-fast:
+        description: 'Cancel the other configurations of a pull request when one fails'
+        type: boolean
+        default: true
+      full-matrix:
+        description: 'Build every entry in ci/options.json, even where ci/select-options.ps1 would choose fewer'
+        type: boolean
+        default: false
+      build-without-pull-requests:
+        description: 'When no pull request is eligible, build the branch itself on every entry'
+        type: boolean
+        default: true
     secrets:
       token:
         required: true
@@ -101,19 +113,23 @@ jobs:
         env:
           PULL_REQUEST_IDS: ${{ inputs.prs }}
         run: |
+          $BuildWithoutPullRequests = [bool]::Parse("${{ inputs.build-without-pull-requests }}")
           ./nightly-pull-requests.get-prs.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ inputs.branch != '' && inputs.branch || github.ref_name }} `
           -GitHubToken ${{ secrets.token }} `
-          -GitHubOutput $Env:GITHUB_OUTPUT
+          -GitHubOutput $Env:GITHUB_OUTPUT `
+          -BuildWithoutPullRequests $BuildWithoutPullRequests
     outputs:
       pull_request_ids: ${{ steps.get_pull_requests.outputs.pull_request_ids }}
       branch: ${{ steps.get_pull_requests.outputs.branch }}
 
-  # Run the common workflow on each pull request
+  # Run the common workflow on each pull request. There are none when nothing
+  # is eligible and build-without-pull-requests is false.
   NightlyPullRequest:
     needs: GetPullRequests
+    if: needs.GetPullRequests.outputs.pull_request_ids != '[]'
     strategy:
       fail-fast: false
       #max-parallel: 1 # run each PR sequentially
@@ -138,4 +154,6 @@ jobs:
       skip-compare-performance: ${{ inputs.skip-compare-performance }}
       skip-lite-tests: ${{ inputs.skip-lite-tests }}
       examples-branch: ${{ inputs.examples-branch }}
+      fail-fast: ${{ inputs.fail-fast }}
+      full-matrix: ${{ inputs.full-matrix }}
     secrets: inherit
