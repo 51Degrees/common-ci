@@ -21,13 +21,16 @@ The packages are signed in the `build-packages-nuget.ps1` script as they are bui
 
 ## Updating Dependencies 
 
-The `run-update-dependencies.ps1` script loops through each .csproj file found in the repository to identify outdated packages for each project. Projects inside a git submodule are skipped: they are updated in the submodule's own repository. By iterating through the projects and packages, the script can analyze and update each project individually, ensuring that the package updates are performed at the appropriate project level.
+Dependencies are updated by `outdated.ps1`, a thin wrapper around the
+[dotnet-outdated](https://github.com/dotnet-outdated/dotnet-outdated) tool. It
+restores the target, then runs `dotnet-outdated --recursive --upgrade` with
+`--version-lock Minor`, so a package moves to its newest patch but never to a
+new minor or major version.
 
-The script executes the dotnet list command to retrieve a list of outdated packages for the project. It then filters the output to consider only lines starting with >, indicating outdated packages. From each line, it extracts the package name, major version, minor version, and patch version using regular expressions.
-
-Next, it searches for the available versions of the package on the NuGet package source https://api.nuget.org/v3/index.json, matching the major and minor versions. The available versions are sorted in ascending order based on the patch version, and the last (highest) version is selected.
-
-The script checks if the highest patch version differs from the currently installed version. If an update is required it executes dotnet add command to update the package to the highest available version.
+Passing `Target` scopes both commands to one solution or project. That is
+required where a repository root holds several solutions, and it also keeps the
+recursive upgrade away from projects that belong to a git submodule, which the
+commit step cannot stage.
 
 ## Common Parameters
 
@@ -115,17 +118,13 @@ See [Run Unit Tests](#Run-Unit-Tests)
 
 ## Update Dependencies
 
-**Script: `run-update-dependencies.ps1`**
+**Script: `outdated.ps1`**
 
-Updates all packages to the latest minor version.
+Installs the `dotnet-outdated-tool` and upgrades every package reference it
+finds, locked to the current minor version so only patch releases are taken.
 
 Takes the following additional parameters:
 | Parameter | Mandatory | Description |
 | --------- | :-------: | ----------- |
-| FetchVersions | | Script to fetch the available versions of a package when provided with the package name. The result must be an array of objects where each object has at least a `Version` element. By default, this calls the official NuGet source. |
-
-## Update Dependencies GitHub
-
-**Script: `run-update-dependencies-github.ps1`**
-
-Calls `run-update-dependencies.ps1` with a `FetchVersions` that gets the versions present in the organizations private NuGet repo on GitHub.
+| Target | | Solution or project to restore and update. A repository whose root holds more than one solution must set this so `dotnet restore` is not ambiguous, and setting it also keeps the update away from projects a git submodule brings in. When empty, both commands operate on the whole directory. |
+| ExtraArgs | | Further arguments passed straight through to `dotnet-outdated`. |
