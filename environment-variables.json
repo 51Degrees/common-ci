@@ -428,7 +428,7 @@
     },
     {
       "name": "_51DEGREES_REQUIRE_TAC",
-      "holds": "When set, tests that need the TAC and NativeModel properties fail rather than skip when the Device Detection data file has neither.",
+      "holds": "When set, tests that need the TAC and NativeModel properties fail rather than skip when the Device Detection data file lacks them.",
       "readByPackages": false,
       "languages": [
         "rust"
@@ -437,7 +437,7 @@
     },
     {
       "name": "_51DEGREES_RESOURCE_KEY",
-      "holds": "A resource key for the 51Degrees cloud service, for tests and examples.",
+      "holds": "A resource key for the 51Degrees cloud service, for tests and examples. When it is unset, the .NET examples take the first variable, in name order, whose name starts _51DEGREES_RESOURCE_KEY, such as one for each data tier.",
       "readByPackages": false,
       "languages": [
         "dotnet",
@@ -456,8 +456,7 @@
             "java",
             "node",
             "php",
-            "python",
-            "rust"
+            "python"
           ],
           "stopsBeingReadIn": ""
         },
@@ -513,15 +512,7 @@
       "languages": [
         "php"
       ],
-      "deprecated": [
-        {
-          "name": "AcceptChBrowserKey",
-          "languages": [
-            "php"
-          ],
-          "stopsBeingReadIn": ""
-        }
-      ]
+      "deprecated": []
     },
     {
       "name": "_51DEGREES_RESOURCE_KEY_ACCEPTCH_HARDWARE",
@@ -530,15 +521,7 @@
       "languages": [
         "php"
       ],
-      "deprecated": [
-        {
-          "name": "AcceptChHardwareKey",
-          "languages": [
-            "php"
-          ],
-          "stopsBeingReadIn": ""
-        }
-      ]
+      "deprecated": []
     },
     {
       "name": "_51DEGREES_RESOURCE_KEY_ACCEPTCH_NONE",
@@ -547,15 +530,7 @@
       "languages": [
         "php"
       ],
-      "deprecated": [
-        {
-          "name": "AcceptChNoneKey",
-          "languages": [
-            "php"
-          ],
-          "stopsBeingReadIn": ""
-        }
-      ]
+      "deprecated": []
     },
     {
       "name": "_51DEGREES_RESOURCE_KEY_ACCEPTCH_PLATFORM",
@@ -564,15 +539,7 @@
       "languages": [
         "php"
       ],
-      "deprecated": [
-        {
-          "name": "AcceptChPlatformKey",
-          "languages": [
-            "php"
-          ],
-          "stopsBeingReadIn": ""
-        }
-      ]
+      "deprecated": []
     },
     {
       "name": "_51DEGREES_RESOURCE_KEY_BASIC",
@@ -615,15 +582,6 @@
       ]
     },
     {
-      "name": "_51DEGREES_RESOURCE_KEY_FREE",
-      "holds": "A resource key on the free data tier, for the .NET examples.",
-      "readByPackages": false,
-      "languages": [
-        "dotnet"
-      ],
-      "deprecated": []
-    },
-    {
       "name": "_51DEGREES_RESOURCE_KEY_HARDWARE",
       "holds": "A resource key for the Accept-CH tests, whose properties need the hardware client hints.",
       "readByPackages": false,
@@ -656,15 +614,6 @@
           "stopsBeingReadIn": ""
         }
       ]
-    },
-    {
-      "name": "_51DEGREES_RESOURCE_KEY_PAID",
-      "holds": "A resource key on a paid data tier, for the .NET examples.",
-      "readByPackages": false,
-      "languages": [
-        "dotnet"
-      ],
-      "deprecated": []
     },
     {
       "name": "_51DEGREES_RESOURCE_KEY_PLATFORM",
@@ -825,7 +774,7 @@
     {
       "name": "API_KEY",
       "holds": "The NuGet key the .NET publish workflow passes to common-ci.",
-      "setBy": "The .NET publish workflow",
+      "setBy": "The workflow step that reads it, from its own env block",
       "languages": [
         "dotnet"
       ]
@@ -845,8 +794,8 @@
     },
     {
       "name": "COMMON_CI",
-      "holds": "The folder of a common-ci checkout, for CI scripts and their tests.",
-      "setBy": "The shared CI workflows",
+      "holds": "The folder of a common-ci checkout that is not beside the repository, for the CI scripts that use its steps, and their tests.",
+      "setBy": "Whoever runs those scripts outside the shared workflows",
       "languages": [
         "dotnet",
         "python"
@@ -871,7 +820,7 @@
     {
       "name": "DEVICE_DETECTION_KEY",
       "holds": "A licence key the Rust examples workflow reads to download the Device Detection data file.",
-      "setBy": "The Rust examples workflow",
+      "setBy": "The workflow step that reads it, from its own env block",
       "languages": [
         "rust"
       ]
@@ -879,7 +828,7 @@
     {
       "name": "DEVICE_DETECTION_URL",
       "holds": "The address the Rust examples workflow downloads the Device Detection data file from.",
-      "setBy": "The Rust examples workflow",
+      "setBy": "The workflow step that reads it, from its own env block",
       "languages": [
         "rust"
       ]
@@ -1002,8 +951,8 @@
     },
     {
       "name": "SKIP_WEB_PERFORMANCE",
-      "holds": "When true, the .NET CI leaves out the web performance test.",
-      "setBy": "The .NET CI scripts",
+      "holds": "When true, the .NET performance script leaves out the web performance test.",
+      "setBy": "Whoever runs the .NET performance script",
       "languages": [
         "dotnet"
       ]
@@ -1018,8 +967,8 @@
     },
     {
       "name": "SuperResourceKey",
-      "holds": "A resource key that carries every property, for the Java Geo-Location tests.",
-      "setBy": "The Java CI scripts",
+      "holds": "A resource key for the Java TAC and native model cloud examples and the Geo-Location tests, read as an environment variable or a system property.",
+      "setBy": "Whoever runs those examples or tests",
       "languages": [
         "java"
       ]
@@ -1034,8 +983,8 @@
     },
     {
       "name": "TestDataFile",
-      "holds": "A Device Detection data file for the Java on-premise web example test.",
-      "setBy": "The Java CI scripts",
+      "holds": "A Device Detection data file for the Java on-premise examples, read as an environment variable or a system property.",
+      "setBy": "Whoever runs those examples or their tests",
       "languages": [
         "java"
       ]
@@ -1043,7 +992,7 @@
     {
       "name": "TestLicenseKey",
       "holds": "A licence key for the Java live cloud tests, read after the _51DEGREES_ names.",
-      "setBy": "The Java CI scripts",
+      "setBy": "Whoever runs the Java tests",
       "languages": [
         "java"
       ]
@@ -1051,7 +1000,7 @@
     {
       "name": "TestResourceKey",
       "holds": "A resource key for the Java cloud tests, read as an environment variable or a system property.",
-      "setBy": "The Java CI scripts",
+      "setBy": "Whoever runs the Java tests",
       "languages": [
         "java"
       ]

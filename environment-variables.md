@@ -30,20 +30,18 @@ Every current name starts `_51DEGREES_`. "Packages" means a published package re
 | `_51DEGREES_LICENSE_KEY_CLOUDV5BESPOKE` | A licence key that carries the CloudV5Bespoke product, for live cloud tests. Java reads it after _51DEGREES_LICENSE_KEY_BESPOKE. | Tests, examples and CI | Java |  |
 | `_51DEGREES_REQUIRE_ENTERPRISE` | When set, tests that need an IP Intelligence Enterprise data file fail rather than skip without one. | Tests, examples and CI | Rust |  |
 | `_51DEGREES_REQUIRE_LOCATION` | When set, tests that need location properties fail rather than skip when the IP Intelligence data file has none. | Tests, examples and CI | Rust |  |
-| `_51DEGREES_REQUIRE_TAC` | When set, tests that need the TAC and NativeModel properties fail rather than skip when the Device Detection data file has neither. | Tests, examples and CI | Rust |  |
-| `_51DEGREES_RESOURCE_KEY` | A resource key for the 51Degrees cloud service, for tests and examples. | Tests, examples and CI | .NET, Go, Java, Node.js, PHP, Python, Rust | `RESOURCE_KEY` (.NET, Java, Node.js, PHP, Python, Rust), `resource_key` (PHP, Python), `51DEGREES_RESOURCE_KEY` (.NET, Java, Node.js, Rust), `SUPER_RESOURCE_KEY` (.NET, Java), `51D_RESOURCE_KEY` (.NET) |
+| `_51DEGREES_REQUIRE_TAC` | When set, tests that need the TAC and NativeModel properties fail rather than skip when the Device Detection data file lacks them. | Tests, examples and CI | Rust |  |
+| `_51DEGREES_RESOURCE_KEY` | A resource key for the 51Degrees cloud service, for tests and examples. When it is unset, the .NET examples take the first variable, in name order, whose name starts _51DEGREES_RESOURCE_KEY, such as one for each data tier. | Tests, examples and CI | .NET, Go, Java, Node.js, PHP, Python, Rust | `RESOURCE_KEY` (.NET, Java, Node.js, PHP, Python), `resource_key` (PHP, Python), `51DEGREES_RESOURCE_KEY` (.NET, Java, Node.js, Rust), `SUPER_RESOURCE_KEY` (.NET, Java), `51D_RESOURCE_KEY` (.NET) |
 | `_51DEGREES_RESOURCE_KEY_51DID` | A resource key for the 51Did live tests and examples. | Tests, examples and CI | .NET, Rust |  |
-| `_51DEGREES_RESOURCE_KEY_ACCEPTCH_BROWSER` | A resource key for the Accept-CH tests, whose properties need the browser client hints. | Tests, examples and CI | PHP | `AcceptChBrowserKey` (PHP) |
-| `_51DEGREES_RESOURCE_KEY_ACCEPTCH_HARDWARE` | A resource key for the Accept-CH tests, whose properties need the hardware client hints. | Tests, examples and CI | PHP | `AcceptChHardwareKey` (PHP) |
-| `_51DEGREES_RESOURCE_KEY_ACCEPTCH_NONE` | A resource key for the Accept-CH tests, whose properties need no client hints. | Tests, examples and CI | PHP | `AcceptChNoneKey` (PHP) |
-| `_51DEGREES_RESOURCE_KEY_ACCEPTCH_PLATFORM` | A resource key for the Accept-CH tests, whose properties need the platform client hints. | Tests, examples and CI | PHP | `AcceptChPlatformKey` (PHP) |
+| `_51DEGREES_RESOURCE_KEY_ACCEPTCH_BROWSER` | A resource key for the Accept-CH tests, whose properties need the browser client hints. | Tests, examples and CI | PHP |  |
+| `_51DEGREES_RESOURCE_KEY_ACCEPTCH_HARDWARE` | A resource key for the Accept-CH tests, whose properties need the hardware client hints. | Tests, examples and CI | PHP |  |
+| `_51DEGREES_RESOURCE_KEY_ACCEPTCH_NONE` | A resource key for the Accept-CH tests, whose properties need no client hints. | Tests, examples and CI | PHP |  |
+| `_51DEGREES_RESOURCE_KEY_ACCEPTCH_PLATFORM` | A resource key for the Accept-CH tests, whose properties need the platform client hints. | Tests, examples and CI | PHP |  |
 | `_51DEGREES_RESOURCE_KEY_BASIC` | A resource key on the basic data tier, for tests of what that tier can and cannot read. | Tests, examples and CI | .NET, Rust |  |
 | `_51DEGREES_RESOURCE_KEY_BESPOKE` | A resource key that carries the CloudV5Bespoke product, for live cloud tests. | Tests, examples and CI | .NET, Java, Node.js, Python, Rust |  |
 | `_51DEGREES_RESOURCE_KEY_BROWSER` | A resource key for the Accept-CH tests, whose properties need the browser client hints. | Tests, examples and CI | Node.js | `TEST_BROWSER_RESOURCE_KEY` (Node.js) |
-| `_51DEGREES_RESOURCE_KEY_FREE` | A resource key on the free data tier, for the .NET examples. | Tests, examples and CI | .NET |  |
 | `_51DEGREES_RESOURCE_KEY_HARDWARE` | A resource key for the Accept-CH tests, whose properties need the hardware client hints. | Tests, examples and CI | Node.js | `TEST_HARDWARE_RESOURCE_KEY` (Node.js) |
 | `_51DEGREES_RESOURCE_KEY_NO_SETHEADER` | A resource key for the Accept-CH tests, whose properties need no client hints. | Tests, examples and CI | Node.js | `TEST_NO_SETHEADER_RESOURCE_KEY` (Node.js) |
-| `_51DEGREES_RESOURCE_KEY_PAID` | A resource key on a paid data tier, for the .NET examples. | Tests, examples and CI | .NET |  |
 | `_51DEGREES_RESOURCE_KEY_PLATFORM` | A resource key for the Accept-CH tests, whose properties need the platform client hints. | Tests, examples and CI | Node.js | `TEST_PLATFORM_RESOURCE_KEY` (Node.js) |
 | `_51DEGREES_RESOURCE_KEY_SUPER` | A resource key that carries every property, for tests. | Tests, examples and CI | Node.js | `TEST_SUPER_RESOURCE_KEY` (Node.js) |
 | `_51DEGREES_RUN_PERFORMANCE_TESTS` | When set, the Python example tests also run the performance examples. | Tests, examples and CI | Python | `run_performance_tests` (Python) |
@@ -58,7 +56,7 @@ Every current name starts `_51DEGREES_`. "Packages" means a published package re
 
 Each deprecated name is shown with the languages that read it in place of the current name. A release is shown where it has been decided which release stops reading the name.
 
-The list holds 40 deprecated names, and no release has been decided yet for any of them to stop being read.
+The list holds 36 deprecated names, and no release has been decided yet for any of them to stop being read.
 
 ## Other names
 
@@ -70,13 +68,13 @@ These names do not start `_51DEGREES_`, and 51Degrees files read them. Each is a
 | `ACCEPTCH_HARDWARE_KEY` | A resource key for the .NET Accept-CH tests, whose properties need the hardware client hints. | The .NET CI scripts | .NET |
 | `ACCEPTCH_NONE_KEY` | A resource key for the .NET Accept-CH tests, whose properties need no client hints. | The .NET CI scripts | .NET |
 | `ACCEPTCH_PLATFORM_KEY` | A resource key for the .NET Accept-CH tests, whose properties need the platform client hints. | The .NET CI scripts | .NET |
-| `API_KEY` | The NuGet key the .NET publish workflow passes to common-ci. | The .NET publish workflow | .NET |
+| `API_KEY` | The NuGet key the .NET publish workflow passes to common-ci. | The workflow step that reads it, from its own env block | .NET |
 | `CLOUD_ROOT_URL` | The address of the cloud service the browser test suite checks the examples against. | The shared browser test suite in 51Degrees/selenium-api-tests, which every language's CI starts | .NET, Java, Node.js, PHP, Python, Rust |
-| `COMMON_CI` | The folder of a common-ci checkout, for CI scripts and their tests. | The shared CI workflows | .NET, Python |
+| `COMMON_CI` | The folder of a common-ci checkout that is not beside the repository, for the CI scripts that use its steps, and their tests. | Whoever runs those scripts outside the shared workflows | .NET, Python |
 | `DATA_FILES` | The names of the data files a Rust workflow step fetches, one to a line. | The workflow step that reads it, from its own env block | Rust |
 | `DEVICEDETECTIONLICENSEKEY_DOTNET` | A licence key for the .NET Device Detection data file update tests. | The .NET CI scripts | .NET |
-| `DEVICE_DETECTION_KEY` | A licence key the Rust examples workflow reads to download the Device Detection data file. | The Rust examples workflow | Rust |
-| `DEVICE_DETECTION_URL` | The address the Rust examples workflow downloads the Device Detection data file from. | The Rust examples workflow | Rust |
+| `DEVICE_DETECTION_KEY` | A licence key the Rust examples workflow reads to download the Device Detection data file. | The workflow step that reads it, from its own env block | Rust |
+| `DEVICE_DETECTION_URL` | The address the Rust examples workflow downloads the Device Detection data file from. | The workflow step that reads it, from its own env block | Rust |
 | `EXAMPLE_LANG` | The language of the example under test, for the browser test suite. | The shared browser test suite in 51Degrees/selenium-api-tests, which every language's CI starts | .NET, Java, Node.js, PHP, Python, Rust |
 | `EXAMPLE_URL` | The address of the running example the browser test suite opens. | The shared browser test suite in 51Degrees/selenium-api-tests, which every language's CI starts | .NET, Java, Node.js, PHP, Python, Rust |
 | `FROM_FORK` | Whether the pull request comes from a fork, for the Rust examples workflow. | The workflow step that reads it, from its own env block | Rust |
@@ -89,13 +87,13 @@ These names do not start `_51DEGREES_`, and 51Degrees files read them. Each is a
 | `RESOURCE_KEY_CLOUD_V5_BESPOKE` | A resource key that carries the CloudV5Bespoke product, set by the .NET CI scripts. | The .NET CI scripts | .NET |
 | `ROOT` | The folder the Rust restore-data-files action restores data files into. | The workflow step that reads it, from its own env block | Rust |
 | `SELENIUM_TESTS_REF` | The branch of 51Degrees/selenium-api-tests the Java CI checks out. | Whoever runs the Java CI scripts | Java |
-| `SKIP_WEB_PERFORMANCE` | When true, the .NET CI leaves out the web performance test. | The .NET CI scripts | .NET |
+| `SKIP_WEB_PERFORMANCE` | When true, the .NET performance script leaves out the web performance test. | Whoever runs the .NET performance script | .NET |
 | `SPIN` | The path of the spin command for the Rust WebAssembly host test. | Whoever runs that test | Rust |
-| `SuperResourceKey` | A resource key that carries every property, for the Java Geo-Location tests. | The Java CI scripts | Java |
+| `SuperResourceKey` | A resource key for the Java TAC and native model cloud examples and the Geo-Location tests, read as an environment variable or a system property. | Whoever runs those examples or tests | Java |
 | `SWIG_VERSION` | The SWIG version the PHP wrapper check workflow builds. | The workflow step that reads it, from its own env block | PHP |
-| `TestDataFile` | A Device Detection data file for the Java on-premise web example test. | The Java CI scripts | Java |
-| `TestLicenseKey` | A licence key for the Java live cloud tests, read after the _51DEGREES_ names. | The Java CI scripts | Java |
-| `TestResourceKey` | A resource key for the Java cloud tests, read as an environment variable or a system property. | The Java CI scripts | Java |
+| `TestDataFile` | A Device Detection data file for the Java on-premise examples, read as an environment variable or a system property. | Whoever runs those examples or their tests | Java |
+| `TestLicenseKey` | A licence key for the Java live cloud tests, read after the _51DEGREES_ names. | Whoever runs the Java tests | Java |
+| `TestResourceKey` | A resource key for the Java cloud tests, read as an environment variable or a system property. | Whoever runs the Java tests | Java |
 | `VERSION` | The version the Rust publish workflow is releasing. | The workflow step that reads it, from its own env block | Rust |
 
 ## Languages
