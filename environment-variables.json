@@ -827,6 +827,14 @@
       ]
     },
     {
+      "name": "directory",
+      "holds": "The folder the Node.js examples and tests find their files from. The example tests set it to the example's own folder, and each reader uses its own folder when it is unset.",
+      "setBy": "The Node.js example tests, or whoever runs an example",
+      "languages": [
+        "node"
+      ]
+    },
+    {
       "name": "EXAMPLE_LANG",
       "holds": "The language of the example under test, for the browser test suite.",
       "setBy": "The shared browser test suite in 51Degrees/selenium-api-tests, which every language's CI starts",
