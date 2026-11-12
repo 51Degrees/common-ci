@@ -252,7 +252,9 @@ if ($Check) {
     if (Test-Path -LiteralPath $PagePath) {
         $written = (Get-Content -Raw -LiteralPath $PagePath) -replace "`r`n", "`n"
     }
-    if ($written -ne $page) {
+    # -cne, because a page that differs only in the letter case of a name
+    # names a different variable on Linux and macOS.
+    if ($written -cne $page) {
         throw ("$PagePath differs from the page $ListPath makes. " +
             'Run steps/environment-variables.ps1 and commit the page it writes.')
     }

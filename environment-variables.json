@@ -363,13 +363,6 @@
           "stopsBeingReadIn": ""
         },
         {
-          "name": "TEST_LICENSE_KEY",
-          "languages": [
-            "node"
-          ],
-          "stopsBeingReadIn": ""
-        },
-        {
           "name": "51DEGREES_LICENSE_KEY",
           "languages": [
             "rust"
@@ -876,6 +869,22 @@
       ]
     },
     {
+      "name": "LicenseKey",
+      "holds": "A licence key for the Node.js data file update examples, read as LicenseKey and then as LICENSEKEY.",
+      "setBy": "Whoever runs those examples",
+      "languages": [
+        "node"
+      ]
+    },
+    {
+      "name": "LICENSEKEY",
+      "holds": "A licence key for the Node.js data file update examples, read when LicenseKey is unset.",
+      "setBy": "Whoever runs those examples",
+      "languages": [
+        "node"
+      ]
+    },
+    {
       "name": "MODE",
       "holds": "Whether a Rust examples workflow job runs the on-premise or the cloud examples.",
       "setBy": "The workflow step that reads it, from its own env block",
@@ -974,6 +983,14 @@
       ]
     },
     {
+      "name": "SUPERRESOURCEKEY",
+      "holds": "A resource key for the Java TAC and native model cloud examples, read when SuperResourceKey is unset.",
+      "setBy": "Whoever runs those examples",
+      "languages": [
+        "java"
+      ]
+    },
+    {
       "name": "SWIG_VERSION",
       "holds": "The SWIG version the PHP wrapper check workflow builds.",
       "setBy": "The workflow step that reads it, from its own env block",
@@ -1001,6 +1018,14 @@
       "name": "TestResourceKey",
       "holds": "A resource key for the Java cloud tests, read as an environment variable or a system property.",
       "setBy": "Whoever runs the Java tests",
+      "languages": [
+        "java"
+      ]
+    },
+    {
+      "name": "TESTRESOURCEKEY",
+      "holds": "A resource key for the Java cloud tests and examples, read when TestResourceKey is unset.",
+      "setBy": "Whoever runs the Java tests or examples",
       "languages": [
         "java"
       ]
