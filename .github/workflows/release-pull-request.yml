@@ -1,0 +1,108 @@
+name: Release Pull Request
+
+# Builds and tests the release pull request, rc into the default branch, on
+# every entry in ci/options.json, and never merges it. Where a repository has
+# ci/select-options.ps1, a pull request into rc is built only on the entries
+# its changes need, so this is the one full build of everything a release
+# carries before it reaches the default branch. A repository calls it from a
+# workflow on its pull requests into the default branch, and passes the same
+# secrets as to nightly-pull-requests.yml:
+#
+#   on:
+#     pull_request:
+#       branches: [main]
+#   concurrency:
+#     group: release-pull-request-${{ github.event.pull_request.number }}
+#     cancel-in-progress: true
+#   jobs:
+#     Release:
+#       name: Release Pull Request
+#       uses: 51Degrees/common-ci/.github/workflows/release-pull-request.yml@main
+#       with:
+#         repo-name: ${{ github.event.repository.name }}
+#       secrets:
+#         token: ${{ secrets.ACCESS_TOKEN }}
+
+on:
+  workflow_call:
+    inputs:
+      repo-name:
+        type: string
+        required: true
+      org-name:
+        type: string
+        default: 51Degrees
+      cache-assets:
+        type: boolean
+        default: false
+      common-ci-ref:
+        type: string
+        default: ''
+      build-test-timeout-minutes:
+        type: number
+        default: 120
+      skip-compare-performance:
+        type: boolean
+        default: false
+      skip-lite-tests:
+        type: boolean
+        default: false
+    secrets:
+      token:
+        required: true
+      AcceptCHBrowserKey:
+      AcceptCHHardwareKey:
+      AcceptCHNoneKey:
+      AcceptCHPlatformKey:
+      ApiKey:
+      CsvUrl:
+      DeviceDetection:
+      DeviceDetectionUrl:
+      IpIntelligence:
+      IpIntelligenceUrl:
+      JavaGpgKeyPassphrase:
+      JavaPGP:
+      MavenSettings:
+      NPMAuthToken:
+      NginxCert:
+      NginxKey:
+      NginxJwtToken:
+      PypiToken:
+      ResourceKeyCloudV5Bespoke:
+      StrongNameKeyBase64:
+      TestBrowserResourceKey:
+      TestHardwareResourceKey:
+      TestLicenseKey:
+      TestNoSetHeaderResourceKey:
+      TestPlatformResourceKey:
+      TestPypiToken:
+      TestResourceKey:
+      TestSuperResourceKey:
+      UsePublishTests:
+      PearlLicense:
+
+jobs:
+  # Only the release itself, being this repository's rc into its default
+  # branch. A dry run, so Complete merges nothing.
+  Release:
+    if: >
+      github.event_name == 'pull_request' &&
+      github.head_ref == 'rc' &&
+      github.base_ref == github.event.repository.default_branch &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    name: Release - ${{ github.event.pull_request.number }}
+    uses: ./.github/workflows/nightly-pull-request.yml
+    with:
+      repo-name: ${{ inputs.repo-name }}
+      org-name: ${{ inputs.org-name }}
+      pull-request-id: ${{ github.event.pull_request.number }}
+      dryrun: 'true'
+      full-matrix: true
+      fail-fast: false
+      cache-assets: ${{ inputs.cache-assets }}
+      common-ci-ref: ${{ inputs.common-ci-ref }}
+      branch: ${{ github.base_ref }}
+      build-test-timeout-minutes: ${{ inputs.build-test-timeout-minutes }}
+      skip-compare-performance: ${{ inputs.skip-compare-performance }}
+      skip-lite-tests: ${{ inputs.skip-lite-tests }}
+    secrets: inherit
