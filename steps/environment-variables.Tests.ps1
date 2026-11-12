@@ -54,6 +54,32 @@ Describe 'The rules' {
         { Invoke-Script (Get-List) } | Should -Not -Throw
     }
 
+    It 'refuses a language with no name or no repository' {
+        $list = Get-List
+        $list.languages.go.repository = ''
+        { Invoke-Script $list } |
+            Should -Throw "*language 'go' needs a name and a repository*"
+    }
+
+    It 'refuses an empty current name' {
+        $list = Get-List
+        $list.variables[0].name = ''
+        { Invoke-Script $list } | Should -Throw '*A current name is empty*'
+    }
+
+    It 'refuses an empty other name' {
+        $list = Get-List
+        $list.otherNames[0].name = ' '
+        { Invoke-Script $list } | Should -Throw '*One of the other names is empty*'
+    }
+
+    It 'refuses an empty old name' {
+        $list = Get-List
+        $list.variables[0].deprecated = @(New-Old '' @('go'))
+        { Invoke-Script $list } |
+            Should -Throw "*An old name of '$($list.variables[0].name)' is empty*"
+    }
+
     It 'refuses a current name that does not start _51DEGREES_' {
         $list = Get-List
         $list.variables[0].name = 'FIFTYONE_RESOURCE_KEY'
@@ -135,6 +161,20 @@ Describe 'The rules' {
             Should -Throw "*the language 'cobol', which is not in the list's languages*"
     }
 
+    It 'refuses another name with a language the list does not name' {
+        $list = Get-List
+        $list.otherNames[0].languages = @('cobol')
+        { Invoke-Script $list } |
+            Should -Throw "*other name '$($list.otherNames[0].name)' names the language 'cobol'*"
+    }
+
+    It 'refuses an old name with no languages' {
+        $list = Get-List
+        $list.variables[0].deprecated = @(New-Old 'OLD_NAME' @())
+        { Invoke-Script $list } |
+            Should -Throw "*old name 'OLD_NAME' of '$($list.variables[0].name)' names no languages*"
+    }
+
     It 'refuses a current name with no languages' {
         $list = Get-List
         $list.variables[0].languages = @()
@@ -203,6 +243,17 @@ Describe 'The page' {
         Invoke-Script (Get-List) -Page $script:Page
         Add-Content -LiteralPath $script:Page -Value 'An edit by hand.'
         { Invoke-Script (Get-List) -Page $script:Page -Check } |
+            Should -Throw '*differs from the page*'
+    }
+
+    It 'fails the check when only the letter case of a name on the page differs' {
+        $list = Get-List
+        Invoke-Script $list -Page $script:Page
+        $name = $list.variables[0].name
+        $text = (Get-Content -Raw -LiteralPath $script:Page).Replace(
+            '`' + $name + '`', '`' + $name.ToLowerInvariant() + '`')
+        [System.IO.File]::WriteAllText($script:Page, $text)
+        { Invoke-Script $list -Page $script:Page -Check } |
             Should -Throw '*differs from the page*'
     }
 
