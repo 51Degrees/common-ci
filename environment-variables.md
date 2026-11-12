@@ -79,8 +79,8 @@ These names do not start `_51DEGREES_`, and 51Degrees files read them. Each is a
 | `EXAMPLE_URL` | The address of the running example the browser test suite opens. | The shared browser test suite in 51Degrees/selenium-api-tests, which every language's CI starts | .NET, Java, Node.js, PHP, Python, Rust |
 | `FROM_FORK` | Whether the pull request comes from a fork, for the Rust examples workflow. | The workflow step that reads it, from its own env block | Rust |
 | `IPINTELLIGENCELICENSEKEY_DOTNET` | A licence key for the .NET IP Intelligence data file update tests. | The .NET CI scripts | .NET |
-| `LicenseKey` | A licence key for the Node.js data file update examples, read as LicenseKey and then as LICENSEKEY. | Whoever runs those examples | Node.js |
-| `LICENSEKEY` | A licence key for the Node.js data file update examples, read when LicenseKey is unset. | Whoever runs those examples | Node.js |
+| `LicenseKey` | A licence key for the Java and Node.js data file update examples, read as LicenseKey and then as LICENSEKEY. | Whoever runs those examples | Java, Node.js |
+| `LICENSEKEY` | A licence key for the Java and Node.js data file update examples, read when LicenseKey is unset. | Whoever runs those examples | Java, Node.js |
 | `MODE` | Whether a Rust examples workflow job runs the on-premise or the cloud examples. | The workflow step that reads it, from its own env block | Rust |
 | `PAID_RESOURCE_KEY` | A resource key on a paid data tier, for the browser test suite. | The shared browser test suite in 51Degrees/selenium-api-tests, which every language's CI starts | .NET, Java, Node.js, PHP, Python, Rust |
 | `PATHS` | The data file paths the Rust restore-data-files action restores, one to a line. | The workflow step that reads it, from its own env block | Rust |
@@ -91,12 +91,18 @@ These names do not start `_51DEGREES_`, and 51Degrees files read them. Each is a
 | `SELENIUM_TESTS_REF` | The branch of 51Degrees/selenium-api-tests the Java CI checks out. | Whoever runs the Java CI scripts | Java |
 | `SKIP_WEB_PERFORMANCE` | When true, the .NET performance script leaves out the web performance test. | Whoever runs the .NET performance script | .NET |
 | `SPIN` | The path of the spin command for the Rust WebAssembly host test. | Whoever runs that test | Rust |
-| `SuperResourceKey` | A resource key for the Java TAC and native model cloud examples and the Geo-Location tests, read as an environment variable or a system property. | Whoever runs those examples or tests | Java |
+| `SuperResourceKey` | A resource key for the Java TAC and native model cloud examples and the Geo-Location tests, read as an environment variable or a system property, and by the examples under its upper case name as well. | Whoever runs those examples or tests | Java |
 | `SUPERRESOURCEKEY` | A resource key for the Java TAC and native model cloud examples, read when SuperResourceKey is unset. | Whoever runs those examples | Java |
 | `SWIG_VERSION` | The SWIG version the PHP wrapper check workflow builds. | The workflow step that reads it, from its own env block | PHP |
-| `TestDataFile` | A Device Detection data file for the Java on-premise examples, read as an environment variable or a system property. | Whoever runs those examples or their tests | Java |
+| `TestCloudEndpoint` | The cloud endpoint that the Java Device Detection web cloud example's options file names, read as TestCloudEndpoint, then TESTCLOUDENDPOINT, then as a system property. | The Java CI scripts, or whoever runs that example | Java |
+| `TestCloudEndPoint` | The cloud endpoint for the Java IP Intelligence cloud console examples, read as TestCloudEndPoint, then TESTCLOUDENDPOINT, then as a system property. | Whoever runs those examples | Java |
+| `TESTCLOUDENDPOINT` | The cloud endpoint for the Java cloud examples, read when TestCloudEndpoint or TestCloudEndPoint is unset. | Whoever runs those examples | Java |
+| `TestDataFile` | A Device Detection data file for the Java on-premise examples, which their options files name, read as TestDataFile, then TESTDATAFILE, then as a system property. | Whoever runs those examples or their tests | Java |
+| `TESTDATAFILE` | A Device Detection data file for the Java on-premise examples, read when TestDataFile is unset. | Whoever runs those examples or their tests | Java |
+| `TestDeviceDetectionDataFile` | A Device Detection data file that the Java IP Intelligence mixed examples' options files name, read as TestDeviceDetectionDataFile, then TESTDEVICEDETECTIONDATAFILE, then as a system property. | Whoever runs those examples | Java |
+| `TESTDEVICEDETECTIONDATAFILE` | A Device Detection data file for the Java IP Intelligence mixed examples, read when TestDeviceDetectionDataFile is unset. | Whoever runs those examples | Java |
 | `TestLicenseKey` | A licence key for the Java live cloud tests, read after the _51DEGREES_ names. | Whoever runs the Java tests | Java |
-| `TestResourceKey` | A resource key for the Java cloud tests, read as an environment variable or a system property. | Whoever runs the Java tests | Java |
+| `TestResourceKey` | A resource key for the Java cloud tests and examples, read as an environment variable or a system property, and by the examples and their options files under its upper case name as well. | Whoever runs the Java tests or examples | Java |
 | `TESTRESOURCEKEY` | A resource key for the Java cloud tests and examples, read when TestResourceKey is unset. | Whoever runs the Java tests or examples | Java |
 | `VERSION` | The version the Rust publish workflow is releasing. | The workflow step that reads it, from its own env block | Rust |
 

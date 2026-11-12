@@ -870,17 +870,19 @@
     },
     {
       "name": "LicenseKey",
-      "holds": "A licence key for the Node.js data file update examples, read as LicenseKey and then as LICENSEKEY.",
+      "holds": "A licence key for the Java and Node.js data file update examples, read as LicenseKey and then as LICENSEKEY.",
       "setBy": "Whoever runs those examples",
       "languages": [
+        "java",
         "node"
       ]
     },
     {
       "name": "LICENSEKEY",
-      "holds": "A licence key for the Node.js data file update examples, read when LicenseKey is unset.",
+      "holds": "A licence key for the Java and Node.js data file update examples, read when LicenseKey is unset.",
       "setBy": "Whoever runs those examples",
       "languages": [
+        "java",
         "node"
       ]
     },
@@ -976,7 +978,7 @@
     },
     {
       "name": "SuperResourceKey",
-      "holds": "A resource key for the Java TAC and native model cloud examples and the Geo-Location tests, read as an environment variable or a system property.",
+      "holds": "A resource key for the Java TAC and native model cloud examples and the Geo-Location tests, read as an environment variable or a system property, and by the examples under its upper case name as well.",
       "setBy": "Whoever runs those examples or tests",
       "languages": [
         "java"
@@ -999,9 +1001,57 @@
       ]
     },
     {
+      "name": "TestCloudEndpoint",
+      "holds": "The cloud endpoint that the Java Device Detection web cloud example's options file names, read as TestCloudEndpoint, then TESTCLOUDENDPOINT, then as a system property.",
+      "setBy": "The Java CI scripts, or whoever runs that example",
+      "languages": [
+        "java"
+      ]
+    },
+    {
+      "name": "TestCloudEndPoint",
+      "holds": "The cloud endpoint for the Java IP Intelligence cloud console examples, read as TestCloudEndPoint, then TESTCLOUDENDPOINT, then as a system property.",
+      "setBy": "Whoever runs those examples",
+      "languages": [
+        "java"
+      ]
+    },
+    {
+      "name": "TESTCLOUDENDPOINT",
+      "holds": "The cloud endpoint for the Java cloud examples, read when TestCloudEndpoint or TestCloudEndPoint is unset.",
+      "setBy": "Whoever runs those examples",
+      "languages": [
+        "java"
+      ]
+    },
+    {
       "name": "TestDataFile",
-      "holds": "A Device Detection data file for the Java on-premise examples, read as an environment variable or a system property.",
+      "holds": "A Device Detection data file for the Java on-premise examples, which their options files name, read as TestDataFile, then TESTDATAFILE, then as a system property.",
       "setBy": "Whoever runs those examples or their tests",
+      "languages": [
+        "java"
+      ]
+    },
+    {
+      "name": "TESTDATAFILE",
+      "holds": "A Device Detection data file for the Java on-premise examples, read when TestDataFile is unset.",
+      "setBy": "Whoever runs those examples or their tests",
+      "languages": [
+        "java"
+      ]
+    },
+    {
+      "name": "TestDeviceDetectionDataFile",
+      "holds": "A Device Detection data file that the Java IP Intelligence mixed examples' options files name, read as TestDeviceDetectionDataFile, then TESTDEVICEDETECTIONDATAFILE, then as a system property.",
+      "setBy": "Whoever runs those examples",
+      "languages": [
+        "java"
+      ]
+    },
+    {
+      "name": "TESTDEVICEDETECTIONDATAFILE",
+      "holds": "A Device Detection data file for the Java IP Intelligence mixed examples, read when TestDeviceDetectionDataFile is unset.",
+      "setBy": "Whoever runs those examples",
       "languages": [
         "java"
       ]
@@ -1016,8 +1066,8 @@
     },
     {
       "name": "TestResourceKey",
-      "holds": "A resource key for the Java cloud tests, read as an environment variable or a system property.",
-      "setBy": "Whoever runs the Java tests",
+      "holds": "A resource key for the Java cloud tests and examples, read as an environment variable or a system property, and by the examples and their options files under its upper case name as well.",
+      "setBy": "Whoever runs the Java tests or examples",
       "languages": [
         "java"
       ]
