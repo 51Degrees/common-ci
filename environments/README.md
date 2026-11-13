@@ -29,3 +29,6 @@ Neither package exists for arm64 under any name, so on an ARM runner apt answers
 installation candidate" and the script returns without installing anything rather than
 failing. Repositories should call this instead of apt directly, because each copy of that
 call carried the same fault.
+
+When apt fails on the runner's own mirror, `azure.archive.ubuntu.com`, the script points apt at
+`archive.ubuntu.com`, which holds the same packages, and tries once more before failing.
