@@ -365,6 +365,11 @@ Describe 'several packages, with -Plan' {
             [pscustomobject]@{ Name = 'dd' }) } |
             Should -Throw '*Give -Plan with -RepoName*'
     }
+
+    It 'stops on a misspelt parameter, rather than checking without it' {
+        { & $script:Check -RepoName $script:Repo -TagPrefx 'dd' } |
+            Should -Throw '*TagPrefx*'
+    }
 }
 
 }

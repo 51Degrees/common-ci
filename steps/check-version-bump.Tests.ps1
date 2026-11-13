@@ -326,6 +326,12 @@ Describe 'several packages, with -Plan' {
         { & $script:Check -RepoName $script:Repo } |
             Should -Throw '*Give -Version*'
     }
+
+    It 'stops on a misspelt parameter, rather than checking without it' {
+        { & $script:Check -RepoName $script:Repo -Version '4.5.39' `
+            -TagPrefx 'core' } |
+            Should -Throw '*TagPrefx*'
+    }
 }
 
 }
