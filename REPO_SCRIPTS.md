@@ -58,7 +58,7 @@ Only for a repository that tags each package `<package>/<version>`, and only whe
 
 Only for a repository that gives each package its own version. An array with one entry for each package, which the repository's scripts read through [`steps/release-plan.ps1`](/steps/README.md#release-plan) to work out what a publish releases. Each entry has:
 
-- `Name`, the package's name, which its tags start with, as `<Name>/<version>`.
+- `Name`, the package's name, which its tags start with, as `<Name>/<version>` or, for a Go module, `<Name>/v<version>`.
 - `Path`, its folder from the repository root.
 - `ExtraPaths`, optional, other folders it takes files from at build time, such as a submodule it vendors.
 - `Ignore`, optional, globs from the repository root of files under those folders whose changes do not release the package.

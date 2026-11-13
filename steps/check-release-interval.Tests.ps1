@@ -271,6 +271,31 @@ Describe 'with the last release read from the tags of a checkout' {
         ).ExitCode | Should -Be 0
     }
 
+    It 'reads a Go module''s tags with -TagPrefix' {
+        $script:Repo = New-TaggedRepo @(
+            @{ Name = 'pipeline/v4.5.171'; Commit = '2026-11-07T10:00:00Z' })
+        $result = Invoke-Check @{
+            RepoName = $script:Repo; TagPrefix = 'pipeline'; Now = '2026-11-08T12:00:00Z' }
+        $result.ExitCode | Should -Be 1
+        $result.Output | Should -Match 'The last release, pipeline/v4\.5\.171'
+    }
+
+    It 'does not count a pre-release as a release' {
+        $script:Repo = New-TaggedRepo @(
+            @{ Name = '4.5.28'; Commit = '2026-10-01T10:00:00Z' },
+            @{ Name = '4.5.29-bug-77-ci-fail-fast-setup.1'; Commit = '2026-11-07T10:00:00Z' })
+        $result = Invoke-Check @{ RepoName = $script:Repo; Now = '2026-11-08T12:00:00Z' }
+        $result.ExitCode | Should -Be 0
+        $result.Output | Should -Match 'The last release, 4\.5\.28,'
+    }
+
+    It 'counts a tag with build metadata' {
+        $script:Repo = New-TaggedRepo @(
+            @{ Name = '4.4.49+2'; Commit = '2026-11-07T10:00:00Z' })
+        (Invoke-Check @{ RepoName = $script:Repo; Now = '2026-11-08T12:00:00Z' }
+        ).ExitCode | Should -Be 1
+    }
+
     It 'ignores tags that are not versions' {
         $script:Repo = New-TaggedRepo @(
             @{ Name = '4.5.90'; Commit = '2026-10-01T10:00:00Z' },

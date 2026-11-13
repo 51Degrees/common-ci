@@ -26,9 +26,10 @@ releases. Give this or -LastRelease.
 
 .PARAMETER TagPrefix
 With -RepoName, the one package whose releases count, for a repository that
-tags each package '<TagPrefix>/<version>'. Without it every version tag
-counts, with or without a package name, so the newest release of any package
-is the last.
+tags each package '<TagPrefix>/<version>' or '<TagPrefix>/v<version>'.
+Without it every version tag counts, with or without a package name, so the
+newest release of any package is the last. version-tags.ps1 says which tags
+are releases.
 
 .PARAMETER Repository
 With -RepoName, the repository on GitHub, such as 51Degrees/51degrees-cxx. A
@@ -54,6 +55,7 @@ param (
 )
 $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
+. (Join-Path $PSScriptRoot 'version-tags.ps1')
 
 $DaysBetweenReleases = 7
 
@@ -76,10 +78,6 @@ function Format-Day ([DateTime]$Day) {
 function Get-LastTaggedRelease {
     param ([string]$RepoName, [string]$TagPrefix, [string]$Repository)
 
-    $pattern = $TagPrefix `
-        ? "^$([regex]::Escape($TagPrefix))/v?\d+\.\d+\.\d+" `
-        : '^(.+/)?v?\d+\.\d+\.\d+'
-
     $published = @{}
     if ($Repository) {
         # The newest hundred releases. An older release cannot be the last.
@@ -97,7 +95,7 @@ function Get-LastTaggedRelease {
     $last = $null
     foreach ($line in (git -C $RepoName for-each-ref refs/tags "--format=$format")) {
         $name, $type, $taggerDate, $commitDate, $targetDate = $line -split "`t"
-        if ($name -notmatch $pattern) { continue }
+        if ($null -eq (ConvertFrom-VersionTag $name $TagPrefix -AnyPrefix)) { continue }
 
         # An annotated tag records when it was made. A lightweight one does
         # not, so its GitHub release dates it, and failing that its commit.
