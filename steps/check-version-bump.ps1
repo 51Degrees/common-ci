@@ -70,6 +70,9 @@ and returns that version, or nothing when the registry has none. A package
 with no tag of its own that the registry has not released either is refused,
 because nothing has decided where its versions start.
 #>
+# An unknown parameter stops the check, so a misspelt name cannot leave a
+# package checked against the wrong tags.
+[CmdletBinding()]
 param (
     [string]$Version,
     [string]$RepoName,

@@ -54,6 +54,9 @@ checked as -TagPrefix checks one, and the release is refused when any package
 is. A plan with nothing in it passes. It is the last parameter, so that the
 others keep their positions.
 #>
+# An unknown parameter stops the check, so a misspelt name cannot leave a
+# package checked against the wrong tags.
+[CmdletBinding()]
 param (
     [string]$LastRelease,
     [string]$LastReleaseName,
