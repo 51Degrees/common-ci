@@ -875,6 +875,32 @@
       ]
     },
     {
+      "name": "CHROMEWEBDRIVER",
+      "holds": "The folder that holds chromedriver, or chromedriver itself, for the browser tests, which use it in place of downloading a driver.",
+      "setBy": "GitHub's Ubuntu and Windows runner images, or whoever runs the browser tests elsewhere",
+      "languages": [
+        "dotnet",
+        "java",
+        "node",
+        "php",
+        "python",
+        "rust"
+      ]
+    },
+    {
+      "name": "CHROME_BIN",
+      "holds": "The Chrome or Chromium program the browser tests drive.",
+      "setBy": "Whoever runs the browser tests, where the browser is not on the path",
+      "languages": [
+        "dotnet",
+        "java",
+        "node",
+        "php",
+        "python",
+        "rust"
+      ]
+    },
+    {
       "name": "CLOUD_ROOT_URL",
       "holds": "The address of the cloud service the browser test suite checks the examples against.",
       "setBy": "The shared browser test suite in 51Degrees/selenium-api-tests, which every language's CI starts",
@@ -937,6 +963,32 @@
       ]
     },
     {
+      "name": "EDGEWEBDRIVER",
+      "holds": "The folder that holds msedgedriver, or msedgedriver itself, for the browser tests, which use it in place of downloading a driver.",
+      "setBy": "GitHub's Ubuntu and Windows runner images, or whoever runs the browser tests elsewhere",
+      "languages": [
+        "dotnet",
+        "java",
+        "node",
+        "php",
+        "python",
+        "rust"
+      ]
+    },
+    {
+      "name": "EDGE_BIN",
+      "holds": "The Edge program the browser tests drive.",
+      "setBy": "Whoever runs the browser tests, where the browser is not on the path",
+      "languages": [
+        "dotnet",
+        "java",
+        "node",
+        "php",
+        "python",
+        "rust"
+      ]
+    },
+    {
       "name": "EXAMPLE_LANG",
       "holds": "The language of the example under test, for the browser test suite.",
       "setBy": "The shared browser test suite in 51Degrees/selenium-api-tests, which every language's CI starts",
@@ -979,10 +1031,36 @@
       ]
     },
     {
+      "name": "FIREFOX_BIN",
+      "holds": "The Firefox program the browser tests drive.",
+      "setBy": "Whoever runs the browser tests, where the browser is not on the path",
+      "languages": [
+        "dotnet",
+        "java",
+        "node",
+        "php",
+        "python",
+        "rust"
+      ]
+    },
+    {
       "name": "FROM_FORK",
       "holds": "Whether the pull request comes from a fork, for the Rust examples workflow.",
       "setBy": "The workflow step that reads it, from its own env block",
       "languages": [
+        "rust"
+      ]
+    },
+    {
+      "name": "GECKOWEBDRIVER",
+      "holds": "The folder that holds geckodriver, or geckodriver itself, for the browser tests, which use it in place of downloading a driver.",
+      "setBy": "GitHub's Ubuntu and Windows runner images, or whoever runs the browser tests elsewhere",
+      "languages": [
+        "dotnet",
+        "java",
+        "node",
+        "php",
+        "python",
         "rust"
       ]
     },
@@ -1084,6 +1162,19 @@
       "setBy": "Whoever runs the Java CI scripts",
       "languages": [
         "java"
+      ]
+    },
+    {
+      "name": "SELENIUM_URL",
+      "holds": "The address of a Selenium grid or container where the browser tests drive the browser, in place of one on the machine.",
+      "setBy": "Whoever runs the browser tests against a Selenium grid or container",
+      "languages": [
+        "dotnet",
+        "java",
+        "node",
+        "php",
+        "python",
+        "rust"
       ]
     },
     {

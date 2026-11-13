@@ -76,6 +76,8 @@ These names do not start `_51DEGREES_`, and 51Degrees files read them. Each is a
 | `ACCEPTCH_NONE_KEY` | A resource key for the .NET Accept-CH tests, whose properties need no client hints. | The .NET CI scripts | .NET |
 | `ACCEPTCH_PLATFORM_KEY` | A resource key for the .NET Accept-CH tests, whose properties need the platform client hints. | The .NET CI scripts | .NET |
 | `API_KEY` | The NuGet key the .NET publish workflow passes to common-ci. | The workflow step that reads it, from its own env block | .NET |
+| `CHROMEWEBDRIVER` | The folder that holds chromedriver, or chromedriver itself, for the browser tests, which use it in place of downloading a driver. | GitHub's Ubuntu and Windows runner images, or whoever runs the browser tests elsewhere | .NET, Java, Node.js, PHP, Python, Rust |
+| `CHROME_BIN` | The Chrome or Chromium program the browser tests drive. | Whoever runs the browser tests, where the browser is not on the path | .NET, Java, Node.js, PHP, Python, Rust |
 | `CLOUD_ROOT_URL` | The address of the cloud service the browser test suite checks the examples against. | The shared browser test suite in 51Degrees/selenium-api-tests, which every language's CI starts | .NET, Java, Node.js, PHP, Python, Rust |
 | `COMMON_CI` | The folder of a common-ci checkout that is not beside the repository, for the CI scripts that use its steps, and their tests. | Whoever runs those scripts outside the shared workflows | .NET, Python |
 | `DATA_FILES` | The names of the data files a Rust workflow step fetches, one to a line. | The workflow step that reads it, from its own env block | Rust |
@@ -83,11 +85,15 @@ These names do not start `_51DEGREES_`, and 51Degrees files read them. Each is a
 | `DEVICE_DETECTION_KEY` | A licence key the Rust examples workflow reads to download the Device Detection data file. | The workflow step that reads it, from its own env block | Rust |
 | `DEVICE_DETECTION_URL` | The address the Rust examples workflow downloads the Device Detection data file from. | The workflow step that reads it, from its own env block | Rust |
 | `directory` | The folder the Node.js examples and tests find their files from. The example tests set it to the example's own folder, and each reader uses its own folder when it is unset. | The Node.js example tests, or whoever runs an example | Node.js |
+| `EDGEWEBDRIVER` | The folder that holds msedgedriver, or msedgedriver itself, for the browser tests, which use it in place of downloading a driver. | GitHub's Ubuntu and Windows runner images, or whoever runs the browser tests elsewhere | .NET, Java, Node.js, PHP, Python, Rust |
+| `EDGE_BIN` | The Edge program the browser tests drive. | Whoever runs the browser tests, where the browser is not on the path | .NET, Java, Node.js, PHP, Python, Rust |
 | `EXAMPLE_LANG` | The language of the example under test, for the browser test suite. | The shared browser test suite in 51Degrees/selenium-api-tests, which every language's CI starts | .NET, Java, Node.js, PHP, Python, Rust |
 | `EXAMPLE_URL` | The address of the running example the browser test suite opens. | The shared browser test suite in 51Degrees/selenium-api-tests, which every language's CI starts | .NET, Java, Node.js, PHP, Python, Rust |
 | `FIFTYONE_AGENT_SIGNATURE_NETWORK_TESTS` | Set to 1 to let the .NET agent signature tests reach the network. | Whoever runs those tests | .NET |
 | `FIFTYONE_WRAPPER` | The path of a wrapper file the PHP fork safety test used to load. The file has gone, so the test only reports that the name is deprecated and nothing replaces it. | Whoever runs that test | PHP |
+| `FIREFOX_BIN` | The Firefox program the browser tests drive. | Whoever runs the browser tests, where the browser is not on the path | .NET, Java, Node.js, PHP, Python, Rust |
 | `FROM_FORK` | Whether the pull request comes from a fork, for the Rust examples workflow. | The workflow step that reads it, from its own env block | Rust |
+| `GECKOWEBDRIVER` | The folder that holds geckodriver, or geckodriver itself, for the browser tests, which use it in place of downloading a driver. | GitHub's Ubuntu and Windows runner images, or whoever runs the browser tests elsewhere | .NET, Java, Node.js, PHP, Python, Rust |
 | `IPINTELLIGENCELICENSEKEY_DOTNET` | A licence key for the .NET IP Intelligence data file update tests. | The .NET CI scripts | .NET |
 | `LicenseKey` | A licence key for the Java and Node.js data file update examples, read as LicenseKey and then as LICENSEKEY. | Whoever runs those examples | Java, Node.js |
 | `LICENSEKEY` | A licence key for the Java and Node.js data file update examples, read when LicenseKey is unset. | Whoever runs those examples | Java, Node.js |
@@ -99,6 +105,7 @@ These names do not start `_51DEGREES_`, and 51Degrees files read them. Each is a
 | `RESOURCE_KEY_CLOUD_V5_BESPOKE` | A resource key that carries the CloudV5Bespoke product, set by the .NET CI scripts. | The .NET CI scripts | .NET |
 | `ROOT` | The folder the Rust restore-data-files action restores data files into. | The workflow step that reads it, from its own env block | Rust |
 | `SELENIUM_TESTS_REF` | The branch of 51Degrees/selenium-api-tests the Java CI checks out. | Whoever runs the Java CI scripts | Java |
+| `SELENIUM_URL` | The address of a Selenium grid or container where the browser tests drive the browser, in place of one on the machine. | Whoever runs the browser tests against a Selenium grid or container | .NET, Java, Node.js, PHP, Python, Rust |
 | `SKIP_WEB_PERFORMANCE` | When true, the .NET performance script leaves out the web performance test. | Whoever runs the .NET performance script | .NET |
 | `SPIN` | The path of the spin command for the Rust WebAssembly host test. | Whoever runs that test | Rust |
 | `SuperResourceKey` | A resource key for the Java TAC and native model cloud examples and the Geo-Location tests, read as an environment variable or a system property, and by the examples under its upper case name as well. | Whoever runs those examples or tests | Java |
