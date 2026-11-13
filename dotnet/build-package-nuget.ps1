@@ -55,7 +55,10 @@ try {
     dotnet tool install -g NuGetKeyVaultSignTool || $(throw "NuGetKeyVaultSignTool installation failed")
 
     Write-Output "Signing packages"
-    NuGetKeyVaultSignTool sign -f "$PackagesFolder/*.nupkg" `
+    # The signing tool finds the packages only when the separator before the
+    # wildcard is the one the system uses, which Join-Path gives.
+    $toSign = Join-Path $PackagesFolder '*.nupkg'
+    NuGetKeyVaultSignTool sign -f "$toSign" `
         --file-digest sha256 `
         --timestamp-digest sha256 `
         --timestamp-rfc3161 http://rfc3161timestamp.globalsign.com/advanced `
