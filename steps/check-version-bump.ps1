@@ -30,7 +30,7 @@ workflow run. That is a decision someone makes with their name on it rather
 than something a commit message does quietly.
 
 .PARAMETER Version
-The version about to be published, such as 4.5.110.
+The version about to be published, such as 4.5.110. Give this or -Plan.
 
 .PARAMETER RepoName
 The directory the repository is checked out into, whose tags are the release
@@ -51,15 +51,107 @@ own tags, '<TagPrefix>/<version>' or '<TagPrefix>/v<version>', count, so one
 package is compared with its own releases and not with the highest version of
 any package in the repository. Without it only the tags with no package
 prefix count. version-tags.ps1 says which tags are releases.
+
+.PARAMETER Plan
+With -RepoName, the release plan, being the packages about to be published,
+for a repository that gives each package its own version, such as
+Get-ReleasePlan's output. Give the plan and not every package, because
+check-release-interval.ps1 takes the same plan and would refuse a package
+released less than a week ago that this publish does not release. Each entry
+needs a Name, which its tags start with, and a Version. Each package is
+checked as -Version with -TagPrefix checks one, and the publish is refused
+when any package is. A plan with nothing in it passes.
+
+.PARAMETER RegistryVersionScript
+With -Plan only, a script giving the highest version a package's registry has
+released, which the package is also checked against. It is called as
+  & <script> -RepoName <path> -Package <entry of the plan>
+and returns that version, or nothing when the registry has none. A package
+with no tag of its own that the registry has not released either is refused,
+because nothing has decided where its versions start.
 #>
+# An unknown parameter stops the check, so a misspelt name cannot leave a
+# package checked against the wrong tags.
+[CmdletBinding()]
 param (
-    [Parameter(Mandatory)][string]$Version,
+    [string]$Version,
     [string]$RepoName,
     [string]$ReleasedVersion,
-    [string]$TagPrefix
+    [string]$TagPrefix,
+    [object[]]$Plan,
+    [string]$RegistryVersionScript
 )
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot 'version-tags.ps1')
+
+if ($RegistryVersionScript -and
+        -not $PSBoundParameters.ContainsKey('Plan')) {
+    throw "Give -RegistryVersionScript only with -Plan."
+}
+
+# Each package of a plan is checked by running this script again for it, so
+# it is judged exactly as a single package is.
+if ($PSBoundParameters.ContainsKey('Plan')) {
+    if ($Version -or $ReleasedVersion -or $TagPrefix -or -not $RepoName) {
+        throw "Give -Plan with -RepoName, and without -Version, " +
+            "-ReleasedVersion or -TagPrefix."
+    }
+    $packages = @($Plan | Where-Object { $null -ne $_ })
+    if ($packages.Count -eq 0) {
+        Write-Output "No package is to be published, so there is nothing to check."
+        exit 0
+    }
+    $refused = @()
+    foreach ($package in $packages) {
+        if (-not $package.Name -or -not $package.Version) {
+            throw "Each entry of -Plan needs a Name and a Version."
+        }
+        Write-Output "$($package.Name) $($package.Version), against its own tags:"
+        & $PSCommandPath -Version $package.Version -RepoName $RepoName `
+            -TagPrefix $package.Name
+        $passed = $LASTEXITCODE -eq 0
+        if ($RegistryVersionScript) {
+            $released = @(& $RegistryVersionScript -RepoName $RepoName `
+                -Package $package | Where-Object { $_ })
+            if ($released.Count -gt 1) {
+                throw "$RegistryVersionScript gave more than one version " +
+                    "for $($package.Name)."
+            }
+            if ($released.Count -eq 1) {
+                Write-Output ("$($package.Name) $($package.Version), against " +
+                    "$($released[0]) in its registry:")
+                & $PSCommandPath -Version $package.Version `
+                    -ReleasedVersion "$($released[0])"
+                $passed = $passed -and $LASTEXITCODE -eq 0
+            } elseif (@(Get-VersionTags $RepoName `
+                    -Prefix $package.Name).Count -eq 0) {
+                # Neither a tag nor the registry says where the package's
+                # versions start, and its FirstVersion is a file anyone can
+                # change.
+                Write-Output ("::error title=First release refused::" +
+                    "$($package.Name) has no tag here and its registry has " +
+                    "not released it, so nothing has decided where its " +
+                    "versions start. Before its first release, tag it " +
+                    "'$($package.Name)/<version>' with the version that " +
+                    "release follows on from, then run the workflow again.")
+                $passed = $false
+            }
+        }
+        if ($passed -eq $false) {
+            $refused += $package.Name
+        }
+    }
+    if ($refused.Count -gt 0) {
+        Write-Output ("Nothing is published, because these packages were " +
+            "refused: $($refused -join ', ').")
+        exit 1
+    }
+    exit 0
+}
+
+if (-not $Version) {
+    throw "Give -Version, the version about to be published, or -Plan."
+}
 
 function Get-Parts ([string]$v) {
     $m = [regex]::Match($v, '^v?(\d+)\.(\d+)\.(\d+)')
