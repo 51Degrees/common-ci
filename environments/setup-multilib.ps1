@@ -9,14 +9,12 @@ Installs the 32 bit build libraries on Linux, where they exist.
 .DESCRIPTION
 gcc-multilib and g++-multilib supply the 32 bit libraries an x86 build links
 against. Neither exists for arm64 under any name, so on an ARM runner apt
-answers "has no installation candidate" and "Unable to locate package". That
-was harmless while a failing script was ignored, and it now stops the step
-and everything downstream of it, including the package build.
+answers "has no installation candidate", and this script returns without
+installing anything.
 
-Repositories called apt directly and each carried the same fault, so the
-architecture test lives here rather than in five copies. The packages are a
-parameter because they are not the same everywhere, and this script is not
-the place to change what a repository installs.
+When apt fails on the runner's own mirror, azure.archive.ubuntu.com, the
+script points apt at the main Ubuntu archive, which holds the same packages,
+and tries once more before failing.
 
 .PARAMETER Packages
 The packages to install. Defaults to both, which is what a project building
@@ -25,6 +23,15 @@ The packages to install. Defaults to both, which is what a project building
 
 $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
+
+$RunnerMirror = "azure.archive.ubuntu.com"
+$MainArchive = "archive.ubuntu.com"
+# The files that name the runner's mirror on the Ubuntu images GitHub runs.
+$AptSourceFiles = @(
+    "/etc/apt/apt-mirrors.txt",
+    "/etc/apt/sources.list.d/ubuntu.sources",
+    "/etc/apt/sources.list"
+)
 
 if (-not $IsLinux) {
     Write-Output "Not Linux, so there is no multilib to install."
@@ -40,5 +47,16 @@ if ($architecture -ne [Runtime.InteropServices.Architecture]::X64) {
 }
 
 Write-Output "Installing $($Packages -join ' ')"
-sudo apt-get update
-sudo apt-get install -y @Packages
+try {
+    sudo apt-get update
+    sudo apt-get install -y @Packages
+} catch {
+    Write-Output "apt failed on $RunnerMirror, so trying $MainArchive"
+    foreach ($file in $AptSourceFiles) {
+        if (Test-Path $file) {
+            sudo sed -i "s#$RunnerMirror#$MainArchive#g" $file
+        }
+    }
+    sudo apt-get update
+    sudo apt-get install -y @Packages
+}
