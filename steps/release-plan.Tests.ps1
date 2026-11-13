@@ -237,6 +237,58 @@ Describe 'Get-ReleasePlan' {
         }
     }
 
+    It 'reads a Go module''s tags, ''<package>/v<version>''' {
+        $tags = @($script:AllTags + 'ipi/4.5.0' |
+            ForEach-Object { $_.Replace('/', '/v') })
+        $script:Repo = New-Repo $script:AllFiles $tags
+        Add-Commit $script:Repo @('device/dd/a.py')
+        Set-Filter $script:Repo '$true'
+        $plan = @(Get-ReleasePlan $script:Repo $script:Graph)
+        $plan.Name | Should -Be @('dd')
+        $plan[0].Version | Should -Be '4.5.97'
+        Get-FilterCalls $script:Repo |
+            Should -Be @('dd dd/v4.5.96 device/dd/a.py')
+    }
+
+    It 'counts the changes since the tag, where the tag is off the branch' {
+        $script:Repo = New-Repo $script:AllFiles ($script:AllTags + 'ipi/4.5.0')
+        git -C $script:Repo checkout --quiet --detach
+        Add-Commit $script:Repo @('device/dd/go.mod')
+        git -C $script:Repo tag 'dd/v4.5.97'
+        git -C $script:Repo checkout --quiet -
+        Add-Commit $script:Repo @()
+        $plan = @(Get-ReleasePlan $script:Repo $script:Graph)
+        $plan.Name | Should -Be @('dd')
+        $plan[0].Version | Should -Be '4.5.98'
+        $plan[0].Reason | Should -Be 'changed since 4.5.97 (1 file)'
+    }
+
+    It 'takes the tag with no ''v'' of two of one version' {
+        $script:Repo = New-Repo $script:AllFiles ($script:AllTags + 'ipi/4.5.0')
+        git -C $script:Repo tag 'dd/v4.5.97'
+        Add-Commit $script:Repo @('device/dd/a.py')
+        git -C $script:Repo tag 'dd/4.5.97'
+        Add-Commit $script:Repo @()
+        @(Get-ReleasePlan $script:Repo $script:Graph).Count | Should -Be 0
+    }
+
+    It 'releases nothing a second time from a commit with a Go tag' {
+        $script:Repo = New-Repo $script:AllFiles ($script:AllTags + 'ipi/4.5.0')
+        Add-Commit $script:Repo @('device/dd/a.py')
+        git -C $script:Repo tag 'dd/v4.5.97'
+        @(Get-ReleasePlan $script:Repo $script:Graph).Count | Should -Be 0
+    }
+
+    It 'does not take a pre-release tag as a release' {
+        $script:Repo = New-Repo $script:AllFiles ($script:AllTags + 'ipi/4.5.0')
+        Add-Commit $script:Repo @('device/dd/a.py')
+        git -C $script:Repo tag 'dd/4.5.97-alpha.1'
+        Add-Commit $script:Repo @()
+        $plan = @(Get-ReleasePlan $script:Repo $script:Graph)
+        $plan.Name | Should -Be @('dd')
+        $plan[0].Version | Should -Be '4.5.97'
+    }
+
     It 'refuses a never-released package with no FirstVersion' {
         $graph = @(New-Package 'new' 'p/new')
         $script:Repo = New-Repo @('p/new/a.py') @()

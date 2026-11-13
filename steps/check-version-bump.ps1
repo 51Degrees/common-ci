@@ -21,9 +21,9 @@ unpublish, and PyPI burns the number even when a release is deleted. And
 callers on the previous line do not receive the release, so a fix published
 this way does not reach them.
 
-On 18 September 2026 one directive in one commit took sixteen NuGet packages,
-three npm packages, five PyPI projects and three crates to 4.6 overnight, and
-withdrawing them took a day and could not be completed.
+This check guards against one directive in one commit moving every package a
+repository publishes to a new minor version in a single run, in every
+registry at once.
 
 To publish a bump deliberately, set ALLOW_VERSION_BUMP to 'true' in the
 workflow run. That is a decision someone makes with their name on it rather
@@ -46,10 +46,11 @@ registry the package is published to, so they pass it in. Give this or
 
 .PARAMETER TagPrefix
 With -RepoName, the package whose release history to read, for a repository
-that releases several packages each with its own version. Only tags of the
-form '<TagPrefix>/<version>' count, so one package is compared with its own
-releases and not with the highest version of any package in the repository.
-Without it every plain version tag counts, as before.
+that releases several packages each with its own version. Only the package's
+own tags, '<TagPrefix>/<version>' or '<TagPrefix>/v<version>', count, so one
+package is compared with its own releases and not with the highest version of
+any package in the repository. Without it only the tags with no package
+prefix count. version-tags.ps1 says which tags are releases.
 #>
 param (
     [Parameter(Mandatory)][string]$Version,
@@ -58,6 +59,7 @@ param (
     [string]$TagPrefix
 )
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot 'version-tags.ps1')
 
 function Get-Parts ([string]$v) {
     $m = [regex]::Match($v, '^v?(\d+)\.(\d+)\.(\d+)')
@@ -86,57 +88,27 @@ elseif ($RepoName) {
     # The highest version already tagged, which is what this repository has
     # released. Read from the checkout rather than from a registry, so this
     # works the same for every language and needs no package name.
-    Push-Location $RepoName
-    try {
-        $tags = git tag --list
-    } finally {
-        Pop-Location
-    }
-
-    $highest = $null
-    foreach ($tag in $tags) {
-        $tagVersion = $tag
-        if ($TagPrefix) {
-            if ($tag.StartsWith("$TagPrefix/") -eq $false) { continue }
-            $tagVersion = $tag.Substring($TagPrefix.Length + 1)
-        }
-        $p = Get-Parts $tagVersion
-        if ($null -eq $p) { continue }
-        if ($null -eq $highest -or
-            $p.Major -gt $highest.Major -or
-            ($p.Major -eq $highest.Major -and $p.Minor -gt $highest.Minor) -or
-            ($p.Major -eq $highest.Major -and $p.Minor -eq $highest.Minor -and $p.Patch -gt $highest.Patch)) {
-            $highest = $p
-        }
-    }
+    $tags = @(Get-VersionTags $RepoName -Prefix $TagPrefix)
+    $highest = $tags.Count -gt 0 ? (Get-Parts "$($tags[-1].Version)") : $null
 }
 else {
     throw "Give -RepoName, whose tags are the release history, or -ReleasedVersion where they are not."
 }
 
 if ($null -eq $highest) {
-    # A branch with no tags has never released, and GitVersion then answers
-    # 0.0.1 rather than failing. Nothing else stopped that number, so the first
-    # publish released it: this is how fiftyone_ipintelligence_cloud 0.0.1
-    # reached PyPI on 28 October 2026, a number PyPI never gives back. So a
-    # first release from a branch with no tags is refused, whatever its
-    # version, and someone decides the number by tagging. The version itself
-    # is not judged, because a package may rightly start on 0.x. A branch that
-    # has tags, but none for this package, is a repository releasing a new
-    # package beside others, and its number was chosen there. See
-    # common-ci#251.
-    # Only -RepoName reaches here: -ReleasedVersion always sets $highest.
-    Push-Location $RepoName
-    try {
-        $branchTags = @(git tag --merged HEAD)
-    } finally {
-        Pop-Location
-    }
-    if ($branchTags.Count -eq 0) {
+    # A branch with no release tag has never released, and GitVersion then
+    # answers 0.0.1 rather than failing. So a first release from such a branch
+    # is refused, whatever its version, and someone decides the number by
+    # tagging. The version itself is not judged, because a package may rightly
+    # start on 0.x. A branch that has release tags, but none for this package,
+    # is a repository releasing a new package beside others, and its number
+    # was chosen there. Only -RepoName reaches here, because -ReleasedVersion
+    # always sets $highest.
+    if (@(Get-VersionTags $RepoName -AnyPrefix -Merged).Count -eq 0) {
         Write-Output ("::error title=First release refused::This branch has " +
-            "no tags, so nothing has decided where its versions start, and " +
-            "$Version would be published as the first. With no tags GitVersion " +
-            "answers 0.0.1.")
+            "no release tag, so nothing has decided where its versions start, " +
+            "and $Version would be published as the first. With no tags " +
+            "GitVersion answers 0.0.1.")
         Write-Output ""
         Write-Output ("Nothing is published. Decide the first version, then tag " +
             "main with the version the release should follow on from, and run " +
