@@ -4,7 +4,7 @@ The CI/CD pipeline in this project adheres to the principles outlined in the com
 
 ## Environment
 
-The script `setup-environment.ps1` is specific for each repository and is responsible for configuring essential environment variables required for running tests. These variables include the location of data files and the resource key. On Linux systems, it may also handle the installation of multilib if needed. Additionally, in cases where the project is utilizing the msbuild command instead of dotnet, the script ensures that both msbuild and vstest are appropriately added to the PATH variable. 
+The script `setup-environment.ps1` is specific for each repository and is responsible for configuring essential environment variables required for running tests. These variables include the location of data files and the resource key. On Linux systems, it may also install multilib, which it should do by calling `environments/setup-multilib.ps1` rather than apt directly, because those packages do not exist on arm64 and asking for them there fails the step. Additionally, in cases where the project is utilizing the msbuild command instead of dotnet, the script ensures that both msbuild and vstest are appropriately added to the PATH variable. 
 
 
 ## Build
@@ -21,7 +21,7 @@ The packages are signed in the `build-packages-nuget.ps1` script as they are bui
 
 ## Updating Dependencies 
 
-The `run-update-dependencies.ps1` script loops through each .csproj file found in the repository to identify outdated packages for each project. By iterating through the projects and packages, the script can analyze and update each project individually, ensuring that the package updates are performed at the appropriate project level.
+The `run-update-dependencies.ps1` script loops through each .csproj file found in the repository to identify outdated packages for each project. Projects inside a git submodule are skipped: they are updated in the submodule's own repository. By iterating through the projects and packages, the script can analyze and update each project individually, ensuring that the package updates are performed at the appropriate project level.
 
 The script executes the dotnet list command to retrieve a list of outdated packages for the project. It then filters the output to consider only lines starting with >, indicating outdated packages. From each line, it extracts the package name, major version, minor version, and patch version using regular expressions.
 
@@ -80,6 +80,7 @@ Takes the following additional parameters:
 | --------- | :-------: | ----------- |
 | ApiKey | :check: | Auth key for the NuGet source to publish to. |
 | Source | | NuGet source to publish to. By default this is `https://api.nuget.org/v3/index.json`. |
+| DryRun | | If true, list the packages and do not push them. |
 
 ## Publish Package GitHub
 
@@ -89,6 +90,7 @@ Takes the following additional parameters:
 | Parameter | Mandatory | Description |
 | --------- | :-------: | ----------- |
 | ApiKey | :check: | Auth token for the GitHub repo to publish to. |
+| DryRun | | If true, list the packages and do not push them. |
 
 ## Run Unit Tests
 

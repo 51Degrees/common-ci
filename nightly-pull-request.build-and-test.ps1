@@ -42,7 +42,7 @@ Write-Host "::endgroup::"
 
 if ($Options.CI) {
     & "./$RepoName/$($Options.CI)/build-and-test.ps1" @Options
-    exit
+    exit $LASTEXITCODE
 }
 
 Write-Host "::group::Fetch Assets"

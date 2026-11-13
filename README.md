@@ -251,7 +251,7 @@ classDef green fill:green;
     C[Update Copyright Messages]
     D[Check For Changes]
     E[Commit Changes]
-    F[PR To Main]
+    F[Create Pull Request]
     A-->B-->C-->D-->E-->F
   end
 ```
@@ -259,6 +259,15 @@ classDef green fill:green;
 # Triggers
 
 Each of the triggers shown is described at a high level. More detail is provided in the associated scripts and the following summary.
+
+### Target branch
+
+A repository with an `rc` branch takes every change to its default branch through `rc`. For such a repository the nightly works on `rc`:
+
+- The nightly's own pull requests, being the data file, package, submodule, example asset and copyright updates, target `rc`.
+- The Pull Requests job builds and merges pull requests into `rc`, and never merges into the default branch. Their performance is still compared with the default branch's history, as only its publish runs record one.
+
+These updates therefore wait on `rc`, and reach the default branch and the published packages with the next release, when `rc` is merged into the default branch. A new property in a data file, for example, is published with the next release rather than the next night. A repository without `rc` works as before. `steps/get-target-branch.ps1` makes the decision.
 
 ### Nightly Data File Change
 
@@ -273,6 +282,16 @@ Every night any dependencies of the package are updated automatically to the lat
 All tests associated with the repository are run only at this point to avoid repetition. Code can only be present in the main branch of the repository if all tests have passed.
 
 Pull Requests can only be initiated by a project Contributor, Administrator, or GitHub actions.
+
+A repository can build each pull request on only the entries of `ci/options.json` its changes need, by adding `ci/select-options.ps1`, as [Select Options](./REPO_SCRIPTS.md#select-options) describes. Without that script every entry is built. [`release-pull-request.yml`](.github/workflows/release-pull-request.yml) builds the release pull request from `rc` into the default branch on every entry, as a dry run that merges nothing, so everything a release carries is built and tested in full before it reaches the default branch.
+
+These inputs of `nightly-pull-requests.yml` keep the behaviour described above unless a repository changes them.
+
+| Input | Default | Effect |
+| --- | --- | --- |
+| `fail-fast` | `true` | When one configuration of a pull request fails, the others are cancelled. With `false` they finish, so "Re-run failed jobs" repeats only the one that failed. |
+| `full-matrix` | `false` | Builds every entry, even where `ci/select-options.ps1` would choose fewer. |
+| `build-without-pull-requests` | `true` | When no pull request is eligible, builds the branch itself on every entry. A run started by hand can set it to `false` and leave that build to the nightly. |
 
 ### Nightly Package
 
@@ -310,11 +329,11 @@ This does no happen often, so the workflow can be run monthly rather than nightl
 
 #### New property in data file
 
-The Data File Change trigger creates new auto generated code for the strongly typed accessors. These are pushed to a branch and a PR to main commenced. All the tests associated with the repository will then be run. If they fail, then the engineers will be alerted to a problem. If they pass, then the PR will be approved and main branch updated. When the next nightly publish of packages occurs then the new property will be included in the package.
+The Data File Change trigger creates new auto generated code for the strongly typed accessors. These are pushed to a branch and a PR to the target branch commenced. All the tests associated with the repository will then be run. If they fail, then the engineers will be alerted to a problem. If they pass, then the PR will be approved and the target branch updated. When the next nightly publish of packages occurs then the new property will be included in the package, or, where the target branch is `rc`, the first publish after the next release.
 
 #### Update dependency
 
-A package that the organisation uses is updated to a new version within the same `major.minor` version. The nightly dependency check will pick up on the new version and create a branch and associated PR to main. The changes will then propagate to the published packages if the tests executed for any PR pass.
+A package that the organisation uses is updated to a new version within the same `major.minor` version. The nightly dependency check will pick up on the new version and create a branch and associated PR to the target branch. The changes will then propagate to the published packages if the tests executed for any PR pass.
 
 #### Organisation package update
 
@@ -338,6 +357,10 @@ To run these PowerShell scripts, either locally, or in a CI/CD pipeline, the fol
 CI workflows that need secrets accept a [superset of all possible secrets](https://github.com/51Degrees/common-ci/blob/2badf94c075c4a73b188d6647fcd88df69ca8ce1/.github/workflows/nightly-pr-to-main.yml#L38-L64). During workflow execution non-null secrets get [combined into a JSON string](https://github.com/51Degrees/common-ci/blob/2badf94c075c4a73b188d6647fcd88df69ca8ce1/.github/workflows/nightly-pr-to-main.yml#L145), and [parsed as a PowerShell object](https://github.com/51Degrees/common-ci/blob/2badf94c075c4a73b188d6647fcd88df69ca8ce1/.github/workflows/nightly-pr-to-main.yml#L149), which is then passed to all build scripts that require secrets.
 
 This flow modifies the old one, where the JSON string was passed in by the caller directly as a single secret. The rationale for the new flow is making sure that in case secrets leak to CI logs, they get hidden by GitHub (replaced with `***`). This was not possible when all secrets were passed as a single JSON string - GitHub has to know about every single secret to be able to hide them.
+
+# Environment variable names
+
+[environment-variables.md](environment-variables.md) lists every environment variable name that 51Degrees packages, tests, examples and CI scripts read, in every language, with what each holds and the deprecated names each replaced. It is made from [environment-variables.json](environment-variables.json) by [steps/environment-variables.ps1](steps/environment-variables.ps1). The JSON file decides, so each language repository refers to it rather than keeping a list of its own.
 
 # Reusable actions
 

@@ -1,0 +1,45 @@
+name: Test Steps
+
+# Runs this repository's own Pester tests. Nothing here clones another
+# repository, publishes anything or dispatches another workflow.
+
+on:
+  pull_request:
+    paths:
+      - 'steps/**'
+      - '.github/workflows/test-steps.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'steps/**'
+      - '.github/workflows/test-steps.yml'
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  Pester:
+    name: Pester - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Pester
+        run: |
+          Install-Module -Name Pester -MinimumVersion 5.0.0 -Force -Scope CurrentUser -SkipPublisherCheck
+
+      - name: Run tests
+        run: |
+          Import-Module Pester -MinimumVersion 5.0.0
+          $config = New-PesterConfiguration
+          $config.Run.Path = './steps'
+          $config.Run.Exit = $true
+          $config.Output.Verbosity = 'Detailed'
+          Invoke-Pester -Configuration $config

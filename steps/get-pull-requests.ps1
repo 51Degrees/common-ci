@@ -44,6 +44,24 @@ function Test-Pr ([Parameter(Mandatory,Position=0)][string]$Id) {
     return $false
 }
 
+function Test-VersionDirective ([Parameter(Mandatory,Position=0)][string]$Id) {
+    # A '+semver: minor' or 'major' in any commit makes the next release a new
+    # minor or major version of every package this repository publishes, and a
+    # published version number can never be reclaimed. So it is a release
+    # decision rather than a code change and it needs a second person.
+    #
+    # Checked here, in the nightly's own selection, rather than through branch
+    # protection. An automation with bypass walks straight through a required
+    # review, which is how one directive reached four registries overnight on
+    # 18 September 2026.
+    & "$PSScriptRoot/version-directive.ps1" -Repository "$OrgName/$RepoName" -PullRequest $Id
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Skipping PR ${Id}: version bump not agreed by a second person"
+        return $false
+    }
+    return $true
+}
+
 $Ids = gh pr list -R $OrgName/$RepoName -B $Branch --json number,isDraft --jq '.[]|select(.isDraft|not).number'
 if ($Ids) {
     $ValidIds = @()
@@ -51,7 +69,7 @@ if ($Ids) {
     foreach ($Id in $Ids) {
         # Only select PRs which are eligeble for automation.
         Write-Output "Checking PR #$Id"
-        if (Test-Pr $Id) {
+        if ((Test-Pr $Id) -and (Test-VersionDirective $Id)) {
             $ValidIds += $Id
         }
     }

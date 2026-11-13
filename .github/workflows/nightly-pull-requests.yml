@@ -37,6 +37,22 @@ on:
       skip-lite-tests:
         type: boolean
         default: false
+      examples-branch:
+        description: 'Examples repo branch for the tests; empty keeps the one in options.json'
+        type: string
+        default: ''
+      fail-fast:
+        description: 'Cancel the other configurations of a pull request when one fails'
+        type: boolean
+        default: true
+      full-matrix:
+        description: 'Build every entry in ci/options.json, even where ci/select-options.ps1 would choose fewer'
+        type: boolean
+        default: false
+      build-without-pull-requests:
+        description: 'When no pull request is eligible, build the branch itself on every entry'
+        type: boolean
+        default: true
     secrets:
       token:
         required: true
@@ -77,7 +93,9 @@ defaults:
     working-directory: ./common
 
 jobs:
-  # Get all the pull requests that are going to main
+  # Get the pull requests into the branch the nightly works on. Where the
+  # repository takes changes through rc that is rc, so nothing is built for or
+  # merged into the default branch.
   GetPullRequests:
     name: Get Pull Requests
     runs-on: ubuntu-latest
@@ -89,24 +107,29 @@ jobs:
           path: common
           ref: ${{ inputs.common-ci-ref }}
 
-      # Get all the pull requests into main, and output the ids
+      # Output the branch and the ids of the pull requests into it
       - name: Get Pull Requests
         id: get_pull_requests
         env:
           PULL_REQUEST_IDS: ${{ inputs.prs }}
         run: |
+          $BuildWithoutPullRequests = [bool]::Parse("${{ inputs.build-without-pull-requests }}")
           ./nightly-pull-requests.get-prs.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ inputs.branch != '' && inputs.branch || github.ref_name }} `
           -GitHubToken ${{ secrets.token }} `
-          -GitHubOutput $Env:GITHUB_OUTPUT
+          -GitHubOutput $Env:GITHUB_OUTPUT `
+          -BuildWithoutPullRequests $BuildWithoutPullRequests
     outputs:
       pull_request_ids: ${{ steps.get_pull_requests.outputs.pull_request_ids }}
+      branch: ${{ steps.get_pull_requests.outputs.branch }}
 
-  # Run the common workflow on each pull request
+  # Run the common workflow on each pull request. There are none when nothing
+  # is eligible and build-without-pull-requests is false.
   NightlyPullRequest:
     needs: GetPullRequests
+    if: needs.GetPullRequests.outputs.pull_request_ids != '[]'
     strategy:
       fail-fast: false
       #max-parallel: 1 # run each PR sequentially
@@ -123,8 +146,14 @@ jobs:
       dryrun: ${{ inputs.dryrun }}
       cache-assets: ${{ inputs.cache-assets }}
       common-ci-ref: ${{ inputs.common-ci-ref }}
-      branch: ${{ inputs.branch }}
+      branch: ${{ needs.GetPullRequests.outputs.branch }}
+      # The history to compare performance against is the branch the nightly
+      # runs for, as only that branch's publish runs record it.
+      performance-branch: ${{ inputs.branch != '' && inputs.branch || github.ref_name }}
       build-test-timeout-minutes: ${{ inputs.build-test-timeout-minutes }}
       skip-compare-performance: ${{ inputs.skip-compare-performance }}
       skip-lite-tests: ${{ inputs.skip-lite-tests }}
+      examples-branch: ${{ inputs.examples-branch }}
+      fail-fast: ${{ inputs.fail-fast }}
+      full-matrix: ${{ inputs.full-matrix }}
     secrets: inherit

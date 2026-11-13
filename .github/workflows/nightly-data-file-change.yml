@@ -43,6 +43,12 @@ on:
       common-ci-ref:
         type: string
         default: ''
+      # The branch for the changes. Defaults to properties-update/<branch>, where
+      # <branch> is rc in a repository that takes changes through rc. A
+      # repository that runs this for more than one data type sets one per type.
+      pr-branch:
+        type: string
+        default: ''
     secrets:
       token:
         required: true
@@ -85,4 +91,5 @@ jobs:
           -FileName ${{ inputs.data-filename }} `
           -MetadataBranch ${{ inputs.metadata-branch }} `
           -ToolsBranch ${{ inputs.tools-branch }} `
+          -PrBranch "${{ inputs.pr-branch }}" `
           -DryRun $DryRun

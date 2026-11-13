@@ -21,6 +21,14 @@ on:
       dryrun:
         type: boolean
         default: false
+      allow-version-bump:
+        description: 'Publish even though the version moves the major or minor place.'
+        type: boolean
+        default: false
+      allow-early-release:
+        description: 'Publish even though the last release was less than a week ago.'
+        type: boolean
+        default: false
       cache-assets:
         type: boolean
         default: false
@@ -36,6 +44,21 @@ on:
       skip-web-performance:
         type: boolean
         default: false
+      examples-branch:
+        description: 'Examples repo branch for the tests; empty keeps the one in options.json'
+        type: string
+        default: ''
+      package-in-caller:
+        description: 'Skip the Package job, because the caller packages and pushes in a job of its own. nuget.org trusted publishing gives a key only to a job in a workflow file of the repository being published.'
+        type: boolean
+        default: false
+    outputs:
+      update-required:
+        description: 'Whether there is a new version to publish.'
+        value: ${{ jobs.Configure.outputs.update_required }}
+      version:
+        description: 'The version to publish.'
+        value: ${{ jobs.Configure.outputs.version }}
     secrets:
       # PAT that we use to authenticate on behalf of GitHub Actions.
       token:
@@ -90,6 +113,17 @@ on:
       PearlOvhEuS3SecretAccessKey:
       PearlOvhUsS3AccessKeyId:
       PearlOvhUsS3SecretAccessKey:
+      PearlCollectorHetznerS3AccessKeyId:
+      PearlCollectorHetznerS3SecretAccessKey:
+      PearlCollectorOvhUk1S3AccessKeyId:
+      PearlCollectorOvhUk1S3SecretAccessKey:
+      PearlCollectorOvhUsEastVa1S3AccessKeyId:
+      PearlCollectorOvhUsEastVa1S3SecretAccessKey:
+      MaxioApiKeyUs:
+      MaxioApiKeyEu:
+      MaxioApiKeyUsSandbox:
+      MaxioApiKeyEuSandbox:
+      PearlTableauToken:
 
 defaults:
   run:
@@ -98,6 +132,14 @@ defaults:
 jobs:
   Configure:
     runs-on: ubuntu-latest
+    env:
+      # The repositories that give each package its own version, which check
+      # every package they are about to publish in their own
+      # ci/check-version-bump.ps1 and ci/check-release-interval.ps1, with the
+      # same exit codes, because one version or tag cannot speak for them all.
+      # Only these may replace the shared checks, so a script that checks
+      # nothing cannot switch a check off.
+      OWN_CHECK: 51degrees-dotnet 51degrees-go 51degrees-java 51degrees-node 51degrees-php
     outputs:
       asset_cache_key: ${{ steps.prefetch-assets.outputs.cache-key }}
       options: ${{ steps.configure.outputs.options }}
@@ -132,6 +174,45 @@ jobs:
           -GitHubUser ${{ inputs.user }} `
           -GitHubEmail ${{ inputs.email }} `
           -BuildPlatform ${{ inputs.build-platform }}
+
+      # Every route to a version meets here: a '+semver' directive, a tag
+      # pushed by hand, a version committed in a file, or one typed into a
+      # dispatch. Gating any one of them leaves the others open, so the
+      # check is at the publish rather than at the merge.
+      - name: Refuse a version bump nobody asked for
+        shell: pwsh
+        env:
+          ALLOW_VERSION_BUMP: ${{ inputs.allow-version-bump }}
+        run: |
+          $OwnCheck = $env:OWN_CHECK -split ' '
+          if ('${{ inputs.repo-name }}' -in $OwnCheck -and (Test-Path ./${{ inputs.repo-name }}/ci/check-version-bump.ps1)) {
+            ./${{ inputs.repo-name }}/ci/check-version-bump.ps1 -RepoName '${{ inputs.repo-name }}' -Version '${{ steps.configure.outputs.version }}'
+          } else {
+            ./steps/check-version-bump.ps1 -Version '${{ steps.configure.outputs.version }}' -RepoName '${{ inputs.repo-name }}'
+          }
+
+      # One release a week, as CONTRIBUTING.md "Releasing at most once a week"
+      # explains. Only a run with something to publish is checked, and a dry
+      # run, which publishes nothing, reports a refusal without stopping.
+      - name: Refuse a release less than a week after the last
+        if: steps.configure.outputs.update_required == 'true'
+        continue-on-error: ${{ inputs.dryrun }}
+        shell: pwsh
+        env:
+          ALLOW_EARLY_RELEASE: ${{ inputs.allow-early-release }}
+          GH_TOKEN: ${{ secrets.token }}
+          REPO_NAME: ${{ inputs.repo-name }}
+          REPOSITORY: ${{ inputs.org-name }}/${{ inputs.repo-name }}
+          # The calling repository's variable, or the organisation's.
+          WEEKLY_RELEASES_FROM: ${{ vars.WEEKLY_RELEASES_FROM }}
+        run: |
+          $OwnCheck = $env:OWN_CHECK -split ' '
+          $HowToAllow = "run this repository's Publish workflow with allow-early-release set."
+          if ($env:REPO_NAME -in $OwnCheck -and (Test-Path "./$env:REPO_NAME/ci/check-release-interval.ps1")) {
+            & "./$env:REPO_NAME/ci/check-release-interval.ps1" -RepoName $env:REPO_NAME -Repository $env:REPOSITORY -HowToAllow $HowToAllow
+          } else {
+            ./steps/check-release-interval.ps1 -RepoName $env:REPO_NAME -Repository $env:REPOSITORY -HowToAllow $HowToAllow
+          }
 
       - name: Prefetch assets
         id: prefetch-assets
@@ -282,9 +363,19 @@ jobs:
         env:
           SECRETS: ${{ toJSON(secrets) }}
           SKIP_WEB_PERFORMANCE: ${{ inputs.skip-web-performance }}
+          # Through env rather than inline, so the branch name is never
+          # parsed as PowerShell.
+          EXAMPLES_BRANCH: ${{ inputs.examples-branch }}
         run: |
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
           $Options = $(ConvertFrom-Json -AsHashtable '${{ toJSON(matrix.options) }}')
+          # Overrides every matrix entry. run-script.ps1 only hands it to
+          # scripts declaring an ExamplesBranch parameter, so repos without
+          # one are unaffected.
+          if ([string]::IsNullOrEmpty($env:EXAMPLES_BRANCH) -eq $false)
+          {
+            $Options["ExamplesBranch"] = $env:EXAMPLES_BRANCH
+          }
           $Options.Add("Keys", $(ConvertFrom-Json -AsHashtable $env:SECRETS))
           ./nightly-publish.test.ps1 `
           -RepoName ${{ inputs.repo-name }} `
@@ -316,6 +407,8 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ !inputs.skip-compare-performance && needs.Configure.outputs.runperformance }}
     needs: [Configure, Test]
+    outputs:
+      outcome: ${{ steps.compare.outcome }}
     steps:
       - name: Checkout Common
         uses: actions/checkout@v6
@@ -329,7 +422,10 @@ jobs:
           pattern: performance_results-publish-*
           merge-multiple: true
 
+      # A failed comparison must not stop a merge or a release, because figures
+      # vary too much between runners. ReportComparePerformance turns the run red.
       - name: Compare Performance
+        id: compare
         continue-on-error: true
         run: |
           ./nightly-publish.compare-performance.ps1 `
@@ -357,11 +453,23 @@ jobs:
           if-no-files-found: ignore
           include-hidden-files: true
 
+  ReportComparePerformance:
+    name: Report Compare Performance
+    runs-on: ubuntu-latest
+    needs: ComparePerformance
+    if: ${{ !cancelled() && needs.ComparePerformance.outputs.outcome == 'failure' }}
+    steps:
+      - name: Report Failure
+        run: |
+          Write-Output "::error title=Compare Performance failed::See the log of the ComparePerformance job. The performance graphs may not have updated."
+          exit 1
+
   Package:
     runs-on: ${{ inputs.build-platform }}
     needs: [Configure, Test, ComparePerformance]
     if: >
-      !cancelled() && needs.Configure.outputs.update_required == 'true' &&
+      !cancelled() && !inputs.package-in-caller &&
+      needs.Configure.outputs.update_required == 'true' &&
       (needs.Test.result == 'success' || (inputs.skip-tests && needs.Test.result == 'skipped')) &&
       (needs.ComparePerformance.result == 'success' || needs.ComparePerformance.result == 'skipped')
     steps:

@@ -30,6 +30,10 @@ on:
       branch: # Branch to use if not one calling this
         type: string
         default: ''
+      performance-branch:
+        description: 'Branch whose performance history the results are compared with; empty uses branch'
+        type: string
+        default: ''
       build-test-timeout-minutes:
         type: number
         default: 120
@@ -37,6 +41,18 @@ on:
         type: boolean
         default: false
       skip-lite-tests:
+        type: boolean
+        default: false
+      examples-branch:
+        description: 'Examples repo branch for the tests; empty keeps the one in options.json'
+        type: string
+        default: ''
+      fail-fast:
+        description: 'Cancel the other configurations when one fails'
+        type: boolean
+        default: true
+      full-matrix:
+        description: 'Build every entry in ci/options.json, even where ci/select-options.ps1 would choose fewer'
         type: boolean
         default: false
     secrets:
@@ -83,6 +99,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       options: ${{ steps.configure.outputs.options }}
+      build: ${{ steps.configure.outputs.build }}
       asset_cache_key: ${{ steps.prefetch-assets.outputs.cache-key }}
     steps:
       - name: Checkout Common
@@ -94,6 +111,7 @@ jobs:
       - name: Configure
         id: configure
         run: |
+          $FullMatrix = [bool]::Parse("${{ inputs.full-matrix }}")
           ./nightly-pull-request.configure-pr.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
@@ -102,7 +120,8 @@ jobs:
           -GitHubOutput $Env:GITHUB_OUTPUT `
           -PullRequestId ${{ inputs.pull-request-id }} `
           -GitHubUser ${{ inputs.user }} `
-          -GitHubEmail ${{ inputs.email }}
+          -GitHubEmail ${{ inputs.email }} `
+          -FullMatrix $FullMatrix
 
       - name: Prefetch assets
         id: prefetch-assets
@@ -114,7 +133,10 @@ jobs:
 
   BuildAndTest:
     needs: Configure
+    # Configure chose no entry, as for a change to documentation alone.
+    if: needs.Configure.outputs.build != 'false'
     strategy:
+      fail-fast: ${{ inputs.fail-fast }}
       matrix:
         options: ${{ fromJSON(needs.configure.outputs.options ) }}
     name: Build and Test - ${{ inputs.pull-request-id }} - ${{ matrix.options.name }}
@@ -146,9 +168,19 @@ jobs:
         id: build-and-test
         env:
           SECRETS: ${{ toJSON(secrets) }}
+          # Through env rather than inline, so the branch name is never
+          # parsed as PowerShell.
+          EXAMPLES_BRANCH: ${{ inputs.examples-branch }}
         run: |
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
           $Options = $(ConvertFrom-Json -AsHashtable '${{ toJSON(matrix.options) }}')
+          # Overrides every matrix entry. run-script.ps1 only hands it to
+          # scripts declaring an ExamplesBranch parameter, so repos without
+          # one are unaffected.
+          if ([string]::IsNullOrEmpty($env:EXAMPLES_BRANCH) -eq $false)
+          {
+            $Options["ExamplesBranch"] = $env:EXAMPLES_BRANCH
+          }
           $Options.Add("Keys", $(ConvertFrom-Json -AsHashtable $env:SECRETS))
           $SkipLiteTests = [bool]::Parse("${{ inputs.skip-lite-tests }}")
           ./nightly-pull-request.build-and-test.ps1 `
@@ -196,6 +228,8 @@ jobs:
     needs: [ Configure, BuildAndTest ]
     if: ${{ !inputs.skip-compare-performance && contains(fromJSON(needs.Configure.outputs.options).*.RunPerformance, true) }}
     name: Compare Performance - ${{ inputs.pull-request-id }}
+    outputs:
+      outcome: ${{ steps.compare.outcome }}
     steps:
       - name: Checkout Common
         uses: actions/checkout@v6
@@ -210,7 +244,10 @@ jobs:
           pattern: performance_results-${{ inputs.pull-request-id }}-*
           merge-multiple: true
 
+      # A failed comparison must not stop a merge or a release, because figures
+      # vary too much between runners. ReportComparePerformance turns the run red.
       - name: Compare Performance
+        id: compare
         continue-on-error: true
         run: |
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
@@ -218,7 +255,7 @@ jobs:
           ./nightly-pull-request.compare-performance.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
-          -Branch ${{ inputs.branch != '' && inputs.branch || github.ref_name }} `
+          -Branch ${{ inputs.performance-branch != '' && inputs.performance-branch || (inputs.branch != '' && inputs.branch || github.ref_name) }} `
           -GitHubToken ${{ secrets.token }} `
           -GitHubOutput $Env:GITHUB_OUTPUT `
           -Options $Options `
@@ -227,13 +264,28 @@ jobs:
           -GitHubEmail ${{ inputs.email }} `
           -DryRun $DryRun
 
+  ReportComparePerformance:
+    name: Report Compare Performance - ${{ inputs.pull-request-id }}
+    runs-on: ubuntu-latest
+    needs: ComparePerformance
+    if: ${{ !cancelled() && needs.ComparePerformance.outputs.outcome == 'failure' }}
+    steps:
+      - name: Report Failure
+        run: |
+          Write-Output "::error title=Compare Performance failed::See the log of the Compare Performance - ${{ inputs.pull-request-id }} job. The performance graphs may not have updated."
+          exit 1
+
+  # BuildAndTest counts as passed when skipped only because Configure chose no
+  # entry to build.
   Complete:
     runs-on: ubuntu-latest
     name: Complete ${{ inputs.pull-request-id }}
-    needs: [ BuildAndTest, ComparePerformance ]
+    needs: [ Configure, BuildAndTest, ComparePerformance ]
     if: >
       !cancelled() &&
-      needs.BuildAndTest.result == 'success' &&
+      needs.Configure.result == 'success' &&
+      (needs.BuildAndTest.result == 'success' ||
+        (needs.BuildAndTest.result == 'skipped' && needs.Configure.outputs.build == 'false')) &&
       (needs.ComparePerformance.result == 'success' || needs.ComparePerformance.result == 'skipped')
     steps:
       - name: Checkout Common
@@ -250,4 +302,5 @@ jobs:
           -OrgName ${{ inputs.org-name }} `
           -GitHubToken ${{ secrets.token }} `
           -PullRequestId ${{ inputs.pull-request-id }} `
+          -Branch ${{ inputs.branch != '' && inputs.branch || github.ref_name }} `
           -DryRun $DryRun

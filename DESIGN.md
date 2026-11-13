@@ -391,36 +391,102 @@ To achieve this, the arrangement of integration tests is as follows:
 
 ## Performance Tests
 
-Performance tests should output their results in a common format. This is then picked up by the workflow to compare with historic results.
+Performance tests output their results in a common format. This is then picked
+up by the workflow to compare with historic results.
 
-The format of results must contain two objects, `HigherIsBetter` and `LowerIsBetter`. These each contain metrics and their values where higher or lower values mean a better metric respectively.
+### The results file is written by the example, not scraped from its output
 
-Note that single quotes (`'`) must be used, not double (`"`)
+The performance example or test writes the results JSON itself, and
+`run-performance-tests.ps1` only copies that file into place through
+[`steps/publish-performance-results.ps1`](/steps/publish-performance-results.ps1).
+No adapter parses an example's console output.
 
-An example of this is:
+This matters because a figure scraped from printed text is tied to the exact
+wording and number formatting of that output. Renaming a label, changing a
+number format or adding a unit is a cosmetic improvement that would silently
+stop the graph updating, and that is easy to miss in review. Emitting the JSON
+from the example makes the contract structured rather than textual.
+
+For Device Detection and IP Intelligence, the results model and its JSON
+serialisation live in a shared component within each repository, so the
+examples in a repository emit an identical structure and there is one
+definition of the schema to maintain.
+
+### Schema
+
+The results must contain a `HigherIsBetter` object, a `LowerIsBetter` object, or
+both. Each maps metric names to numbers, where a higher or lower value means a
+better metric respectively. The metric names are the series keys on the graph,
+so they must stay stable across runs of the same configuration.
+
 ```json
 {
-    'HigherIsBetter': {
-        'ResultsPerSecond': 100,
-        'OtherResultsPerSecond': 200
+    "HigherIsBetter": {
+        "ResultsPerSecond": 100,
+        "OtherResultsPerSecond": 200
     },
-    'LowerIsBetter': {
-        'SecondsPerResult': 0.001
+    "LowerIsBetter": {
+        "SecondsPerResult": 0.001
     }
 }
 ```
 
-The JSON formatted results should be written to the `test-results/performance-summary/results_[name].json` directory within the cloned repo, where `[name]` is the configuration name from `options.json`.
+Any other members are allowed and are preserved in the published artifact. An
+example that already writes a detailed per-configuration breakdown can keep it
+alongside the two headline objects, which makes the detail available for
+debugging without a second file to manage.
+
+The results are written to `test-results/performance-summary/results_[name].json`
+within the cloned repo, where `[name]` is the configuration name from
+`options.json`. `publish-performance-results.ps1` validates the file and puts it
+there:
+
+```powershell
+./steps/publish-performance-results.ps1 -SourceFile $RepoName/summary.json -Name $Name -RepoName $RepoName
+```
+
+It fails the run if the example produced no file, if the file is not valid JSON,
+if it has neither headline object, or if any metric is not a number. Each of
+those is a broken data point that is far cheaper to see here than in the plot.
+A figure at or below zero only gets a warning here, because failing would fail
+the `Test` job and stop that night's release. The comparison leaves it out.
 
 Results are automatically picked up by the `nightly-pr-to-main` workflow, and written to artifacts. Past artifacts are then downloaded to find ones which match the same configuration name. Each metric is then plotted and written to the summary.
 
 ![Plot Example](./images/example-plot.png)
 
-As performance tests in CI can be inconsistent, an absolute value is not tested. Instead, an increase (or decrease depending on the metric) from the mean by more than two standard deviations is considered a failure. An area is added to the plot to show one standard deviation either side of the mean.
+As performance tests in CI can be inconsistent, an absolute value is not tested. Instead, an increase (or decrease depending on the metric) from the mean by more than two standard deviations, or ten percent of the mean if that is larger, is considered a failure. An area is added to the plot to show that range.
+
+Every metric is a rate or a time, so a figure that is not a number above zero is
+a broken measurement and not a result. `compare-performance.ps1` leaves it out of
+the graph, the mean, the range and the check, and warns in the log. The range and
+the y axis of the graph stop at zero.
+
+When the current figure is the broken one, the script takes it out of the results
+file before anything else can fail, because the workflow uploads that file as
+history however the step ends. The metric still gets a graph of its history, or
+an empty graph if there is none, because the documentation embeds that file and
+the images branch is recreated on every run. The step then fails, once the other
+metrics are compared and the graphs are pushed. That does not stop a merge or a
+release, because the `Compare Performance` step continues on error.
 
 If the test passes, then the successful results are written to an artifact. Only successful results are used when getting past results. This prevents a performance degradation from changing the mean and deviation, which in turn could allow future degradations to pass this test.
 
 Note that if there are less than ten data points, it is not considered a failure, but a warning is logged.
+
+### What a failed comparison does
+
+A failed comparison turns the nightly run red and does not stop a merge or a
+release. Figures vary too much between GitHub runners for one night's result to
+prove a regression, so the `Compare Performance` step continues on error, the
+results are still kept as history, and a separate `ReportComparePerformance` job
+then fails when that step failed.
+
+The comparison fails when a metric with at least ten results is outside its
+accepted range, when a results file can't be read, when the graphs can't be
+published, or when a configuration that produced results on earlier runs produced
+none. A configuration with `RunPerformance` set that has never produced results
+gets a warning annotation on the run, because it has no graph to keep up to date.
 
 ## Job Scheduling
 
@@ -431,24 +497,18 @@ Github does not have a full-fledged job orchestrator, it only has some (limited)
 
 We need to seek a tradeoff between satisfying the requirements and stretching the github features. We propose to not use cross-repository dispatch triggers for now, but rather rely on proper timing of actions and workflow_run triggers within the repository. Let's start with terminal repositories (that are submodules for other repos).
 
-### common-cxx
-* Monthly Copyright Update should run at 0 0 1 * * - this action usually takes less than a minute - this action does not always run, so we can't use a workflow_run completion trigger, we just schedule the Nightly PRs to Main run slightly after it
-* Nightly PRs to Main should run at 0 5 * * * - the action takes less than 30 minutes
-* Nightly Publish Main should run on workflow_run completion of Nightly PRs to Main workflow
+### 51degrees-cxx
+51degrees-cxx holds what were common-cxx, device-detection-cxx, ip-intelligence-cxx and ip-graph-cxx.
+* Nightly Pipeline should run at 35 0 * * *. It updates the submodules, merges the eligible pull requests and publishes, in that order, and can take up to 1.5 hours.
+  Its pull requests target `rc` and it merges into `rc`, so what it publishes from `main` changes only when `rc` is released into `main`.
+* Monthly Copyright Update should run at 0 0 1 * *.
 
-### device-detection-cxx
-* Nightly Submodule Update should run at 35 0 * * * - that is 30 minutes after midnight to pick up any changes from common-cxx
-* Nightly PRs to Main should run on workflow_run completion of Nightly Submodule Update workflow - can take up to 1.5 hours to complete
-* Nightly Documentation Update at 0 3 * * * as it is a completely independent action and it will be guaranteed to run after PRs to Main
-* Nightly Publish Main should run on workflow_run completion of Nightly PRs to Main workflow
-* Monthly Copyright Update should run at 0 0 1 * * - this action usually takes less than a minute
-
-Other repos should start submodule updates around 0 2 * * * - after the device-detection-cxx has likely finished running:
+Other repos should start submodule updates around 0 2 * * *, after 51degrees-cxx has likely finished running:
 
 ### device-detection-dotnet
 * Nightly Data File Change should run at 0 0 * * *
 * Nightly Package Update should run at 0 0 * * *
-* Nightly Submodule Update should run at 0 2 * * * - to incorporate updates from device-detection-cxx
+* Nightly Submodule Update should run at 0 2 * * * - to incorporate updates from 51degrees-cxx
 * Monthly Copyright Update should run at 0 0 1 * *
 * Nightly PRs to Main should run on workflow_run complete after Submodule Update
 * Nightly Publish Main should run on wokflow_run complete after PRs to Main

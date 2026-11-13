@@ -11,6 +11,12 @@
 - name: "type: question"
   description: Further information is requested
   color: d876e3
+- name: "type: detection"
+  description: Issues with detection
+  color: F2EA60
+- name: "type: cleanup"
+  description: Tidying that changes no behaviour
+  color: c5def5
 
 # Status Labels
 - name: "status: to be scheduled"
@@ -84,3 +90,22 @@
 - name: "scheduled: 2nd Feb 2022"
   description: This item has been scheduled for 2nd Feb 2022 release
   color: 6ff076
+
+# Release labels
+- name: "early-release"
+  description: Allows a release less than a week after the last
+  color: d93f0b
+
+# Area labels
+- name: "device-detection"
+  description: Device Detection
+  color: 1d76db
+- name: "examples"
+  description: Examples
+  color: fbca04
+- name: "ip-intelligence"
+  description: IP Intelligence
+  color: 5319e7
+- name: "pipeline"
+  description: Pipeline API
+  color: 0366d6

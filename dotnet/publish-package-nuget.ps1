@@ -6,12 +6,12 @@ param(
     [string]$Name = "Release_x64",
     [Parameter(Mandatory=$true)]
     [string]$ApiKey,
-    [string]$Source = "https://api.nuget.org/v3/index.json"
+    [string]$Source = "https://api.nuget.org/v3/index.json",
+    [bool]$DryRun
 )
 $ErrorActionPreference = "Stop"
-# Exit codes from dotnet are checked here rather than being turned into
-# errors automatically, so that every package is checked and all the
-# failures can be reported together.
+# dotnet's exit codes are checked by hand, so that every package is verified
+# and all the failures are reported together.
 $PSNativeCommandUseErrorActionPreference = $false
 
 $PackagePath = [IO.Path]::Combine($pwd, "package")
@@ -21,19 +21,12 @@ Push-Location $PackagePath
 
 try {
 
-    # Check every package against its own signature before anything is
-    # pushed. A package that was altered after it was signed is still
-    # accepted by the push, and is then thrown away by NuGet during the
-    # checks NuGet runs afterwards, so the package never appears on the
-    # feed whilst the workflow reports success. Catching it here stops a
-    # release going out with a package missing. Other feeds, such as
-    # GitHub Packages, run no such checks and take unsigned packages, so
-    # verification is only done for nuget.org.
-    #
-    # Signature checking is always available on Windows, and on Linux
-    # from the .NET 6.0.400 SDK onwards. It is not supported on macOS,
-    # so this step will report a failure there rather than a real
-    # problem with the package.
+    # nuget.org accepts a package whose signature no longer matches it, says
+    # it was pushed, and then drops it in its own checks. So nothing is pushed
+    # unless every package verifies. Other feeds take unsigned packages, so
+    # only nuget.org is checked. A dry run checks too, so that it fails where
+    # the real publish would. dotnet nuget verify works on Windows and Linux,
+    # not on macOS.
     if ($Source -match "^https://api\.nuget\.org/") {
         $Packages = @(Get-ChildItem -Path $PackagePath -Filter "*.nupkg" -File)
 
@@ -62,7 +55,11 @@ try {
 
     Write-Output "Releasing package for '$Name'"
 
-    dotnet nuget push "*.nupkg" --source $Source --api-key $ApiKey --skip-duplicate
+    if ($DryRun) {
+        Write-Output "Dry run - not pushing $((Get-ChildItem *.nupkg).Name -join ', ') to '$Source'"
+    } else {
+        dotnet nuget push "*.nupkg" --source $Source --api-key $ApiKey --skip-duplicate
+    }
 
 }
 finally {
