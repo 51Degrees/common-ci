@@ -25,7 +25,7 @@ Every current name starts `_51DEGREES_`. "Packages" means a published package re
 | `_51DEGREES_IPI_ENTERPRISE_SHARE` | A folder of dated IP Intelligence Enterprise data files, from which tests and examples take the newest. | Tests, examples and CI | Rust | `51DEGREES_IPI_ENTERPRISE_SHARE` (Rust) |
 | `_51DEGREES_IPI_MEMORY_PROFILES` | The performance profiles the IP Intelligence memory test measures, separated by commas. Every profile is measured when it is not set. | Tests, examples and CI | Rust |  |
 | `_51DEGREES_IPI_PATH` | The path of an IP Intelligence data file (.ipi) for tests and examples to use. The PHP IP Intelligence package also looks beside it for the Translations folder. | Packages | C and C++, .NET, Go, Java, Node.js, PHP, Python, Rust | `51DEGREES_IPI_PATH` (C and C++, .NET, Java, Node.js, Rust), `IPINTELLIGENCEDATAFILE` (.NET, PHP, Python), `DATA_FILE` (Go) |
-| `_51DEGREES_LICENSE_KEY` | A licence key, for data file updates and for 51Did requests that need one. | Tests, examples and CI | .NET, Go, Java, Node.js, PHP, Python, Rust | `LICENSE_KEY` (.NET, Go, Java, Node.js, PHP, Python), `license_key` (Python), `DEVICE_DETECTION_KEY` (Go), `IPI_KEY` (Go), `51DEGREES_LICENSE_KEY` (Rust) |
+| `_51DEGREES_LICENSE_KEY` | A licence key, for data file updates and for 51Did requests that need one. | Tests, examples and CI | .NET, Go, Java, Node.js, PHP, Python, Rust | `LICENSE_KEY` (.NET, Go, Java, Node.js, PHP, Python), `license_key` (Python), `DEVICE_DETECTION_KEY` (Go), `IPI_KEY` (Go), `51DEGREES_LICENSE_KEY` (Rust), `LicenseKey` (Node.js), `LICENSEKEY` (Node.js) |
 | `_51DEGREES_LICENSE_KEY_51DID` | A licence key for the 51Did live tests. | Tests, examples and CI | .NET, Node.js, Rust |  |
 | `_51DEGREES_LICENSE_KEY_BESPOKE` | A licence key that carries the CloudV5Bespoke product, for live cloud tests. | Tests, examples and CI | Java, Rust |  |
 | `_51DEGREES_LICENSE_KEY_CLOUDV5BESPOKE` | A licence key that carries the CloudV5Bespoke product, for live cloud tests. Java reads it after _51DEGREES_LICENSE_KEY_BESPOKE. | Tests, examples and CI | Java |  |
@@ -63,7 +63,7 @@ Every current name starts `_51DEGREES_`. "Packages" means a published package re
 
 Each deprecated name is shown with the languages that read it in place of the current name. A release is shown where it has been decided which release stops reading the name.
 
-The list holds 40 deprecated names, and no release has been decided yet for any of them to stop being read.
+The list holds 42 deprecated names, and no release has been decided yet for any of them to stop being read.
 
 ## Other names
 
@@ -87,6 +87,7 @@ These names do not start `_51DEGREES_`, and 51Degrees files read them. Each is a
 | `directory` | The folder the Node.js examples and tests find their files from. The example tests set it to the example's own folder, and each reader uses its own folder when it is unset. | The Node.js example tests, or whoever runs an example | Node.js |
 | `EDGEWEBDRIVER` | The folder that holds msedgedriver, or msedgedriver itself, for the browser tests, which use it in place of downloading a driver. | GitHub's Ubuntu and Windows runner images, or whoever runs the browser tests elsewhere | .NET, Java, Node.js, PHP, Python, Rust |
 | `EDGE_BIN` | The Edge program the browser tests drive. | Whoever runs the browser tests, where the browser is not on the path | .NET, Java, Node.js, PHP, Python, Rust |
+| `EVIDENCEFILE` | The path of the YAML evidence file the .NET on-premise example tests give the examples, in place of the one they find by name. | Whoever runs those tests | .NET |
 | `EXAMPLE_LANG` | The language of the example under test, for the browser test suite. | The shared browser test suite in 51Degrees/selenium-api-tests, which every language's CI starts | .NET, Java, Node.js, PHP, Python, Rust |
 | `EXAMPLE_URL` | The address of the running example the browser test suite opens. | The shared browser test suite in 51Degrees/selenium-api-tests, which every language's CI starts | .NET, Java, Node.js, PHP, Python, Rust |
 | `FIFTYONE_AGENT_SIGNATURE_NETWORK_TESTS` | Set to 1 to let the .NET agent signature tests reach the network. | Whoever runs those tests | .NET |
@@ -94,9 +95,10 @@ These names do not start `_51DEGREES_`, and 51Degrees files read them. Each is a
 | `FIREFOX_BIN` | The Firefox program the browser tests drive. | Whoever runs the browser tests, where the browser is not on the path | .NET, Java, Node.js, PHP, Python, Rust |
 | `FROM_FORK` | Whether the pull request comes from a fork, for the Rust examples workflow. | The workflow step that reads it, from its own env block | Rust |
 | `GECKOWEBDRIVER` | The folder that holds geckodriver, or geckodriver itself, for the browser tests, which use it in place of downloading a driver. | GitHub's Ubuntu and Windows runner images, or whoever runs the browser tests elsewhere | .NET, Java, Node.js, PHP, Python, Rust |
+| `GEOIPEVIDENCEFILE` | The path of the file of addresses with known locations the .NET IP Intelligence on-premise example tests give the comparison examples, in place of the one they find by name. | Whoever runs those tests | .NET |
 | `IPINTELLIGENCELICENSEKEY_DOTNET` | A licence key for the .NET IP Intelligence data file update tests. | The .NET CI scripts | .NET |
-| `LicenseKey` | A licence key for the Java and Node.js data file update examples, read as LicenseKey and then as LICENSEKEY. | Whoever runs those examples | Java, Node.js |
-| `LICENSEKEY` | A licence key for the Java and Node.js data file update examples, read when LicenseKey is unset. | Whoever runs those examples | Java, Node.js |
+| `LicenseKey` | A licence key for the Java data file update examples, read as LicenseKey and then as LICENSEKEY. Node.js reads both names only as deprecated names of _51DEGREES_LICENSE_KEY. | Whoever runs those examples | Java |
+| `LICENSEKEY` | A licence key for the Java data file update examples, read when LicenseKey is unset. | Whoever runs those examples | Java |
 | `MODE` | Whether a Rust examples workflow job runs the on-premise or the cloud examples. | The workflow step that reads it, from its own env block | Rust |
 | `PAID_RESOURCE_KEY` | A resource key on a paid data tier, for the browser test suite. | The shared browser test suite in 51Degrees/selenium-api-tests, which every language's CI starts | .NET, Java, Node.js, PHP, Python, Rust |
 | `PATHS` | The data file paths the Rust restore-data-files action restores, one to a line. | The workflow step that reads it, from its own env block | Rust |
