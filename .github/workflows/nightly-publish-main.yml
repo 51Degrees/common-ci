@@ -97,7 +97,9 @@ on:
       MaxioApiKeyEu:
       MaxioApiKeyUsSandbox:
       MaxioApiKeyEuSandbox:
-      PearlTableauToken:
+      # The token for reporting a published package. A caller's own scripts
+      # receive it as a parameter of the same name, through steps/run-script.ps1.
+      ReportingToken:
 
 defaults:
   run:
