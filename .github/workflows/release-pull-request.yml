@@ -79,7 +79,6 @@ on:
       TestResourceKey:
       TestSuperResourceKey:
       UsePublishTests:
-      PearlLicense:
 
 jobs:
   # Only the release itself, being this repository's rc into its default

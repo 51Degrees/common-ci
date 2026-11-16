@@ -80,24 +80,23 @@ on:
       DockerContainer:
       DockerRegistry:
       DockerUser:
-      PearlLicense:
-      PearlHetznerS3AccessKeyId:
-      PearlHetznerS3SecretAccessKey:
-      PearlOvhEuS3AccessKeyId:
-      PearlOvhEuS3SecretAccessKey:
-      PearlOvhUsS3AccessKeyId:
-      PearlOvhUsS3SecretAccessKey:
-      PearlCollectorHetznerS3AccessKeyId:
-      PearlCollectorHetznerS3SecretAccessKey:
-      PearlCollectorOvhUk1S3AccessKeyId:
-      PearlCollectorOvhUk1S3SecretAccessKey:
-      PearlCollectorOvhUsEastVa1S3AccessKeyId:
-      PearlCollectorOvhUsEastVa1S3SecretAccessKey:
-      MaxioApiKeyUs:
-      MaxioApiKeyEu:
-      MaxioApiKeyUsSandbox:
-      MaxioApiKeyEuSandbox:
-      PearlTableauToken:
+      Storage1AccessKeyId:
+      Storage1SecretAccessKey:
+      Storage2AccessKeyId:
+      Storage2SecretAccessKey:
+      Storage3AccessKeyId:
+      Storage3SecretAccessKey:
+      Storage4AccessKeyId:
+      Storage4SecretAccessKey:
+      Storage5AccessKeyId:
+      Storage5SecretAccessKey:
+      Storage6AccessKeyId:
+      Storage6SecretAccessKey:
+      BillingApiKeyUs:
+      BillingApiKeyEu:
+      BillingApiKeyUsSandbox:
+      BillingApiKeyEuSandbox:
+      ReportingToken:
 
 defaults:
   run:
