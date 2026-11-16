@@ -22,7 +22,7 @@ BeforeAll {
     $script:Saved = @{}
     foreach ($name in $script:Environment.Keys) {
         $script:Saved[$name] = [Environment]::GetEnvironmentVariable($name)
-        [Environment]::SetEnvironmentVariable($name, $script:Environment[$name])
+        Set-Item -Path "Env:$name" -Value $script:Environment[$name]
     }
 
     # Runs git, returns what it printed, and stops the test when git fails.
@@ -32,8 +32,12 @@ BeforeAll {
         return $output
     }
 
+    # The file address of a folder, which starts with a drive letter on
+    # Windows and with a slash elsewhere.
     function Get-Url ([string]$Folder) {
-        return ([uri]$Folder).AbsoluteUri
+        $path = $Folder -replace '\\', '/'
+        if (-not $path.StartsWith('/')) { $path = "/$path" }
+        return "file://$path"
     }
 
     # Adds a commit to the branch checked out and returns its id.
@@ -105,8 +109,13 @@ BeforeAll {
 }
 
 AfterAll {
+    # A name that was not set before is removed, so that no later test sees it.
     foreach ($name in $script:Saved.Keys) {
-        [Environment]::SetEnvironmentVariable($name, $script:Saved[$name])
+        if ($null -eq $script:Saved[$name]) {
+            Remove-Item -Path "Env:$name" -ErrorAction SilentlyContinue
+        } else {
+            Set-Item -Path "Env:$name" -Value $script:Saved[$name]
+        }
     }
 }
 
