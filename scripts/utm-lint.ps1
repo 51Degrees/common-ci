@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
 Lints 51degrees.com links against the UTM tagging convention.
 
