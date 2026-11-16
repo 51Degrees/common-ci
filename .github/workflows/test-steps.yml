@@ -7,11 +7,15 @@ on:
   pull_request:
     paths:
       - 'steps/**'
+      - 'environment-variables.json'
+      - 'environment-variables.md'
       - '.github/workflows/test-steps.yml'
   push:
     branches: [ main ]
     paths:
       - 'steps/**'
+      - 'environment-variables.json'
+      - 'environment-variables.md'
       - '.github/workflows/test-steps.yml'
   workflow_dispatch:
 

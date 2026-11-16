@@ -4,8 +4,8 @@ Checks environment-variables.json and writes environment-variables.md from it.
 
 .DESCRIPTION
 environment-variables.json, at the root of this repository, is the one list
-of the environment variable names that 51Degrees packages, tests, examples
-and CI scripts read, in every language. environment-variables.md is the page
+of the environment variable names that the packages, tests, examples
+and CI scripts of the eight 51Degrees language repositories read. environment-variables.md is the page
 people read, and this script makes it from the list, so the page is never
 edited by hand.
 
@@ -171,9 +171,11 @@ function ConvertTo-Page ($List) {
     & $add ''
     & $add 'This page is made from [`environment-variables.json`](environment-variables.json) by [`steps/environment-variables.ps1`](steps/environment-variables.ps1). Change the JSON file and run the script, never this page. The JSON file decides, and a test fails when this page differs from it.'
     & $add ''
-    & $add 'These are the environment variable names that 51Degrees packages, tests, examples and CI scripts read, in every language. Each is a public name. A patch release never removes or renames one. When a name changes, the old name is still read for at least one release, only when the new name is unset or empty, with a message naming the new one.'
+    & $add 'These are the environment variable names that the packages, tests, examples and CI scripts of the eight 51Degrees language repositories read. Each is a public name. A patch release never removes or renames one. When a name changes, the old name is still read for at least one release, only when the new name is unset or empty, with a message naming the new one.'
     & $add ''
     & $add 'Names that the operating system, GitHub Actions or a build tool defines, such as `CI`, `PATH`, `HOME` and the `GITHUB_`, `RUNNER_` and `CARGO_` names, are not 51Degrees names and are not listed.'
+    & $add ''
+    & $add 'The names that only the shared steps of this repository read, and the names read by a 51Degrees repository that is not one of the eight, are not listed yet.'
     & $add ''
     & $add '## Current names'
     & $add ''
