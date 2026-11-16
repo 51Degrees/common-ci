@@ -138,7 +138,9 @@ than documentation has changed since the last release tag. It exits 1 when the
 version is already tagged, or when every file changed since the last release
 tag is a Markdown file or sits under `.github`, which holds the workflows,
 images and templates that no package includes, because that release would
-publish the same packages again.
+publish the same packages again. The last release tag is the highest release
+tag of any package on `HEAD` or before it, as
+[Version Tags](#version-tags) describes.
 
 ## PR to Main
 **Script: `pull-request-to-main.ps1`**
@@ -156,6 +158,8 @@ Push any committed changes in the repo to the branch that is currently checked o
 Dot-sourced, rather than run, by the scripts of a repository that gives each package its own version, which lists its packages in `ci/packages.json` (see [Packages](/REPO_SCRIPTS.md#packages)).
 
 `Get-ReleasePlan` gives the packages a publish of `HEAD` releases, in the order to publish them, each with its version and the reason. A package is released when a file that counts under its folders changed since its last tag, `<package>/<version>`, and every package that depends on it is released with it, because its requirement moves. A change only to documentation, tests, examples or a LICENSE file does not count, whatever the case of its name, unless the package sets `IgnoreDefaults` to false, and nor does a file the package's `Ignore` globs match. A repository can leave out more with a `ci/release-plan-filter.ps1` (see [Release Plan Filter](/REPO_SCRIPTS.md#release-plan-filter)). Each version is the package's last tag plus one patch, and a package with no tag starts at its `FirstVersion`. A package already tagged at `HEAD` is left out, so a second publish of the same commit releases nothing, and a package marked as not published, such as the examples, never is.
+
+`Get-PackageVersions` gives the version of every published package once `HEAD` is released, which is its version in the plan, or its last release when the plan leaves it out, for a build that sets each package's version and its requirements on the others. It returns an ordered dictionary, in the order of `ci/packages.json`, from each package's name to its `Name`, `Path`, `Version`, `Previous` (its last release), `Release` (whether the plan releases it) and `Reason`. A function with a `[hashtable]` parameter takes the dictionary as it is, and reads each version as `$versions[<name>].Version`. Its values are every published package, so they are not a plan for the `-Plan` of `check-version-bump.ps1` or `check-release-interval.ps1`, which take `Get-ReleasePlan`'s output, because the interval check would refuse a package released less than a week ago that the release leaves alone.
 
 ## Run Repo Script
 **Script: `run-script.ps1`**
@@ -187,7 +191,9 @@ This is the single, central place that knows the resource-key convention. To mak
 ## Update Sub-Modules
 **Script: `update-sub-modules.ps1`**
 
-Updates any submodule references in the repo to point to the latest commit in the main branch.
+Moves each submodule of the repo to the latest commit of the branch it follows, and only forward.
+
+A submodule moves when that latest commit holds the commit the repo records for it. When it does not, for example because the repo records the head of a release branch that the submodule's main branch has not taken yet, the submodule stays where it is and the step says so with a warning. Moving it would take it backwards and drop every commit between the two. The step fetches the submodule's history to check this, because the clone holds one commit of each submodule.
 
 ## Update Tag
 **Script: `update-tag.ps1`**
@@ -195,6 +201,11 @@ Updates any submodule references in the repo to point to the latest commit in th
 Tags the repository with the version supplied, and pushed to GitHub.
 
 A GitHub release is then created from the tag containing a description generated from the PRs linked to the tag.
+
+## Version Tags
+**Script: `version-tags.ps1`**
+
+Dot-sourced by `release-plan.ps1`, `check-version-bump.ps1`, `check-release-interval.ps1` and `package-update-required.ps1`, so that all four take the same tags as releases. A release tag is a version, after a package's name and a `/` where the repository tags each package on its own, and after a `v` where it wants one, as Go does, such as `4.5.103`, `v4.5.29`, `pipeline/4.5.129` or `pipeline/v4.5.171`. Each number of the version has no leading zero, as [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html) item 2 requires, and build metadata, as in `4.3.5+2`, may follow and is ignored, as item 10 requires. Two rules are ours rather than Semantic Versioning's. A fourth number, as in `4.4.3.0`, may follow and is ignored. A pre-release, such as `4.5.8-49` or `v4.5.0-alpha.1`, is never a release, so a version is judged against the last normal version. Item 9 only ranks a pre-release below its own normal version, and item 11 ranks `4.6.0-alpha.1` above `4.5.96`. No other tag is a release either. `Get-VersionTags` lists the release tags of a checkout with their versions, highest last, and `ConvertFrom-VersionTag` reads one tag.
 
 ## Version directives
 
@@ -232,6 +243,15 @@ skips the check. Only the repositories named in `OWN_CHECK` in
 `nightly-publish.yml` may replace it with their own, so a script that checks
 nothing cannot switch it off, and naming another repository is a change to
 common-ci.
+
+With `-Plan`, this script and `check-release-interval.ps1` check every package
+of a release plan in one call, each against its own tags, and refuse when any
+package is refused. The plan is the packages about to be published, and not
+every package, which the interval check would refuse when one was released
+less than a week ago. This script's `-RegistryVersionScript` also compares
+each package with the version its registry has released, and refuses a
+package with no tag that its registry has not released. See
+[Check Version Bump](/REPO_SCRIPTS.md#check-version-bump).
 
 It is at the publish rather than the merge on purpose. A version can arrive by
 a `+semver` directive, a tag pushed by hand, a version committed in a file, or

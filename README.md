@@ -350,13 +350,17 @@ To run these PowerShell scripts, either locally, or in a CI/CD pipeline, the fol
 - [Git CLI](https://git-scm.com/downloads)
 - [Hub CLI](https://hub.github.com/)
 - `GITHUB_TOKEN` environment variable (this is automatically set if using GitHub actions)
-- Some repositories require a cloud resource key. This can be obtained on the [Configurator](https://configure.51degrees.com)
+- Some repositories require a cloud resource key. This can be obtained on the [configuration page](https://51degrees.com/configure)
 
 # Secrets
 
 CI workflows that need secrets accept a [superset of all possible secrets](https://github.com/51Degrees/common-ci/blob/2badf94c075c4a73b188d6647fcd88df69ca8ce1/.github/workflows/nightly-pr-to-main.yml#L38-L64). During workflow execution non-null secrets get [combined into a JSON string](https://github.com/51Degrees/common-ci/blob/2badf94c075c4a73b188d6647fcd88df69ca8ce1/.github/workflows/nightly-pr-to-main.yml#L145), and [parsed as a PowerShell object](https://github.com/51Degrees/common-ci/blob/2badf94c075c4a73b188d6647fcd88df69ca8ce1/.github/workflows/nightly-pr-to-main.yml#L149), which is then passed to all build scripts that require secrets.
 
 This flow modifies the old one, where the JSON string was passed in by the caller directly as a single secret. The rationale for the new flow is making sure that in case secrets leak to CI logs, they get hidden by GitHub (replaced with `***`). This was not possible when all secrets were passed as a single JSON string - GitHub has to know about every single secret to be able to hide them.
+
+# Environment variable names
+
+[environment-variables.md](environment-variables.md) lists every environment variable name that 51Degrees packages, tests, examples and CI scripts read, in every language, with what each holds and the deprecated names each replaced. It is made from [environment-variables.json](environment-variables.json) by [steps/environment-variables.ps1](steps/environment-variables.ps1). The JSON file decides, so each language repository refers to it rather than keeping a list of its own.
 
 # Reusable actions
 

@@ -6,6 +6,7 @@ param (
 )
 
 . $PSScriptRoot/documentation-pattern.ps1
+. $PSScriptRoot/version-tags.ps1
 
 Write-Output "Checking if update is required"
 git -C $RepoName show-ref --quiet --tags $Version
@@ -19,10 +20,11 @@ if ($LASTEXITCODE -eq 0) {
 # publishes packages identical to the last ones, so it is not an update. That is
 # the documentation $DocumentationPattern matches and anything under .github,
 # which holds the workflows, images and templates. No package includes any of
-# them. Without a release tag there is nothing to compare with, so it is an
-# update as before.
-$lastTag = git -C $RepoName describe --tags --abbrev=0 2>$null
-if ($LASTEXITCODE -eq 0 -and $lastTag) {
+# them. The last release is the highest release tag of any package on HEAD or
+# before it, as version-tags.ps1 reads them. Without one there is nothing to
+# compare with, so it is an update.
+$lastTag = @(Get-VersionTags $RepoName -AnyPrefix -Merged)[-1].Tag
+if ($lastTag) {
     $changed = @(git -C $RepoName diff --name-only $lastTag HEAD)
     $packageFiles = @($changed | Where-Object {
         $_ -notmatch $DocumentationPattern -and $_ -notmatch '^\.github/'

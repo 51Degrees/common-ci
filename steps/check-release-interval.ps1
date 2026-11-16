@@ -26,9 +26,10 @@ releases. Give this or -LastRelease.
 
 .PARAMETER TagPrefix
 With -RepoName, the one package whose releases count, for a repository that
-tags each package '<TagPrefix>/<version>'. Without it every version tag
-counts, with or without a package name, so the newest release of any package
-is the last.
+tags each package '<TagPrefix>/<version>' or '<TagPrefix>/v<version>'.
+Without it every version tag counts, with or without a package name, so the
+newest release of any package is the last. version-tags.ps1 says which tags
+are releases.
 
 .PARAMETER Repository
 With -RepoName, the repository on GitHub, such as 51Degrees/51degrees-cxx. A
@@ -42,7 +43,20 @@ How to release early where this runs, ending the sentence "With it, ...".
 
 .PARAMETER Now
 The time to judge against, for tests. Defaults to now.
+
+.PARAMETER Plan
+With -RepoName, the release plan, being the packages about to be published,
+for a repository that gives each package its own version, such as
+Get-ReleasePlan's output. Give the plan and not every package, because a
+package released less than a week ago that this release leaves alone would be
+refused. Each entry needs a Name, which its tags start with. Each package is
+checked as -TagPrefix checks one, and the release is refused when any package
+is. A plan with nothing in it passes. It is the last parameter, so that the
+others keep their positions.
 #>
+# An unknown parameter stops the check, so a misspelt name cannot leave a
+# package checked against the wrong tags.
+[CmdletBinding()]
 param (
     [string]$LastRelease,
     [string]$LastReleaseName,
@@ -50,10 +64,47 @@ param (
     [string]$TagPrefix,
     [string]$Repository,
     [string]$HowToAllow = "run this again with ALLOW_EARLY_RELEASE set to 'true'.",
-    [string]$Now
+    [string]$Now,
+    [object[]]$Plan
 )
 $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
+. (Join-Path $PSScriptRoot 'version-tags.ps1')
+
+# Each package of a plan is checked by running this script again for it, so
+# it is judged exactly as a single package is.
+if ($PSBoundParameters.ContainsKey('Plan')) {
+    if ($TagPrefix -or $PSBoundParameters.ContainsKey('LastRelease') -or
+            -not $RepoName) {
+        throw "Give -Plan with -RepoName, and without -TagPrefix or -LastRelease."
+    }
+    $packages = @($Plan | Where-Object { $null -ne $_ })
+    if ($packages.Count -eq 0) {
+        Write-Output "No package is to be published, so there is nothing to check."
+        exit 0
+    }
+    $arguments = @{ RepoName = $RepoName }
+    if ($Repository) { $arguments.Repository = $Repository }
+    if ($HowToAllow) { $arguments.HowToAllow = $HowToAllow }
+    if ($Now) { $arguments.Now = $Now }
+    $refused = @()
+    foreach ($package in $packages) {
+        if (-not $package.Name) {
+            throw "Each entry of -Plan needs a Name."
+        }
+        Write-Output "$($package.Name):"
+        & $PSCommandPath @arguments -TagPrefix $package.Name
+        if ($LASTEXITCODE -ne 0) {
+            $refused += $package.Name
+        }
+    }
+    if ($refused.Count -gt 0) {
+        Write-Output ("Nothing is released, because these packages were " +
+            "released less than a week ago: $($refused -join ', ').")
+        exit 1
+    }
+    exit 0
+}
 
 $DaysBetweenReleases = 7
 
@@ -76,10 +127,6 @@ function Format-Day ([DateTime]$Day) {
 function Get-LastTaggedRelease {
     param ([string]$RepoName, [string]$TagPrefix, [string]$Repository)
 
-    $pattern = $TagPrefix `
-        ? "^$([regex]::Escape($TagPrefix))/v?\d+\.\d+\.\d+" `
-        : '^(.+/)?v?\d+\.\d+\.\d+'
-
     $published = @{}
     if ($Repository) {
         # The newest hundred releases. An older release cannot be the last.
@@ -97,7 +144,7 @@ function Get-LastTaggedRelease {
     $last = $null
     foreach ($line in (git -C $RepoName for-each-ref refs/tags "--format=$format")) {
         $name, $type, $taggerDate, $commitDate, $targetDate = $line -split "`t"
-        if ($name -notmatch $pattern) { continue }
+        if ($null -eq (ConvertFrom-VersionTag $name $TagPrefix -AnyPrefix)) { continue }
 
         # An annotated tag records when it was made. A lightweight one does
         # not, so its GitHub release dates it, and failing that its commit.

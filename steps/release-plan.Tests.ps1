@@ -237,6 +237,58 @@ Describe 'Get-ReleasePlan' {
         }
     }
 
+    It 'reads a Go module''s tags, ''<package>/v<version>''' {
+        $tags = @($script:AllTags + 'ipi/4.5.0' |
+            ForEach-Object { $_.Replace('/', '/v') })
+        $script:Repo = New-Repo $script:AllFiles $tags
+        Add-Commit $script:Repo @('device/dd/a.py')
+        Set-Filter $script:Repo '$true'
+        $plan = @(Get-ReleasePlan $script:Repo $script:Graph)
+        $plan.Name | Should -Be @('dd')
+        $plan[0].Version | Should -Be '4.5.97'
+        Get-FilterCalls $script:Repo |
+            Should -Be @('dd dd/v4.5.96 device/dd/a.py')
+    }
+
+    It 'counts the changes since the tag, where the tag is off the branch' {
+        $script:Repo = New-Repo $script:AllFiles ($script:AllTags + 'ipi/4.5.0')
+        git -C $script:Repo checkout --quiet --detach
+        Add-Commit $script:Repo @('device/dd/go.mod')
+        git -C $script:Repo tag 'dd/v4.5.97'
+        git -C $script:Repo checkout --quiet -
+        Add-Commit $script:Repo @()
+        $plan = @(Get-ReleasePlan $script:Repo $script:Graph)
+        $plan.Name | Should -Be @('dd')
+        $plan[0].Version | Should -Be '4.5.98'
+        $plan[0].Reason | Should -Be 'changed since 4.5.97 (1 file)'
+    }
+
+    It 'takes the tag with no ''v'' of two of one version' {
+        $script:Repo = New-Repo $script:AllFiles ($script:AllTags + 'ipi/4.5.0')
+        git -C $script:Repo tag 'dd/v4.5.97'
+        Add-Commit $script:Repo @('device/dd/a.py')
+        git -C $script:Repo tag 'dd/4.5.97'
+        Add-Commit $script:Repo @()
+        @(Get-ReleasePlan $script:Repo $script:Graph).Count | Should -Be 0
+    }
+
+    It 'releases nothing a second time from a commit with a Go tag' {
+        $script:Repo = New-Repo $script:AllFiles ($script:AllTags + 'ipi/4.5.0')
+        Add-Commit $script:Repo @('device/dd/a.py')
+        git -C $script:Repo tag 'dd/v4.5.97'
+        @(Get-ReleasePlan $script:Repo $script:Graph).Count | Should -Be 0
+    }
+
+    It 'does not take a pre-release tag as a release' {
+        $script:Repo = New-Repo $script:AllFiles ($script:AllTags + 'ipi/4.5.0')
+        Add-Commit $script:Repo @('device/dd/a.py')
+        git -C $script:Repo tag 'dd/4.5.97-alpha.1'
+        Add-Commit $script:Repo @()
+        $plan = @(Get-ReleasePlan $script:Repo $script:Graph)
+        $plan.Name | Should -Be @('dd')
+        $plan[0].Version | Should -Be '4.5.97'
+    }
+
     It 'refuses a never-released package with no FirstVersion' {
         $graph = @(New-Package 'new' 'p/new')
         $script:Repo = New-Repo @('p/new/a.py') @()
@@ -251,6 +303,95 @@ Describe 'Get-ReleasePlan' {
         git -C $script:Repo tag 'dd/4.5.200' $blob
         { Get-ReleasePlan $script:Repo $script:Graph } |
             Should -Throw '*changes to dd since dd/4.5.200*'
+    }
+}
+
+Describe 'Get-PackageVersions' {
+    It 'gives each published package its planned version or its last release' {
+        $script:Repo = New-Repo $script:AllFiles ($script:AllTags + 'ipi/4.5.0')
+        Add-Commit $script:Repo @('pipeline/engines/a.py')
+        $versions = Get-PackageVersions $script:Repo $script:Graph
+        @($versions.Keys) | Should -Be @(
+            'core', 'engines', 'did', 'dd', 'location', 'ipi')
+        @($versions.Values.Version) | Should -Be @(
+            '4.5.38', '4.5.39', '4.5.38', '4.5.97', '4.5.4', '4.5.1')
+        @($versions.Values.Release) | Should -Be @(
+            $false, $true, $false, $true, $false, $true)
+        $versions['engines'].Previous | Should -Be ([version]'4.5.38')
+        $versions['engines'].Reason | Should -Be 'changed since 4.5.38 (1 file)'
+        $versions['core'].Previous | Should -Be ([version]'4.5.38')
+        $versions['core'].Reason | Should -Be 'unchanged since 4.5.38'
+        $versions['dd'].Path | Should -Be 'device/dd'
+    }
+
+    It 'gives a package tagged at HEAD its tag, as unchanged' {
+        # The release plan leaves out a package already released from HEAD.
+        $script:Repo = New-Repo $script:AllFiles ($script:AllTags + 'ipi/4.5.0')
+        Add-Commit $script:Repo @('pipeline/engines/a.py')
+        git -C $script:Repo tag 'engines/4.5.39'
+        $engines = (Get-PackageVersions $script:Repo $script:Graph)['engines']
+        $engines.Version | Should -Be '4.5.39'
+        $engines.Previous | Should -Be ([version]'4.5.39')
+        $engines.Release | Should -BeFalse
+        $engines.Reason | Should -Be 'unchanged since 4.5.39'
+    }
+
+    It 'gives a first release its FirstVersion and no previous release' {
+        $script:Repo = New-Repo $script:AllFiles $script:AllTags
+        Add-Commit $script:Repo @()
+        $ipi = (Get-PackageVersions $script:Repo $script:Graph)['ipi']
+        $ipi.Version | Should -Be '4.5.0'
+        $ipi.Previous | Should -BeNullOrEmpty
+        $ipi.Release | Should -BeTrue
+    }
+
+    It 'takes a plan the caller already has' {
+        $script:Repo = New-Repo $script:AllFiles ($script:AllTags + 'ipi/4.5.0')
+        $plan = @([pscustomobject]@{
+            Name = 'dd'; Path = 'device/dd'; Version = '4.5.97'
+            Previous = [version]'4.5.96'; Reason = 'given' })
+        $versions = Get-PackageVersions $script:Repo $script:Graph $plan
+        $versions['dd'].Version | Should -Be '4.5.97'
+        $versions['dd'].Reason | Should -Be 'given'
+        $versions['engines'].Release | Should -BeFalse
+    }
+
+    It 'stops on a package never released that the plan leaves out' {
+        $script:Repo = New-Repo $script:AllFiles $script:AllTags
+        { Get-PackageVersions $script:Repo $script:Graph @() } |
+            Should -Throw '*ipi has never been released*'
+    }
+
+    It 'reads ci/packages.json when given no package list' {
+        $script:Repo = New-Repo $script:AllFiles ($script:AllTags + 'ipi/4.5.0')
+        $null = New-Item -ItemType Directory -Force (Join-Path $script:Repo 'ci')
+        $script:Graph | ConvertTo-Json |
+            Set-Content (Join-Path $script:Repo 'ci' 'packages.json')
+        Add-Commit $script:Repo @('location/setup.py')
+        $versions = Get-PackageVersions $script:Repo
+        $versions['location'].Version | Should -Be '4.5.5'
+        @($versions.Keys).Count | Should -Be 6
+    }
+
+    It 'binds to a [hashtable] parameter, whose entries need .Version' {
+        # The signature of Set-PomVersions in 51degrees-java's ci/release.ps1,
+        # which writes $Versions[<name>] into each pom.xml. It writes one
+        # element as that does and one reading .Version.
+        function Set-PomVersions([string]$RepoPath, [hashtable]$Versions) {
+            $pom = [xml]'<project><entry/><version/></project>'
+            $pom.project['entry'].InnerText = $Versions['engines']
+            $pom.project['version'].InnerText = $Versions['engines'].Version
+            return [pscustomobject]@{ Versions = $Versions; Pom = $pom }
+        }
+        $script:Repo = New-Repo $script:AllFiles ($script:AllTags + 'ipi/4.5.0')
+        Add-Commit $script:Repo @('pipeline/engines/a.py')
+        $given = Set-PomVersions $script:Repo (
+            Get-PackageVersions $script:Repo $script:Graph)
+        $given.Versions.GetType() | Should -Be ([hashtable])
+        @($given.Versions.Keys).Count | Should -Be 6
+        $given.Pom.project['version'].InnerText | Should -Be '4.5.39'
+        $given.Pom.project['entry'].InnerText |
+            Should -BeLike '@{Name=engines; *Version=4.5.39;*}'
     }
 }
 
