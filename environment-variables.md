@@ -2,9 +2,11 @@
 
 This page is made from [`environment-variables.json`](environment-variables.json) by [`steps/environment-variables.ps1`](steps/environment-variables.ps1). Change the JSON file and run the script, never this page. The JSON file decides, and a test fails when this page differs from it.
 
-These are the environment variable names that 51Degrees packages, tests, examples and CI scripts read, in every language. Each is a public name. A patch release never removes or renames one. When a name changes, the old name is still read for at least one release, only when the new name is unset or empty, with a message naming the new one.
+These are the environment variable names that the packages, tests, examples and CI scripts of the eight 51Degrees language repositories read. Each is a public name. A patch release never removes or renames one. When a name changes, the old name is still read for at least one release, only when the new name is unset or empty, with a message naming the new one.
 
 Names that the operating system, GitHub Actions or a build tool defines, such as `CI`, `PATH`, `HOME` and the `GITHUB_`, `RUNNER_` and `CARGO_` names, are not 51Degrees names and are not listed.
+
+The names that only the shared steps of this repository read, and the names read by a 51Degrees repository that is not one of the eight, are not listed yet.
 
 ## Current names
 
