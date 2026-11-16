@@ -120,6 +120,7 @@ on:
       MaxioApiKeyUsSandbox:
       MaxioApiKeyEuSandbox:
       PearlTableauToken:
+      TrackingToken:
 
 defaults:
   run:
