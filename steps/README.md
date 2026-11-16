@@ -191,7 +191,9 @@ This is the single, central place that knows the resource-key convention. To mak
 ## Update Sub-Modules
 **Script: `update-sub-modules.ps1`**
 
-Updates any submodule references in the repo to point to the latest commit in the main branch.
+Moves each submodule of the repo to the latest commit of the branch it follows, and only forward.
+
+A submodule moves when that latest commit holds the commit the repo records for it. When it does not, for example because the repo records the head of a release branch that the submodule's main branch has not taken yet, the submodule stays where it is and the step says so with a warning. Moving it would take it backwards and drop every commit between the two. The step fetches the submodule's history to check this, because the clone holds one commit of each submodule.
 
 ## Update Tag
 **Script: `update-tag.ps1`**
