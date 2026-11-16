@@ -1,5 +1,5 @@
 {
-  "description": "The environment variable names that the packages, tests, examples and CI scripts of the eight 51Degrees language repositories read. Each current name starts _51DEGREES_. A deprecated name is still read, only when the current name is unset or empty, with a message naming the current one. environment-variables.md is made from this file by steps/environment-variables.ps1.",
+  "description": "The environment variable names that the packages, tests, examples and CI scripts of the eight 51Degrees language repositories read. Each current name starts _51DEGREES_. A deprecated name is still read, only when the current name is unset or empty, with a message naming the current one. environment-variables.md is made from this file by steps/environment-variables.ps1, and never edited by hand.",
   "languages": {
     "cxx": {
       "name": "C and C++",
