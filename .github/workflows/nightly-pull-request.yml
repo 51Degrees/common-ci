@@ -87,7 +87,6 @@ on:
       TestResourceKey:
       TestSuperResourceKey:
       UsePublishTests:
-      Pearl.License:
 
 defaults:
   run:
