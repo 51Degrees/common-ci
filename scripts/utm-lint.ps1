@@ -5,8 +5,7 @@ Lints 51degrees.com links against the UTM tagging convention.
 .DESCRIPTION
 Checks every tracked text file in a repository for links to
 51degrees.com and configure.51degrees.com, and fails when a link does
-not follow the convention documented in UTM-LINK-TAGGING.md
-(internal-common-ci):
+not follow the 51Degrees UTM tagging convention:
 
   ?utm_source=<source>&utm_medium=<medium>&utm_campaign=<repo>
   &utm_content=<file-slug>&utm_term=<location>
@@ -106,7 +105,8 @@ $urlAllowlist = @('million\.zip', '/reflector/', 'datareceiver',
 $excludedHostPattern = '^(cloud|distributor|devices-v4|bulkdata|docs|legacy|ipcloud|crm[\w-]*|srv[\w-]*)\.51degrees\.com$'
 
 $sources = 'github|code|nuget|npm|maven|packagist|pypi|docs\.rs'
-$mediums = 'readme|docs|example|comment|package'
+# "about" is the website link in a GitHub repository's About box.
+$mediums = 'readme|docs|example|comment|package|about'
 $slug = '[a-z0-9][a-z0-9._-]*'
 $campaignEscaped = [regex]::Escape($Campaign)
 $queryPattern = "^([^&#]+&)?utm_source=($sources)&utm_medium=($mediums)" +
