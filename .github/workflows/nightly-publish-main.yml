@@ -98,6 +98,8 @@ on:
       MaxioApiKeyUsSandbox:
       MaxioApiKeyEuSandbox:
       PearlTableauToken:
+      PearlFodCloudDatabaseKey:
+      PearlDeviceDataSubmissionsKey:
 
 defaults:
   run:
