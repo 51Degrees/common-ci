@@ -198,9 +198,9 @@ A submodule moves when that latest commit holds the commit the repo records for 
 ## Update Tag
 **Script: `update-tag.ps1`**
 
-Tags the repository with the version supplied, and pushed to GitHub.
+Tags the repository with the version supplied, and pushes the tag to GitHub.
 
-A GitHub release is then created from the tag containing a description generated from the PRs linked to the tag.
+A GitHub release is then created from the tag, with a description generated from the pull requests linked to the tag. Every file in the `package` folder is attached in the same call, with a folder zipped first and `dummy.txt` left out. gh publishes the release only once the files are attached, which matters because SourceForge's copy of the releases does not see files added after a release is published ([GitHub Importer](https://sourceforge.net/p/forge/documentation/GitHub%20Importer/)).
 
 ## Version Tags
 **Script: `version-tags.ps1`**
