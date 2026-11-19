@@ -152,17 +152,12 @@ foreach ($asset in $Assets) {
             "51Degrees-Tac.zip" {  # same as the CSV above, without extracting
                 & $PSScriptRoot/download-data-file.ps1 -LicenseKey:$DeviceDetection -DataType 'CSV' -Product 'V4TAC' -Url:$CsvUrl -FullFilePath "$cache/$_"
             }
-            "chargify.json" {
-                Get-FromBulkData -License:$DeviceDetection -Data 'chargify' -Output $cache/$_
-            }
-            "entitlement.json" {
-                Get-FromBulkData -License:$DeviceDetection -Data 'entitlement' -Output $cache/$_
-            }
-            # The Cloud's browser tests baseline, key maps, gatherer script
-            # and raster bank. Pearl publishes them daily as their own data
-            # source so they never go into the data file customers are sent.
-            "browser-tests.json" {
-                Get-FromBulkData -License:$DeviceDetection -Data 'browser-tests' -Output $cache/$_
+            # Any other <name>.json is the Pearl API data source <name>,
+            # newest day first: chargify.json, entitlement.json, and the
+            # Cloud's browser-contradictions.json among them. A repository
+            # can fetch a new data source without a change here.
+            { $_ -cmatch '^[a-z0-9][a-z0-9-]*\.json$' } {
+                Get-FromBulkData -License:$DeviceDetection -Data ($_ -creplace '\.json$', '') -Output $cache/$_
             }
             default { Write-Error "Unknown asset: $_" }
         }

@@ -128,27 +128,42 @@ Describe 'fetch-assets.ps1 with bulkdata' {
         Remove-Item -Recurse -Force $global:FetchAssetsTest.Work -ErrorAction SilentlyContinue
     }
 
-    It 'gets browser-tests.json as the browser-tests data source, newest day first' {
+    # Runs the step for $Asset in the stand-in work folder.
+    function Invoke-BulkStep ([string]$Asset) {
         Push-Location $global:FetchAssetsTest.Work
         try {
-            & $script:Step -Assets 'browser-tests.json' -DeviceDetection 'KEY'
+            & $script:Step -Assets $Asset -DeviceDetection 'KEY' 3>$null
         } finally {
             Pop-Location
         }
-        $file = Get-Content -Raw "$($global:FetchAssetsTest.Work)/assets/browser-tests.json" | ConvertFrom-Json
-        $file.url | Should -Be 'https://bulkdata.51degrees.com/api/v4/Download/Production/browser-tests/KEY/2026-11-11'
-        $global:FetchAssetsTest.Urls[0] | Should -BeLike 'https://bulkdata.51degrees.com/api/v4/Available/Production/browser-tests/KEY/*'
     }
 
-    It 'falls back to the day before when the newest browser-tests.json is empty' {
+    It 'gets <Asset> as the <Source> data source, newest day first' -ForEach @(
+        @{ Asset = 'browser-contradictions.json'; Source = 'browser-contradictions' }
+        @{ Asset = 'chargify.json'; Source = 'chargify' }
+        @{ Asset = 'entitlement.json'; Source = 'entitlement' }
+        @{ Asset = 'a-name-nobody-listed.json'; Source = 'a-name-nobody-listed' }
+    ) {
+        Invoke-BulkStep $Asset
+        $file = Get-Content -Raw "$($global:FetchAssetsTest.Work)/assets/$Asset" | ConvertFrom-Json
+        $file.url | Should -Be "https://bulkdata.51degrees.com/api/v4/Download/Production/$Source/KEY/2026-11-11"
+        $global:FetchAssetsTest.Urls[0] | Should -BeLike "https://bulkdata.51degrees.com/api/v4/Available/Production/$Source/KEY/*"
+    }
+
+    It 'falls back to the day before when the newest file is empty' {
         $global:FetchAssetsTest.EmptyNewest = $true
-        Push-Location $global:FetchAssetsTest.Work
-        try {
-            & $script:Step -Assets 'browser-tests.json' -DeviceDetection 'KEY' 3>$null
-        } finally {
-            Pop-Location
-        }
-        $file = Get-Content -Raw "$($global:FetchAssetsTest.Work)/assets/browser-tests.json" | ConvertFrom-Json
-        $file.url | Should -BeLike '*/browser-tests/KEY/2026-11-10'
+        Invoke-BulkStep 'browser-contradictions.json'
+        $file = Get-Content -Raw "$($global:FetchAssetsTest.Work)/assets/browser-contradictions.json" | ConvertFrom-Json
+        $file.url | Should -BeLike '*/browser-contradictions/KEY/2026-11-10'
+    }
+
+    It 'refuses <Asset>, which is no data source name' -ForEach @(
+        @{ Asset = 'unknown.bin' }
+        @{ Asset = 'Upper.json' }
+        @{ Asset = '../escape.json' }
+        @{ Asset = 'two words.json' }
+    ) {
+        { Invoke-BulkStep $Asset } | Should -Throw -ExpectedMessage "*Unknown asset: $Asset*"
+        $global:FetchAssetsTest.Urls.Count | Should -Be 0
     }
 }
