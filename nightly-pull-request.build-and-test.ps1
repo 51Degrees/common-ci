@@ -15,6 +15,8 @@ $ErrorActionPreference = "Stop"
 
 $Options += $PSBoundParameters # Add RepoName, DryRun etc.
 if ($Options.Keys) {
+    # Publishing and setup secrets under the names the scripts ask for.
+    ./steps/publishing-secret-names.ps1 -Keys $Options.Keys
     $Options += $Options.Keys # Expand keys into options
 }
 
