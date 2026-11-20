@@ -1,12 +1,15 @@
 <#
 .SYNOPSIS
-Refuses a pull request from rc into the default branch that comes less than a
-week after the last one merged, unless it carries the early release label.
+Refuses a pull request from rc into the default branch that comes in the same
+calendar month as the last one merged, unless it carries the early release
+label.
 
 .DESCRIPTION
 The last release is the pull request from rc merged most recently, and
 check-release-interval.ps1 makes the decision. The label is read from GitHub
 rather than from the event, because a re-run reuses the event of the first run.
+Only the labels of the pull request being checked count, so the label is
+permission for that one release and never carries over to the next.
 
 .PARAMETER Repository
 The repository on GitHub, such as 51Degrees/51degrees-cxx.
@@ -18,7 +21,7 @@ The number of the pull request being checked.
 The repository's default branch, which rc releases into.
 
 .PARAMETER Label
-The label that allows an early release.
+The label that allows a second release in a calendar month.
 
 .PARAMETER RunUrl
 The page of this run, where the check is re-run.

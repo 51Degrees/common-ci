@@ -159,7 +159,7 @@ Dot-sourced, rather than run, by the scripts of a repository that gives each pac
 
 `Get-ReleasePlan` gives the packages a publish of `HEAD` releases, in the order to publish them, each with its version and the reason. A package is released when a file that counts under its folders changed since its last tag, `<package>/<version>`, and every package that depends on it is released with it, because its requirement moves. A change only to documentation, tests, examples or a LICENSE file does not count, whatever the case of its name, unless the package sets `IgnoreDefaults` to false, and nor does a file the package's `Ignore` globs match. A repository can leave out more with a `ci/release-plan-filter.ps1` (see [Release Plan Filter](/REPO_SCRIPTS.md#release-plan-filter)). Each version is the package's last tag plus one patch, and a package with no tag starts at its `FirstVersion`. A package already tagged at `HEAD` is left out, so a second publish of the same commit releases nothing, and a package marked as not published, such as the examples, never is.
 
-`Get-PackageVersions` gives the version of every published package once `HEAD` is released, which is its version in the plan, or its last release when the plan leaves it out, for a build that sets each package's version and its requirements on the others. It returns an ordered dictionary, in the order of `ci/packages.json`, from each package's name to its `Name`, `Path`, `Version`, `Previous` (its last release), `Release` (whether the plan releases it) and `Reason`. A function with a `[hashtable]` parameter takes the dictionary as it is, and reads each version as `$versions[<name>].Version`. Its values are every published package, so they are not a plan for the `-Plan` of `check-version-bump.ps1` or `check-release-interval.ps1`, which take `Get-ReleasePlan`'s output, because the interval check would refuse a package released less than a week ago that the release leaves alone.
+`Get-PackageVersions` gives the version of every published package once `HEAD` is released, which is its version in the plan, or its last release when the plan leaves it out, for a build that sets each package's version and its requirements on the others. It returns an ordered dictionary, in the order of `ci/packages.json`, from each package's name to its `Name`, `Path`, `Version`, `Previous` (its last release), `Release` (whether the plan releases it) and `Reason`. A function with a `[hashtable]` parameter takes the dictionary as it is, and reads each version as `$versions[<name>].Version`. Its values are every published package, so they are not a plan for the `-Plan` of `check-version-bump.ps1` or `check-release-interval.ps1`, which take `Get-ReleasePlan`'s output, because the interval check would refuse a package released this calendar month that the release leaves alone.
 
 ## Run Repo Script
 **Script: `run-script.ps1`**
@@ -248,7 +248,7 @@ With `-Plan`, this script and `check-release-interval.ps1` check every package
 of a release plan in one call, each against its own tags, and refuse when any
 package is refused. The plan is the packages about to be published, and not
 every package, which the interval check would refuse when one was released
-less than a week ago. This script's `-RegistryVersionScript` also compares
+this calendar month. This script's `-RegistryVersionScript` also compares
 each package with the version its registry has released, and refuses a
 package with no tag that its registry has not released. See
 [Check Version Bump](/REPO_SCRIPTS.md#check-version-bump).
@@ -264,12 +264,25 @@ commit message does quietly.
 
 ## Release interval
 
-`steps/check-release-interval.ps1` refuses a release that comes less than
-seven calendar days, counted in UTC, after the last one, as
-[Releasing at most once a week](/CONTRIBUTING.md#releasing-at-most-once-a-week)
-explains. `nightly-publish.yml` runs it on the newest version tag, and a
-repository named in that workflow's `OWN_CHECK` runs it for each package about
-to be published. `.github/workflows/only-rc-into-main.yml` runs it, through
+`steps/check-release-interval.ps1` refuses a release in the same calendar
+month, counted in UTC, as the last one, as
+[Releasing at most once a month](/CONTRIBUTING.md#releasing-at-most-once-a-month)
+explains. A release before 19 November 2026, when the rule began, does not
+count. A refusal names the last release, its date, and the first day of the
+next calendar month, when the next may go. `nightly-publish.yml` runs it on the
+newest version tag, and a repository named in that workflow's `OWN_CHECK` runs
+it for each package about to be published.
+`.github/workflows/only-rc-into-main.yml` runs it, through
 `steps/check-release-pull-request.ps1`, on a pull request from `rc` into the
 default branch, counting from the last one merged. Each script's help says how
 it dates the last release.
+
+## Commit subjects
+
+`steps/check-commit-subject.ps1` refuses a commit subject that does not start
+with one of the prefixes in
+[Commit Messages](/CONTRIBUTING.md#commit-messages) and a colon, such as
+`BUG: Fixed the string length.`, naming each subject refused and the prefixes
+allowed. Give it the subjects with `-Subject`, or a range of commits with
+`-Range`, such as `origin/rc..HEAD`, which leaves out merge commits. No
+workflow runs it yet.

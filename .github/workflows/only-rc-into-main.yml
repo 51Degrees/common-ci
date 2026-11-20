@@ -15,9 +15,10 @@ name: Only rc into main
 #       uses: 51Degrees/common-ci/.github/workflows/only-rc-into-main.yml@main
 #
 # In a repository that publishes packages it also fails a release, being a
-# pull request from rc into the default branch, that comes less than a week
-# after the last one merged, unless the label early-release is on it, as
-# CONTRIBUTING.md explains under "Releasing at most once a week".
+# pull request from rc into the default branch, that comes in the same
+# calendar month as the last one merged, unless the label early-release is on
+# it, as CONTRIBUTING.md explains under "Releasing at most once a month". The
+# label is permission for that one pull request, and so for that one release.
 
 on:
   workflow_call:
@@ -51,7 +52,7 @@ jobs:
 
       # The repositories that publish packages, to a registry or as the
       # versions other packages are built from. Only their releases are held
-      # to one a week.
+      # to one a calendar month.
       - name: Find whether this is a release of packages
         id: release
         env:
@@ -90,14 +91,12 @@ jobs:
           sparse-checkout: steps
           persist-credentials: false
 
-      - name: Refuse a release less than a week after the last
+      - name: Refuse a second release in a calendar month
         if: steps.release.outputs.release == 'true'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
           NUMBER: ${{ github.event.pull_request.number }}
-          # The calling repository's variable, or the organisation's.
-          WEEKLY_RELEASES_FROM: ${{ vars.WEEKLY_RELEASES_FROM }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           ./common-ci/steps/check-release-pull-request.ps1 `

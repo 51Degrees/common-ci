@@ -57,7 +57,7 @@ With -RepoName, the release plan, being the packages about to be published,
 for a repository that gives each package its own version, such as
 Get-ReleasePlan's output. Give the plan and not every package, because
 check-release-interval.ps1 takes the same plan and would refuse a package
-released less than a week ago that this publish does not release. Each entry
+released this calendar month that this publish does not release. Each entry
 needs a Name, which its tags start with, and a Version. Each package is
 checked as -Version with -TagPrefix checks one, and the publish is refused
 when any package is. A plan with nothing in it passes.
