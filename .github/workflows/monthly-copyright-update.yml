@@ -24,7 +24,7 @@ on:
         default: false
     secrets:
       token:
-        required: true
+        required: false
         
 jobs:
   monthly-copyright-update:
@@ -46,7 +46,7 @@ jobs:
         run: |
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
           . ${{ github.workspace }}/common/monthly-copyright-update.ps1 `
-          -GitHubToken ${{ secrets.token }} `
+          -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ github.ref_name }} `

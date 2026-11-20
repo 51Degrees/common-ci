@@ -40,6 +40,13 @@ Write-Host "::group::Checkout PR"
 "pr-sha=$PullRequestSha" | Out-File $GitHubOutput -Append
 Write-Host "::endgroup::"
 
+# The keys go into the environment under their agreed _51DEGREES_ names
+# before anything of the repository's runs, so that its own CI, its assets
+# and its setup can read them.
+Write-Host "::group::Set Resource Keys"
+./steps/set-resource-keys.ps1 -Keys $Options.Keys
+Write-Host "::endgroup::"
+
 if ($Options.CI) {
     & "./$RepoName/$($Options.CI)/build-and-test.ps1" @Options
     exit $LASTEXITCODE
@@ -51,10 +58,6 @@ Write-Host "::endgroup::"
 
 Write-Host "::group::Setup Environment"
 ./steps/run-script.ps1 ./$RepoName/ci/setup-environment.ps1 $Options
-Write-Host "::endgroup::"
-
-Write-Host "::group::Set Resource Keys"
-./steps/set-resource-keys.ps1 -Keys $Options.Keys
 Write-Host "::endgroup::"
 
 Write-Host "::group::Build Project"

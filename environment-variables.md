@@ -21,29 +21,19 @@ Every current name starts `_51DEGREES_`. "Packages" means a published package re
 | `_51DEGREES_EVIDENCE_YAML` | The path of a YAML file of evidence for the examples to process. | Tests, examples and CI | Go | `EVIDENCE_YAML` (Go) |
 | `_51DEGREES_EXAMPLE_HTTPS_PORTS` | The HTTPS ports the .NET web examples listen on. | Tests, examples and CI | .NET |  |
 | `_51DEGREES_EXAMPLE_HTTP_PORTS` | The HTTP ports the .NET web examples listen on. | Tests, examples and CI | .NET |  |
-| `_51DEGREES_IPI_DATA_FILE_URL` | The address the IP Intelligence examples download a data file from when they update it. | Tests, examples and CI | Go | `IPI_DATA_FILE_URL` (Go) |
 | `_51DEGREES_IPI_ENTERPRISE_SHARE` | A folder of dated IP Intelligence Enterprise data files, from which tests and examples take the newest. | Tests, examples and CI | Rust | `51DEGREES_IPI_ENTERPRISE_SHARE` (Rust) |
 | `_51DEGREES_IPI_MEMORY_PROFILES` | The performance profiles the IP Intelligence memory test measures, separated by commas. Every profile is measured when it is not set. | Tests, examples and CI | Rust |  |
 | `_51DEGREES_IPI_PATH` | The path of an IP Intelligence data file (.ipi) for tests and examples to use. The PHP IP Intelligence package also looks beside it for the Translations folder. | Packages | C and C++, .NET, Go, Java, Node.js, PHP, Python, Rust | `51DEGREES_IPI_PATH` (C and C++, .NET, Java, Node.js, Rust), `IPINTELLIGENCEDATAFILE` (.NET, PHP, Python), `DATA_FILE` (Go) |
 | `_51DEGREES_LICENSE_KEY` | A licence key, for data file updates and for 51Did requests that need one. | Tests, examples and CI | .NET, Go, Java, Node.js, PHP, Python, Rust | `LICENSE_KEY` (.NET, Go, Java, Node.js, PHP, Python), `license_key` (Python), `DEVICE_DETECTION_KEY` (Go), `IPI_KEY` (Go), `51DEGREES_LICENSE_KEY` (Rust), `LicenseKey` (Node.js), `LICENSEKEY` (Node.js) |
 | `_51DEGREES_LICENSE_KEY_51DID` | A licence key for the 51Did live tests. | Tests, examples and CI | .NET, Node.js, Rust |  |
 | `_51DEGREES_LICENSE_KEY_BESPOKE` | A licence key that carries the CloudV5Bespoke product, for live cloud tests. | Tests, examples and CI | Java, Rust |  |
-| `_51DEGREES_LICENSE_KEY_CLOUDV5BESPOKE` | A licence key that carries the CloudV5Bespoke product, for live cloud tests. Java reads it after _51DEGREES_LICENSE_KEY_BESPOKE. | Tests, examples and CI | Java |  |
 | `_51DEGREES_REQUIRE_ENTERPRISE` | When set, tests that need an IP Intelligence Enterprise data file fail rather than skip without one. | Tests, examples and CI | Rust |  |
 | `_51DEGREES_REQUIRE_LOCATION` | When set, tests that need location properties fail rather than skip when the IP Intelligence data file has none. | Tests, examples and CI | Rust |  |
 | `_51DEGREES_REQUIRE_TAC` | When set, tests that need the TAC and NativeModel properties fail rather than skip when the Device Detection data file lacks them. | Tests, examples and CI | Rust |  |
 | `_51DEGREES_RESOURCE_KEY` | A resource key for the 51Degrees cloud service, for tests and examples. When it is unset, the .NET examples take the first variable, in name order, whose name starts _51DEGREES_RESOURCE_KEY, such as one for each data tier. | Tests, examples and CI | .NET, Go, Java, Node.js, PHP, Python, Rust | `RESOURCE_KEY` (.NET, Java, Node.js, PHP, Python), `resource_key` (PHP, Python), `51DEGREES_RESOURCE_KEY` (.NET, Java, Node.js, Rust), `SUPER_RESOURCE_KEY` (.NET, Java), `51D_RESOURCE_KEY` (.NET) |
 | `_51DEGREES_RESOURCE_KEY_51DID` | A resource key for the 51Did live tests and examples. | Tests, examples and CI | .NET, Rust |  |
-| `_51DEGREES_RESOURCE_KEY_ACCEPTCH_BROWSER` | A resource key for the Accept-CH tests, whose properties need the browser client hints. | Tests, examples and CI | PHP | `AcceptChBrowserKey` (PHP) |
-| `_51DEGREES_RESOURCE_KEY_ACCEPTCH_HARDWARE` | A resource key for the Accept-CH tests, whose properties need the hardware client hints. | Tests, examples and CI | PHP | `AcceptChHardwareKey` (PHP) |
-| `_51DEGREES_RESOURCE_KEY_ACCEPTCH_NONE` | A resource key for the Accept-CH tests, whose properties need no client hints. | Tests, examples and CI | PHP | `AcceptChNoneKey` (PHP) |
-| `_51DEGREES_RESOURCE_KEY_ACCEPTCH_PLATFORM` | A resource key for the Accept-CH tests, whose properties need the platform client hints. | Tests, examples and CI | PHP | `AcceptChPlatformKey` (PHP) |
 | `_51DEGREES_RESOURCE_KEY_BASIC` | A resource key on the basic data tier, for tests of what that tier can and cannot read. | Tests, examples and CI | .NET, Rust |  |
 | `_51DEGREES_RESOURCE_KEY_BESPOKE` | A resource key that carries the CloudV5Bespoke product, for live cloud tests. | Tests, examples and CI | .NET, Java, Node.js, Python, Rust |  |
-| `_51DEGREES_RESOURCE_KEY_BROWSER` | A resource key for the Accept-CH tests, whose properties need the browser client hints. | Tests, examples and CI | Node.js | `TEST_BROWSER_RESOURCE_KEY` (Node.js) |
-| `_51DEGREES_RESOURCE_KEY_HARDWARE` | A resource key for the Accept-CH tests, whose properties need the hardware client hints. | Tests, examples and CI | Node.js | `TEST_HARDWARE_RESOURCE_KEY` (Node.js) |
-| `_51DEGREES_RESOURCE_KEY_NO_SETHEADER` | A resource key for the Accept-CH tests, whose properties need no client hints. | Tests, examples and CI | Node.js | `TEST_NO_SETHEADER_RESOURCE_KEY` (Node.js) |
-| `_51DEGREES_RESOURCE_KEY_PLATFORM` | A resource key for the Accept-CH tests, whose properties need the platform client hints. | Tests, examples and CI | Node.js | `TEST_PLATFORM_RESOURCE_KEY` (Node.js) |
 | `_51DEGREES_RESOURCE_KEY_SUPER` | A resource key that carries every property, for tests. | Tests, examples and CI | Node.js | `TEST_SUPER_RESOURCE_KEY` (Node.js) |
 | `_51DEGREES_RUN_PERFORMANCE_TESTS` | When set, the Python example tests also run the performance examples. | Tests, examples and CI | Python | `run_performance_tests` (Python) |
 | `_51DEGREES_RUSTC_VERSION` | The version of the Rust compiler, which usage sharing reports as the language version. The crate's build script sets it, so nobody else needs to. | Packages | Rust |  |
@@ -63,7 +53,18 @@ Every current name starts `_51DEGREES_`. "Packages" means a published package re
 
 Each deprecated name is shown with the languages that read it in place of the current name. A release is shown where it has been decided which release stops reading the name.
 
-The list holds 42 deprecated names, and no release has been decided yet for any of them to stop being read.
+The list holds 33 deprecated names, and no release has been decided yet for any of them to stop being read.
+
+## Filled in CI
+
+In the shared workflows, [`steps/set-resource-keys.ps1`](steps/set-resource-keys.ps1) exports each secret whose name is a current name. Where a current name has no secret of its own and the job has not set it, it is filled from the `_51DEGREES_` secret shown here. A name that does not start `_51DEGREES_` never fills anything.
+
+| Name | Filled from, when it has no value |
+| --- | --- |
+| `_51DEGREES_RESOURCE_KEY` | `_51DEGREES_RESOURCE_KEY_BESPOKE` |
+| `_51DEGREES_RESOURCE_KEY_51DID` | `_51DEGREES_RESOURCE_KEY_BESPOKE` |
+| `_51DEGREES_RESOURCE_KEY_BASIC` | `_51DEGREES_RESOURCE_KEY_FREE` |
+| `_51DEGREES_RESOURCE_KEY_SUPER` | `_51DEGREES_RESOURCE_KEY_BESPOKE` |
 
 ## Other names
 

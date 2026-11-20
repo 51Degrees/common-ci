@@ -245,23 +245,6 @@
       "deprecated": []
     },
     {
-      "name": "_51DEGREES_IPI_DATA_FILE_URL",
-      "holds": "The address the IP Intelligence examples download a data file from when they update it.",
-      "readByPackages": false,
-      "languages": [
-        "go"
-      ],
-      "deprecated": [
-        {
-          "name": "IPI_DATA_FILE_URL",
-          "languages": [
-            "go"
-          ],
-          "stopsBeingReadIn": ""
-        }
-      ]
-    },
-    {
       "name": "_51DEGREES_IPI_ENTERPRISE_SHARE",
       "holds": "A folder of dated IP Intelligence Enterprise data files, from which tests and examples take the newest.",
       "readByPackages": false,
@@ -423,15 +406,6 @@
       "deprecated": []
     },
     {
-      "name": "_51DEGREES_LICENSE_KEY_CLOUDV5BESPOKE",
-      "holds": "A licence key that carries the CloudV5Bespoke product, for live cloud tests. Java reads it after _51DEGREES_LICENSE_KEY_BESPOKE.",
-      "readByPackages": false,
-      "languages": [
-        "java"
-      ],
-      "deprecated": []
-    },
-    {
       "name": "_51DEGREES_REQUIRE_ENTERPRISE",
       "holds": "When set, tests that need an IP Intelligence Enterprise data file fail rather than skip without one.",
       "readByPackages": false,
@@ -462,6 +436,7 @@
       "name": "_51DEGREES_RESOURCE_KEY",
       "holds": "A resource key for the 51Degrees cloud service, for tests and examples. When it is unset, the .NET examples take the first variable, in name order, whose name starts _51DEGREES_RESOURCE_KEY, such as one for each data tier.",
       "readByPackages": false,
+      "filledInCiFrom": "_51DEGREES_RESOURCE_KEY_BESPOKE",
       "languages": [
         "dotnet",
         "go",
@@ -522,6 +497,7 @@
       "name": "_51DEGREES_RESOURCE_KEY_51DID",
       "holds": "A resource key for the 51Did live tests and examples.",
       "readByPackages": false,
+      "filledInCiFrom": "_51DEGREES_RESOURCE_KEY_BESPOKE",
       "languages": [
         "dotnet",
         "rust"
@@ -529,77 +505,10 @@
       "deprecated": []
     },
     {
-      "name": "_51DEGREES_RESOURCE_KEY_ACCEPTCH_BROWSER",
-      "holds": "A resource key for the Accept-CH tests, whose properties need the browser client hints.",
-      "readByPackages": false,
-      "languages": [
-        "php"
-      ],
-      "deprecated": [
-        {
-          "name": "AcceptChBrowserKey",
-          "languages": [
-            "php"
-          ],
-          "stopsBeingReadIn": ""
-        }
-      ]
-    },
-    {
-      "name": "_51DEGREES_RESOURCE_KEY_ACCEPTCH_HARDWARE",
-      "holds": "A resource key for the Accept-CH tests, whose properties need the hardware client hints.",
-      "readByPackages": false,
-      "languages": [
-        "php"
-      ],
-      "deprecated": [
-        {
-          "name": "AcceptChHardwareKey",
-          "languages": [
-            "php"
-          ],
-          "stopsBeingReadIn": ""
-        }
-      ]
-    },
-    {
-      "name": "_51DEGREES_RESOURCE_KEY_ACCEPTCH_NONE",
-      "holds": "A resource key for the Accept-CH tests, whose properties need no client hints.",
-      "readByPackages": false,
-      "languages": [
-        "php"
-      ],
-      "deprecated": [
-        {
-          "name": "AcceptChNoneKey",
-          "languages": [
-            "php"
-          ],
-          "stopsBeingReadIn": ""
-        }
-      ]
-    },
-    {
-      "name": "_51DEGREES_RESOURCE_KEY_ACCEPTCH_PLATFORM",
-      "holds": "A resource key for the Accept-CH tests, whose properties need the platform client hints.",
-      "readByPackages": false,
-      "languages": [
-        "php"
-      ],
-      "deprecated": [
-        {
-          "name": "AcceptChPlatformKey",
-          "languages": [
-            "php"
-          ],
-          "stopsBeingReadIn": ""
-        }
-      ]
-    },
-    {
       "name": "_51DEGREES_RESOURCE_KEY_BASIC",
       "holds": "A resource key on the basic data tier, for tests of what that tier can and cannot read.",
       "readByPackages": false,
+      "filledInCiFrom": "_51DEGREES_RESOURCE_KEY_FREE",
       "languages": [
         "dotnet",
         "rust"
@@ -620,77 +529,10 @@
       "deprecated": []
     },
     {
-      "name": "_51DEGREES_RESOURCE_KEY_BROWSER",
-      "holds": "A resource key for the Accept-CH tests, whose properties need the browser client hints.",
-      "readByPackages": false,
-      "languages": [
-        "node"
-      ],
-      "deprecated": [
-        {
-          "name": "TEST_BROWSER_RESOURCE_KEY",
-          "languages": [
-            "node"
-          ],
-          "stopsBeingReadIn": ""
-        }
-      ]
-    },
-    {
-      "name": "_51DEGREES_RESOURCE_KEY_HARDWARE",
-      "holds": "A resource key for the Accept-CH tests, whose properties need the hardware client hints.",
-      "readByPackages": false,
-      "languages": [
-        "node"
-      ],
-      "deprecated": [
-        {
-          "name": "TEST_HARDWARE_RESOURCE_KEY",
-          "languages": [
-            "node"
-          ],
-          "stopsBeingReadIn": ""
-        }
-      ]
-    },
-    {
-      "name": "_51DEGREES_RESOURCE_KEY_NO_SETHEADER",
-      "holds": "A resource key for the Accept-CH tests, whose properties need no client hints.",
-      "readByPackages": false,
-      "languages": [
-        "node"
-      ],
-      "deprecated": [
-        {
-          "name": "TEST_NO_SETHEADER_RESOURCE_KEY",
-          "languages": [
-            "node"
-          ],
-          "stopsBeingReadIn": ""
-        }
-      ]
-    },
-    {
-      "name": "_51DEGREES_RESOURCE_KEY_PLATFORM",
-      "holds": "A resource key for the Accept-CH tests, whose properties need the platform client hints.",
-      "readByPackages": false,
-      "languages": [
-        "node"
-      ],
-      "deprecated": [
-        {
-          "name": "TEST_PLATFORM_RESOURCE_KEY",
-          "languages": [
-            "node"
-          ],
-          "stopsBeingReadIn": ""
-        }
-      ]
-    },
-    {
       "name": "_51DEGREES_RESOURCE_KEY_SUPER",
       "holds": "A resource key that carries every property, for tests.",
       "readByPackages": false,
+      "filledInCiFrom": "_51DEGREES_RESOURCE_KEY_BESPOKE",
       "languages": [
         "node"
       ],

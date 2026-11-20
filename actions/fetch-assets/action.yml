@@ -6,6 +6,13 @@ inputs:
     required: false
   lazy: # don't actually fetch if the files are cached
     required: false
+  # The licence key for the data files, which come from the Distributor:
+  # pass secrets._51DEGREES_LICENSE_KEY. Without it, each asset that needs a
+  # licence is skipped with a message.
+  license-key:
+    required: false
+  # The old keys and addresses. They are accepted so that a caller not yet
+  # moved still runs, and are never used.
   device-detection-key:
     required: false
   device-detection-url:
@@ -44,16 +51,9 @@ runs:
       shell: pwsh
       env:
         assets: ${{ inputs.assets }}
-        device_detection_key: ${{ inputs.device-detection-key }}
-        device_detection_url: ${{ inputs.device-detection-url }}
-        ip_intelligence_key: ${{ inputs.ip-intelligence-key }}
-        ip_intelligence_url: ${{ inputs.ip-intelligence-url }}
+        _51DEGREES_LICENSE_KEY: ${{ inputs.license-key }}
       run: |
-        & "${{ github.action_path }}/../../steps/fetch-assets.ps1" -Assets ($env:assets.Trim() -split "`n") `
-            -DeviceDetection:$env:device_detection_key `
-            -DeviceDetectionUrl:$env:device_detection_url `
-            -IpIntelligence:$env:ip_intelligence_key `
-            -IpIntelligenceUrl:$env:ip_intelligence_url
+        & "${{ github.action_path }}/../../steps/fetch-assets.ps1" -Assets ($env:assets.Trim() -split "`n")
 
     - name: Save cache
       if: ${{ inputs.cache == 'true' && steps.cache-restore.outputs.cache-hit != 'true' }}

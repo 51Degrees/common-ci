@@ -219,6 +219,38 @@ Describe 'The rules' {
             Should -Throw "*other name '$($list.otherNames[0].name)' needs what it holds and what sets it*"
     }
 
+    It 'accepts filledInCiFrom naming another _51DEGREES_ name' {
+        $list = Get-List
+        $list.variables[0] | Add-Member -Force -NotePropertyName filledInCiFrom `
+            -NotePropertyValue '_51DEGREES_RESOURCE_KEY_FREE'
+        { Invoke-Script $list } | Should -Not -Throw
+    }
+
+    It 'refuses filledInCiFrom naming a name that does not start _51DEGREES_' {
+        $list = Get-List
+        $list.variables[0] | Add-Member -Force -NotePropertyName filledInCiFrom `
+            -NotePropertyValue 'SUPER_RESOURCE_KEY'
+        { Invoke-Script $list } |
+            Should -Throw "*'$($list.variables[0].name)' is filled in CI from 'SUPER_RESOURCE_KEY', which does not start _51DEGREES_*"
+    }
+
+    It 'refuses filledInCiFrom naming the variable itself' {
+        $list = Get-List
+        $name = $list.variables[0].name
+        $list.variables[0] | Add-Member -Force -NotePropertyName filledInCiFrom `
+            -NotePropertyValue $name
+        { Invoke-Script $list } |
+            Should -Throw "*'$name' is filled in CI from itself*"
+    }
+
+    It 'refuses filledInCiFrom that is not one name' {
+        $list = Get-List
+        $list.variables[0] | Add-Member -Force -NotePropertyName filledInCiFrom `
+            -NotePropertyValue @('_51DEGREES_RESOURCE_KEY_FREE', '_51DEGREES_RESOURCE_KEY_PAID')
+        { Invoke-Script $list } |
+            Should -Throw "*'$($list.variables[0].name)' needs filledInCiFrom as one name*"
+    }
+
     It 'writes no page when the list breaks a rule' {
         $list = Get-List
         $list.variables[0].name = 'NO_PREFIX'
@@ -290,6 +322,16 @@ Describe 'The page' {
         foreach ($other in $list.otherNames) {
             $text.Contains('`' + $other.name + '`') | Should -BeTrue
         }
+    }
+
+    It 'shows each name CI fills, and the secret it fills it from' {
+        $list = Get-List
+        $list.variables[0] | Add-Member -Force -NotePropertyName filledInCiFrom `
+            -NotePropertyValue '_51DEGREES_RESOURCE_KEY_FREE'
+        Invoke-Script $list -Page $script:Page
+        $text = Get-Content -Raw -LiteralPath $script:Page
+        $text.Contains('| `' + $list.variables[0].name +
+            '` | `_51DEGREES_RESOURCE_KEY_FREE` |') | Should -BeTrue
     }
 
     It 'shows the release a deprecated name stops being read in once it is decided' {

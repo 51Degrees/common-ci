@@ -1,13 +1,27 @@
 param (
     [Parameter(Mandatory)][string[]]$Assets,
+    # The licence key for the data files, which come from the Distributor.
+    # The shared workflows export it as _51DEGREES_LICENSE_KEY before this
+    # runs.
+    [string]$LicenseKey = $env:_51DEGREES_LICENSE_KEY,
+    [switch]$FullCsv,
+    # The old keys and addresses. They are accepted so that a caller not yet
+    # moved to _51DEGREES_LICENSE_KEY still runs, and are never used: no name
+    # that does not start _51DEGREES_ is read.
     [string]$DeviceDetection,
     [string]$DeviceDetectionUrl,
     [string]$IpIntelligence,
     [string]$IpIntelligenceUrl,
-    [string]$CsvUrl,
-    [switch]$FullCsv
+    [string]$CsvUrl
 )
 $ErrorActionPreference = "Stop"
+
+# The assets that need a licence key. Without one, the step fails naming the
+# variable, rather than with the Distributor's refusal.
+$NeedLicense = @(
+    'TAC-HashV41.hash', '51Degrees-EnterpriseIpiV41.ipi', '51Degrees.csv',
+    '51Degrees-Tac.zip', 'chargify.json', 'entitlement.json'
+)
 $PSNativeCommandUseErrorActionPreference = $true
 
 $cache = New-Item -ItemType Directory -Path assets -Force
@@ -119,6 +133,9 @@ foreach ($asset in $Assets) {
         Write-Host "Asset '$asset' already present in cache, skipping download"
         continue
     }
+    if ($NeedLicense -ccontains $asset -and [string]::IsNullOrWhiteSpace($LicenseKey)) {
+        throw "'$asset' needs the data licence key, and _51DEGREES_LICENSE_KEY is not set. It is an organisation secret, which the calling workflow passes with 'secrets: inherit'."
+    }
     Write-Host "Fetching '$asset'"
     try {
         if ($dataFiles.ContainsKey($asset)) {
@@ -127,20 +144,21 @@ foreach ($asset in $Assets) {
         }
         switch -Exact -CaseSensitive ($asset) {
             "TAC-HashV41.hash" {
-                & $PSScriptRoot/fetch-hash-assets.ps1 -RepoName . -LicenseKey $DeviceDetection -Url $DeviceDetectionUrl
+                & $PSScriptRoot/fetch-hash-assets.ps1 -RepoName . -LicenseKey $LicenseKey
                 Move-Item -Path $_ -Destination $cache
             }
             "51Degrees-EnterpriseIpiV41.ipi" {
-                & $PSScriptRoot/fetch-hash-assets.ps1 -RepoName . -ArchiveName "$_.gz" -LicenseKey $IpIntelligence -DataType IPIV41 -Product IPIV4Enterprise -Url $IpIntelligenceUrl
+                & $PSScriptRoot/fetch-hash-assets.ps1 -RepoName . -ArchiveName "$_.gz" -LicenseKey $LicenseKey -DataType IPIV41 -Product IPIV4Enterprise
                 Move-Item -Path $_ -Destination $cache
             }
             "51Degrees-EnterpriseIpiV41-AllProperties.ipi" {
-                # Only uses URL
-                & $PSScriptRoot/fetch-hash-assets.ps1 -RepoName . -ArchiveName "$_.gz" -Url $IpIntelligenceUrl
-                Move-Item -Path $_ -Destination $cache
+                # This file came only from an address in a secret. Data files
+                # now come from the Distributor with _51DEGREES_LICENSE_KEY,
+                # and no Distributor product for it is known yet.
+                Write-Host "No Distributor product is known for '$_': skipping it. Tests that need it should skip and say so."
             }
             "51Degrees.csv" {
-                & $PSScriptRoot/download-data-file.ps1 -LicenseKey:$DeviceDetection -DataType 'CSV' -Product 'V4TAC' -Url:$CsvUrl -FullFilePath "$_.zip"
+                & $PSScriptRoot/download-data-file.ps1 -LicenseKey:$LicenseKey -DataType 'CSV' -Product 'V4TAC' -FullFilePath "$_.zip"
                 Expand-Archive -DestinationPath . "$_.zip"
                 if ($FullCsv) {
                     Move-Item -Path '51Degrees-Tac-All.csv' -Destination $cache/$_
@@ -150,13 +168,13 @@ foreach ($asset in $Assets) {
                 Remove-Item -Force "$_.zip", '51Degrees-Tac-All.csv'
             }
             "51Degrees-Tac.zip" {  # same as the CSV above, without extracting
-                & $PSScriptRoot/download-data-file.ps1 -LicenseKey:$DeviceDetection -DataType 'CSV' -Product 'V4TAC' -Url:$CsvUrl -FullFilePath "$cache/$_"
+                & $PSScriptRoot/download-data-file.ps1 -LicenseKey:$LicenseKey -DataType 'CSV' -Product 'V4TAC' -FullFilePath "$cache/$_"
             }
             "chargify.json" {
-                Get-FromBulkData -License:$DeviceDetection -Data 'chargify' -Output $cache/$_
+                Get-FromBulkData -License:$LicenseKey -Data 'chargify' -Output $cache/$_
             }
             "entitlement.json" {
-                Get-FromBulkData -License:$DeviceDetection -Data 'entitlement' -Output $cache/$_
+                Get-FromBulkData -License:$LicenseKey -Data 'entitlement' -Output $cache/$_
             }
             default { Write-Error "Unknown asset: $_" }
         }

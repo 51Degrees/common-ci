@@ -20,6 +20,9 @@ rules.
   language, so each name means one thing in each language.
 - Every entry has its fields, and every language it names is in the list's
   languages.
+- A current name's filledInCiFrom, where it has one, is one other name that
+  starts _51DEGREES_. steps/set-resource-keys.ps1 fills the current name from
+  the secret of that name when it has no value of its own.
 
 .PARAMETER ListPath
 The list to read. The default is environment-variables.json at the root of
@@ -101,6 +104,18 @@ function Get-ListProblems ($List) {
         }
         if ($variable.readByPackages -isnot [bool]) {
             "The current name '$name' needs readByPackages as true or false."
+        }
+        if ($variable.PSObject.Properties['filledInCiFrom']) {
+            $from = $variable.filledInCiFrom
+            if (-not (Test-Text $from)) {
+                "The current name '$name' needs filledInCiFrom as one name."
+            }
+            elseif (-not $from.StartsWith($CurrentPrefix, [StringComparison]::Ordinal)) {
+                "The current name '$name' is filled in CI from '$from', which does not start $CurrentPrefix."
+            }
+            elseif ($from -ceq $name) {
+                "The current name '$name' is filled in CI from itself."
+            }
         }
         Get-LanguageProblems "The current name '$name'" $variable $known
     }
@@ -208,6 +223,22 @@ function ConvertTo-Page ($List) {
     }
     else {
         & $add "The list holds $($deprecatedNames.Count) deprecated names, and a release has been decided for $($decidedNames.Count) of them."
+    }
+    & $add ''
+    & $add '## Filled in CI'
+    & $add ''
+    & $add 'In the shared workflows, [`steps/set-resource-keys.ps1`](steps/set-resource-keys.ps1) exports each secret whose name is a current name. Where a current name has no secret of its own and the job has not set it, it is filled from the `_51DEGREES_` secret shown here. A name that does not start `_51DEGREES_` never fills anything.'
+    & $add ''
+    $filled = @($List.variables | Where-Object { $_.PSObject.Properties['filledInCiFrom'] })
+    if ($filled.Count -eq 0) {
+        & $add 'No current name is filled from another.'
+    }
+    else {
+        & $add '| Name | Filled from, when it has no value |'
+        & $add '| --- | --- |'
+        foreach ($variable in $filled) {
+            & $add ('| `' + $variable.name + '` | `' + $variable.filledInCiFrom + '` |')
+        }
     }
     & $add ''
     & $add '## Other names'
