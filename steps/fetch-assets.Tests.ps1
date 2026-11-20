@@ -128,13 +128,15 @@ Describe 'fetch-assets.ps1 with bulkdata' {
         Remove-Item -Recurse -Force $global:FetchAssetsTest.Work -ErrorAction SilentlyContinue
     }
 
-    # Runs the step for $Asset in the stand-in work folder.
-    function Invoke-BulkStep ([string]$Asset) {
-        Push-Location $global:FetchAssetsTest.Work
-        try {
-            & $script:Step -Assets $Asset -DeviceDetection 'KEY' 3>$null
-        } finally {
-            Pop-Location
+    BeforeAll {
+        # Runs the step for $Asset in the stand-in work folder.
+        function Invoke-BulkStep ([string]$Asset) {
+            Push-Location $global:FetchAssetsTest.Work
+            try {
+                & $script:Step -Assets $Asset -DeviceDetection 'KEY' 3>$null
+            } finally {
+                Pop-Location
+            }
         }
     }
 
