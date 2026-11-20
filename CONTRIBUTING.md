@@ -20,7 +20,7 @@ The reader should be familiar with:
 - [Issues](#issues)
 - [Changes](#changes)
   - [Branching Strategy](#branching-strategy)
-  - [Releasing at most once a week](#releasing-at-most-once-a-week)
+  - [Releasing at most once a month](#releasing-at-most-once-a-month)
   - [Commenting](#commenting)
   - [Code Style](#code-style)
   - [Tests](#tests)
@@ -49,7 +49,7 @@ When a release is wanted:
 
 1. Merge `main` into `rc`, because nightly data file and submodule updates still reach `main`.
 2. Open a pull request from `rc` into `main`, naming every issue its changes fix, because GitHub closes an issue only when its fix reaches `main`.
-3. Say in that pull request when the last one from `rc` into `main` merged, which `gh pr list --base main --head rc --state merged --limit 1 --json mergedAt` shows. In a repository that publishes packages it must be at least seven days before, as [Releasing at most once a week](#releasing-at-most-once-a-week) explains.
+3. Say in that pull request when the last one from `rc` into `main` merged, which `gh pr list --base main --head rc --state merged --limit 1 --json mergedAt` shows. In a repository that publishes packages it must be in an earlier calendar month, as [Releasing at most once a month](#releasing-at-most-once-a-month) explains.
 4. Keep that pull request a draft until it is merged, because the nightly merges any pull request into `main` that is not a draft.
 
 For a more in depth descriptions, see [Feature Branch Workflow](https://www.atlassian.com/git/tutorials/comparing-workflows/feature-branch-workflow").
@@ -58,24 +58,21 @@ There are some exceptions to this, which will be stated per repository.
 
 Branch naming should be brief but descriptive, under either `feature/` or `bug/`, and kebab-case is prefered e.g. `feature/ui-example`.
 
-## Releasing at most once a week
+## Releasing at most once a month
 
-A repository that publishes packages releases `rc` into `main` at most once a week. Changes collect on `rc` during the week and reach `main` together, so each package gets at most one new version a week. Fewer versions are easier for the people who use the packages to keep up with, and they keep the packages in search. nuget.org asks search engines not to index a package's page while the oldest of its 20 newest versions is less than 90 days old (`BlockSearchEngineIndexing` in NuGetGallery's [`DisplayPackageViewModel.cs`](https://github.com/NuGet/NuGetGallery/blob/main/src/NuGetGallery/ViewModels/DisplayPackageViewModel.cs)), so a package that releases more often than once every four and a half days drops out of search. Weekly keeps every package clear of that, with room for an urgent fix. Publish only the packages that changed, because a new version of an unchanged package uses up its allowance for nothing.
+Since 19 November 2026, from the 4.6 releases onwards, each repository that publishes packages releases `rc` into `main` at most once a calendar month. Changes collect on `rc` during the month and reach `main` together, so each package gets at most one new version a month. Fewer versions are easier for the people who use the packages to keep up with, and they keep the packages in search. nuget.org asks search engines not to index a package's page while the oldest of its 20 newest versions is less than 90 days old (`BlockSearchEngineIndexing` in NuGetGallery's [`DisplayPackageViewModel.cs`](https://github.com/NuGet/NuGetGallery/blob/main/src/NuGetGallery/ViewModels/DisplayPackageViewModel.cs)), so a package that releases more often than once every four and a half days drops out of search. Once a month keeps every package well clear of that, with room for an urgent fix. Publish only the packages that changed, because a new version of an unchanged package uses up its allowance for nothing.
 
-Two checks hold to this. Both count whole calendar days in UTC, so a release on a Wednesday allows the next from the following Wednesday, at any time of day.
+Two checks hold to this. Both count calendar months in UTC, so a release on any day of December allows the next from 1 January, at any time of day. A release before 19 November 2026 does not count, so the first release on or after that day may go whenever the one before it went.
 
-- The "Only rc into main" check fails a pull request from `rc` into `main` when the last one merged less than seven days before. It names the last release and the first day the next may go.
-- The publish refuses to release when the newest version tag is less than seven days old, so a release that reaches `main` another way waits as well.
+- The "Only rc into main" check fails a pull request from `rc` into `main` when the last one merged in the same calendar month. It names the last release, its date, and the first day the next may go.
+- The publish refuses to release when the newest version tag is dated in the same calendar month. It names that tag, its date, and the first day the next may go, so a release that reaches `main` another way waits as well.
 
-An early release needs James Rosewell's permission for that release. With it, add the label `early-release` to the release pull request, then re-run the "Only rc into main" check, because adding a label does not run it again. After the merge, run the repository's Publish workflow with `allow-early-release` set, because the nightly publish refuses an early release. Without permission, re-run the check on or after the day it names.
+A second release in a month needs permission for that one release. With it:
 
-The checks apply the rule from the date in the GitHub Actions configuration variable `WEEKLY_RELEASES_FROM`. While it is not set, or its date is still ahead, they report what they would decide and pass. An organisation owner sets it for every repository with this command.
+1. Add the label `early-release` to that release pull request, then re-run the "Only rc into main" check, because adding a label does not run it again. The check reads the label from that pull request only, so it never carries over to the next release.
+2. After the merge, run the repository's Publish workflow once by hand with `allow-early-release` set, because the nightly publish refuses a second release in the month. The input lasts for that one run only.
 
-```
-gh variable set WEEKLY_RELEASES_FROM --org 51Degrees --visibility all --body 2026-11-03
-```
-
-`--visibility all` matters, because without it `gh` makes an organisation variable visible to private repositories only, and the package repositories are public. A repository variable of the same name takes the place of the organisation's for that repository, so a repository can start later, for example with `gh variable set WEEKLY_RELEASES_FROM --repo 51Degrees/51degrees-go --body 2026-12-01`. Deleting the organisation variable with `gh variable delete WEEKLY_RELEASES_FROM --org 51Degrees` stops the rule again everywhere that has no variable of its own.
+Without permission, re-run the check on or after the day it names.
 
 ## Commenting
 
@@ -109,7 +106,7 @@ All new features and bugfixes MUST include tests. Feature tests must at least te
 
 Commit messages should clearly explain the change in the first line. A more detailed description of why a certain design was chosen etc. should be in the body of the commit.
 
-Commits should also be prefixed with a useful tag. Common tags are:
+Each commit subject must start with one of these prefixes, followed straight away by a colon, such as `BUG: Fixed the string length.` The prefix is in capitals, and no other prefix is allowed.
 
 | Prefix | Use |
 | ------ | --- |

@@ -260,7 +260,7 @@ function Get-ReleasePlan([string]$RepoPath, $Packages = $null) {
 # package that has never been released and is not in the plan stops it. The
 # values are every published package, so they are not a plan for the -Plan of
 # check-version-bump.ps1 or check-release-interval.ps1, which would refuse a
-# package released less than a week ago that this release leaves alone.
+# package released this calendar month that this release leaves alone.
 function Get-PackageVersions([string]$RepoPath, $Packages = $null,
         $Plan = $null) {
     if ($null -eq $Packages) {

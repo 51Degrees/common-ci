@@ -93,7 +93,7 @@
 
 # Release labels
 - name: "early-release"
-  description: Allows a release less than a week after the last
+  description: Allows a second release in a calendar month, for this pull request only
   color: d93f0b
 
 # Area labels

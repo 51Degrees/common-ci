@@ -1,19 +1,24 @@
 <#
 .SYNOPSIS
-Refuses a release that comes less than a week after the last one, unless an
-early release has been allowed.
+Refuses a second release in a calendar month, unless that release has been
+given permission.
 
 .DESCRIPTION
-A package repository releases at most once a week, as CONTRIBUTING.md
-explains under "Releasing at most once a week". Days are whole calendar days
-in UTC.
+A package repository releases at most once a calendar month, as
+CONTRIBUTING.md explains under "Releasing at most once a month". Months are
+calendar months in UTC, so the next release may go from the first day of the
+month after the last release.
 
-ALLOW_EARLY_RELEASE set to 'true' allows an early release. The rule applies
-from the date in WEEKLY_RELEASES_FROM, such as 2026-11-03. Unset, or set to a
-date still ahead, the check reports what it would decide and passes.
+The rule began on 19 November 2026, with the 4.6 releases. A release before
+that day does not count, so the first release on or after it may go whenever
+the one before it went.
+
+ALLOW_EARLY_RELEASE set to 'true' allows one more release in the month. It
+is set for one release only, from the label on that release's pull request
+or from the input of that one run of the publish.
 
 .PARAMETER LastRelease
-When the last release went out, such as 2026-11-04T10:15:00Z. A time with no
+When the last release went out, such as 2026-12-04T10:15:00Z. A time with no
 offset is read as UTC. Empty when nothing has been released. Give this, even
 when empty, or -RepoName.
 
@@ -39,7 +44,8 @@ release made with the tag. Without this, or for a tag with no GitHub release,
 the commit's date is used.
 
 .PARAMETER HowToAllow
-How to release early where this runs, ending the sentence "With it, ...".
+How to give permission for this one release where this runs, ending the
+sentence "With it, ...".
 
 .PARAMETER Now
 The time to judge against, for tests. Defaults to now.
@@ -48,11 +54,11 @@ The time to judge against, for tests. Defaults to now.
 With -RepoName, the release plan, being the packages about to be published,
 for a repository that gives each package its own version, such as
 Get-ReleasePlan's output. Give the plan and not every package, because a
-package released less than a week ago that this release leaves alone would be
-refused. Each entry needs a Name, which its tags start with. Each package is
-checked as -TagPrefix checks one, and the release is refused when any package
-is. A plan with nothing in it passes. It is the last parameter, so that the
-others keep their positions.
+package released this month that this release leaves alone would be refused.
+Each entry needs a Name, which its tags start with. Each package is checked
+as -TagPrefix checks one, and the release is refused when any package is. A
+plan with nothing in it passes. It is the last parameter, so that the others
+keep their positions.
 #>
 # An unknown parameter stops the check, so a misspelt name cannot leave a
 # package checked against the wrong tags.
@@ -100,20 +106,22 @@ if ($PSBoundParameters.ContainsKey('Plan')) {
     }
     if ($refused.Count -gt 0) {
         Write-Output ("Nothing is released, because these packages were " +
-            "released less than a week ago: $($refused -join ', ').")
+            "already released this calendar month: $($refused -join ', ').")
         exit 1
     }
     exit 0
 }
 
-$DaysBetweenReleases = 7
+# The day the rule of one release a calendar month began, with the 4.6
+# releases. A release before it does not count.
+$RuleBegan = [DateTime]::new(2026, 11, 19, 0, 0, 0, [DateTimeKind]::Utc)
 
 function ConvertTo-UtcTime ([string]$Text) {
     $styles = [Globalization.DateTimeStyles]::AssumeUniversal
     $time = [DateTimeOffset]::MinValue
     if (-not [DateTimeOffset]::TryParse($Text,
             [Globalization.CultureInfo]::InvariantCulture, $styles, [ref]$time)) {
-        throw "'$Text' is not a date and time this can read. Expected something like 2026-11-04T10:15:00Z."
+        throw "'$Text' is not a date and time this can read. Expected something like 2026-12-04T10:15:00Z."
     }
     return $time.ToUniversalTime()
 }
@@ -186,31 +194,22 @@ if ($RepoName) {
 
 $today = ($Now ? (ConvertTo-UtcTime $Now) : [DateTimeOffset]::UtcNow).UtcDateTime.Date
 
-# Read first, so a value that cannot be read is reported whatever the release.
-$from = $env:WEEKLY_RELEASES_FROM
-if ($from) {
-    try {
-        $fromDay = (ConvertTo-UtcTime $from).UtcDateTime.Date
-    } catch {
-        throw "WEEKLY_RELEASES_FROM is '$from', which is not a date such as 2026-11-03. Correct the configuration variable of that name."
-    }
-    $enforced = $today -ge $fromDay
-    $state = $enforced `
-        ? "The weekly release rule applies from $(Format-Day $fromDay), the date in WEEKLY_RELEASES_FROM." `
-        : "The weekly release rule is not enforced until $(Format-Day $fromDay), the date in WEEKLY_RELEASES_FROM."
-} else {
-    $enforced = $false
-    $state = "The weekly release rule is not enforced, as WEEKLY_RELEASES_FROM is not set."
-}
-Write-Output $state
-
 if ($null -eq $last) {
     Write-Output "Nothing has been released before, so this is the first release. Nothing to check."
     exit 0
 }
 
 $lastDay = $last.UtcDateTime.Date
-$firstDay = $lastDay.AddDays($DaysBetweenReleases)
+if ($lastDay -lt $RuleBegan) {
+    Write-Output ("The last release, $LastReleaseName, was on $(Format-Day $lastDay), " +
+        "before the rule of one release a calendar month began on " +
+        "$(Format-Day $RuleBegan), so this one may go.")
+    exit 0
+}
+
+# The first day of the calendar month after the last release.
+$firstDay = [DateTime]::new($lastDay.Year, $lastDay.Month, 1, 0, 0, 0,
+    [DateTimeKind]::Utc).AddMonths(1)
 $facts = ("The last release, $LastReleaseName, was on $(Format-Day $lastDay), " +
     "so the next may go from $(Format-Day $firstDay).")
 
@@ -219,18 +218,14 @@ if ($today -ge $firstDay) {
     exit 0
 }
 
-if (-not $enforced) {
-    Write-Output "::notice title=Weekly release rule not enforced::$facts Under the rule this one, on $(Format-Day $today), would be refused. $state"
-    exit 0
-}
-
 if ($env:ALLOW_EARLY_RELEASE -eq 'true') {
-    Write-Output "::warning title=Early release::$facts This one goes early, on $(Format-Day $today), allowed by ALLOW_EARLY_RELEASE."
+    Write-Output ("::warning title=Extra release this month::$facts This one " +
+        "goes on $(Format-Day $today), allowed for this release by ALLOW_EARLY_RELEASE.")
     exit 0
 }
 
-Write-Output ("::error title=Released less than a week ago::$facts An early " +
-    "release needs James Rosewell's permission. With it, $HowToAllow")
+Write-Output ("::error title=Released already this calendar month::$facts " +
+    "Another release before then needs permission for that one release. With it, $HowToAllow")
 Write-Output ""
 if ($lastDay -gt $today) {
     Write-Output ("The last release is dated after today, $(Format-Day $today), " +
@@ -238,7 +233,7 @@ if ($lastDay -gt $today) {
     Write-Output ""
 }
 Write-Output ("Nothing is released. A package repository releases at most once a " +
-    "week, for the reasons in https://github.com/51Degrees/common-ci/blob/main/CONTRIBUTING.md#releasing-at-most-once-a-week")
+    "calendar month, for the reasons in https://github.com/51Degrees/common-ci/blob/main/CONTRIBUTING.md#releasing-at-most-once-a-month")
 Write-Output ""
 Write-Output "Without permission, run this again on or after $(Format-Day $firstDay)."
 exit 1
