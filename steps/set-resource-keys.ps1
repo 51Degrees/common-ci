@@ -20,14 +20,14 @@
         _51DEGREES_RESOURCE_KEY_PAID);
       * every supplied secret whose name is a current name in
         environment-variables.json, such as _51DEGREES_LICENSE_KEY_BESPOKE;
-      * each current name whose entry has filledInCiFrom, when it has no value
-        of its own, from the secret that entry names. Only _51DEGREES_ names
-        are used: an old name never fills anything, even when it has a
-        secret.
+      * each current name whose entry has a ciSecret that is another name,
+        when it has no value of its own, from the secret that entry names.
+        Only _51DEGREES_ names are used: an old name never fills anything,
+        even when it has a secret.
 
     _51DEGREES_RESOURCE_KEY_51DID and _51DEGREES_RESOURCE_KEY_BASIC each come
-    only from the secret of their own name. Neither is filled from another
-    secret, so without that secret each stays empty.
+    only from the secret of their own name, which is their ciSecret. Neither
+    is filled from another secret, so without that secret each stays empty.
 
     _51DEGREES_LICENSE_KEY_51DID is never exported. It reads only results made
     with the 51Did resource key, so each repository's own Cloud 51Did workflow
@@ -144,11 +144,13 @@ else {
 }
 
 # Each current name with no value is filled from the _51DEGREES_ secret its
-# entry names, unless the job set it.
+# entry names as its ciSecret, unless the job set it. A ciSecret that is the
+# name itself was exported above.
 foreach ($variable in $variables) {
     $name = [string]$variable.name
-    $source = [string]$variable.filledInCiFrom
+    $source = [string]$variable.ciSecret
     if (-not (Test-Value $source)) { continue }
+    if ($source -ieq $name) { continue }
     if ($NotExported.Contains($name)) { continue }
     if (Test-Value ([Environment]::GetEnvironmentVariable($name))) { continue }
     if (-not $source.StartsWith('_51DEGREES_', [StringComparison]::Ordinal)) {

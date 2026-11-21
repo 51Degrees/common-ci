@@ -40,6 +40,26 @@ Describe 'The list in this repository' {
         { & $script:Script -Check } | Should -Not -Throw
     }
 
+    It 'names no languages for any current name, because every language reads every one' {
+        foreach ($variable in (Get-List).variables) {
+            $variable.PSObject.Properties['languages'] |
+                Should -BeNullOrEmpty -Because "every language reads $($variable.name)"
+        }
+    }
+
+    It 'says which test and example use each current name' {
+        foreach ($variable in (Get-List).variables) {
+            $variable.usedIn | Should -Not -BeNullOrEmpty -Because "$($variable.name) is used somewhere"
+        }
+    }
+
+    It 'sets every resource and license key in CI from an organization secret' {
+        foreach ($variable in (Get-List).variables |
+                Where-Object name -CMatch '^_51DEGREES_(RESOURCE|LICENSE)_KEY(_|$)') {
+            $variable.ciSecret | Should -Not -BeNullOrEmpty -Because "CI needs $($variable.name)"
+        }
+    }
+
     It 'holds at least one current name, one deprecated name and one other name' {
         $list = Get-List
         @($list.variables).Count | Should -BeGreaterThan 0
@@ -156,7 +176,7 @@ Describe 'The rules' {
 
     It 'refuses a language the list does not name' {
         $list = Get-List
-        $list.variables[0].languages = @('cobol')
+        $list.variables[0].deprecated = @(New-Old 'OLD_NAME' @('cobol'))
         { Invoke-Script $list } |
             Should -Throw "*the language 'cobol', which is not in the list's languages*"
     }
@@ -175,11 +195,26 @@ Describe 'The rules' {
             Should -Throw "*old name 'OLD_NAME' of '$($list.variables[0].name)' names no languages*"
     }
 
-    It 'refuses a current name with no languages' {
+    It 'refuses a current name that names languages, because every language reads it' {
         $list = Get-List
-        $list.variables[0].languages = @()
+        $list.variables[0] | Add-Member -Force -NotePropertyName languages `
+            -NotePropertyValue @('go')
         { Invoke-Script $list } |
-            Should -Throw "*'$($list.variables[0].name)' names no languages*"
+            Should -Throw "*'$($list.variables[0].name)' names languages, but every language reads every current name*"
+    }
+
+    It 'refuses a current name that does not say which test and example use it' {
+        $list = Get-List
+        $list.variables[0].usedIn = ' '
+        { Invoke-Script $list } |
+            Should -Throw "*'$($list.variables[0].name)' does not say which test and example use it*"
+    }
+
+    It 'refuses a current name with no ciSecret' {
+        $list = Get-List
+        $list.variables[0].PSObject.Properties.Remove('ciSecret')
+        { Invoke-Script $list } |
+            Should -Throw "*'$($list.variables[0].name)' needs ciSecret as one name, or empty when CI sets it from no secret*"
     }
 
     It 'refuses a current name that does not say what it holds' {
@@ -219,36 +254,30 @@ Describe 'The rules' {
             Should -Throw "*other name '$($list.otherNames[0].name)' needs what it holds and what sets it*"
     }
 
-    It 'accepts filledInCiFrom naming another _51DEGREES_ name' {
+    It 'accepts ciSecret naming the variable itself' {
         $list = Get-List
-        $list.variables[0] | Add-Member -Force -NotePropertyName filledInCiFrom `
-            -NotePropertyValue '_51DEGREES_RESOURCE_KEY_FREE'
+        $list.variables[0].ciSecret = $list.variables[0].name
         { Invoke-Script $list } | Should -Not -Throw
     }
 
-    It 'refuses filledInCiFrom naming a name that does not start _51DEGREES_' {
+    It 'accepts ciSecret naming another _51DEGREES_ name' {
         $list = Get-List
-        $list.variables[0] | Add-Member -Force -NotePropertyName filledInCiFrom `
-            -NotePropertyValue 'SUPER_RESOURCE_KEY'
-        { Invoke-Script $list } |
-            Should -Throw "*'$($list.variables[0].name)' is filled in CI from 'SUPER_RESOURCE_KEY', which does not start _51DEGREES_*"
+        $list.variables[0].ciSecret = '_51DEGREES_RESOURCE_KEY_BESPOKE'
+        { Invoke-Script $list } | Should -Not -Throw
     }
 
-    It 'refuses filledInCiFrom naming the variable itself' {
+    It 'refuses ciSecret naming a name that does not start _51DEGREES_' {
         $list = Get-List
-        $name = $list.variables[0].name
-        $list.variables[0] | Add-Member -Force -NotePropertyName filledInCiFrom `
-            -NotePropertyValue $name
+        $list.variables[0].ciSecret = 'SUPER_RESOURCE_KEY'
         { Invoke-Script $list } |
-            Should -Throw "*'$name' is filled in CI from itself*"
+            Should -Throw "*'$($list.variables[0].name)' is set in CI from 'SUPER_RESOURCE_KEY', which does not start _51DEGREES_*"
     }
 
-    It 'refuses filledInCiFrom that is not one name' {
+    It 'refuses ciSecret that is not one name' {
         $list = Get-List
-        $list.variables[0] | Add-Member -Force -NotePropertyName filledInCiFrom `
-            -NotePropertyValue @('_51DEGREES_RESOURCE_KEY_FREE', '_51DEGREES_RESOURCE_KEY_PAID')
+        $list.variables[0].ciSecret = @('_51DEGREES_RESOURCE_KEY_BESPOKE', '_51DEGREES_RESOURCE_KEY_PAID')
         { Invoke-Script $list } |
-            Should -Throw "*'$($list.variables[0].name)' needs filledInCiFrom as one name*"
+            Should -Throw "*'$($list.variables[0].name)' needs ciSecret as one name*"
     }
 
     It 'writes no page when the list breaks a rule' {
@@ -324,14 +353,30 @@ Describe 'The page' {
         }
     }
 
-    It 'shows each name CI fills, and the secret it fills it from' {
+    It 'gives each current name what it holds, who reads it, where it is used and its CI secret, and no languages' {
         $list = Get-List
-        $list.variables[0] | Add-Member -Force -NotePropertyName filledInCiFrom `
-            -NotePropertyValue '_51DEGREES_RESOURCE_KEY_FREE'
+        $list.variables[0].holds = 'What it holds.'
+        $list.variables[0].readByPackages = $true
+        $list.variables[0].usedIn = 'The test and the example.'
+        $list.variables[0].ciSecret = '_51DEGREES_RESOURCE_KEY_BESPOKE'
+        $list.variables[0].deprecated = @()
         Invoke-Script $list -Page $script:Page
         $text = Get-Content -Raw -LiteralPath $script:Page
-        $text.Contains('| `' + $list.variables[0].name +
-            '` | `_51DEGREES_RESOURCE_KEY_FREE` |') | Should -BeTrue
+        $text.Contains('| Name | What it holds | Read by | Used in | CI secret | Deprecated names |') |
+            Should -BeTrue
+        $text.Contains('| `' + $list.variables[0].name + '` | What it holds. | Packages' +
+            ' | The test and the example. | `_51DEGREES_RESOURCE_KEY_BESPOKE` |  |') |
+            Should -BeTrue
+    }
+
+    It 'leaves the CI secret empty for a name CI sets from no secret' {
+        $list = Get-List
+        $list.variables[0].usedIn = 'The test and the example.'
+        $list.variables[0].ciSecret = ''
+        $list.variables[0].deprecated = @()
+        Invoke-Script $list -Page $script:Page
+        $text = Get-Content -Raw -LiteralPath $script:Page
+        $text.Contains(' | The test and the example. |  |  |') | Should -BeTrue
     }
 
     It 'shows the release a deprecated name stops being read in once it is decided' {

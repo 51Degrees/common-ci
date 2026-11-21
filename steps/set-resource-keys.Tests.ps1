@@ -12,20 +12,17 @@ BeforeAll {
     $script:RealList = Join-Path $PSScriptRoot '..' 'environment-variables.json'
 
     function New-Variable ([string]$Name, [string[]]$Deprecated = @(),
-        [string]$FilledInCiFrom) {
-        $variable = [ordered]@{
+        [string]$CiSecret = '') {
+        return [ordered]@{
             name = $Name
             holds = 'A value for these tests.'
             readByPackages = $false
-            languages = @('node')
+            usedIn = 'These tests.'
+            ciSecret = $CiSecret
             deprecated = @($Deprecated | ForEach-Object {
                     [ordered]@{ name = $_; languages = @('node'); stopsBeingReadIn = '' }
                 })
         }
-        if ($FilledInCiFrom) {
-            $variable.filledInCiFrom = $FilledInCiFrom
-        }
-        return $variable
     }
 
     # Writes a list holding the given variables to the test drive and
@@ -97,7 +94,7 @@ Describe 'set-resource-keys.ps1' {
 
     It 'fills an agreed name that has no secret from the secret its entry names' {
         $list = New-List @(New-Variable '_51DEGREES_RESOURCE_KEY_SRKTEST' `
-                -FilledInCiFrom '_51DEGREES_RESOURCE_KEY_SRKTEST_SOURCE')
+                -CiSecret '_51DEGREES_RESOURCE_KEY_SRKTEST_SOURCE')
         Invoke-Script @{ _51DEGREES_RESOURCE_KEY_SRKTEST_SOURCE = 'source' } $list |
             Out-Null
         $env:_51DEGREES_RESOURCE_KEY_SRKTEST | Should -Be 'source'
@@ -107,7 +104,7 @@ Describe 'set-resource-keys.ps1' {
 
     It 'fills only when the agreed name has no secret of its own' {
         $list = New-List @(New-Variable '_51DEGREES_RESOURCE_KEY_SRKTEST' `
-                -FilledInCiFrom '_51DEGREES_RESOURCE_KEY_SRKTEST_SOURCE')
+                -CiSecret '_51DEGREES_RESOURCE_KEY_SRKTEST_SOURCE')
         Invoke-Script @{
             _51DEGREES_RESOURCE_KEY_SRKTEST = 'own'
             _51DEGREES_RESOURCE_KEY_SRKTEST_SOURCE = 'source'
@@ -118,7 +115,7 @@ Describe 'set-resource-keys.ps1' {
     It 'leaves a value the job already set' {
         $env:_51DEGREES_RESOURCE_KEY_SRKTEST = 'from-the-job'
         $list = New-List @(New-Variable '_51DEGREES_RESOURCE_KEY_SRKTEST' `
-                -FilledInCiFrom '_51DEGREES_RESOURCE_KEY_SRKTEST_SOURCE')
+                -CiSecret '_51DEGREES_RESOURCE_KEY_SRKTEST_SOURCE')
         Invoke-Script @{ _51DEGREES_RESOURCE_KEY_SRKTEST_SOURCE = 'source' } $list |
             Out-Null
         $env:_51DEGREES_RESOURCE_KEY_SRKTEST | Should -Be 'from-the-job'
@@ -132,7 +129,7 @@ Describe 'set-resource-keys.ps1' {
 
     It 'logs which name filled which, and never a value' {
         $list = New-List @(New-Variable '_51DEGREES_RESOURCE_KEY_SRKTEST' `
-                -FilledInCiFrom '_51DEGREES_RESOURCE_KEY_SRKTEST_SOURCE')
+                -CiSecret '_51DEGREES_RESOURCE_KEY_SRKTEST_SOURCE')
         $log = Invoke-Script @{ _51DEGREES_RESOURCE_KEY_SRKTEST_SOURCE = 'secret-value-123' } $list
         $log | Should -Match '_51DEGREES_RESOURCE_KEY_SRKTEST from _51DEGREES_RESOURCE_KEY_SRKTEST_SOURCE'
         $log | Should -Not -Match 'secret-value-123'
@@ -141,7 +138,7 @@ Describe 'set-resource-keys.ps1' {
     It 'names each key that has no value, and does not fail' {
         $list = New-List @(
             New-Variable '_51DEGREES_RESOURCE_KEY_SRKTEST' `
-                -FilledInCiFrom '_51DEGREES_RESOURCE_KEY_SRKTEST_SOURCE'
+                -CiSecret '_51DEGREES_RESOURCE_KEY_SRKTEST_SOURCE'
             New-Variable '_51DEGREES_LICENSE_KEY_SRKTEST'
             New-Variable '_51DEGREES_SRKTEST_NOT_A_KEY'
         )
@@ -160,25 +157,21 @@ Describe 'The list in this repository' {
         }
     }
 
-    It 'fills the resource keys from the _51DEGREES_ secrets that carry their properties' {
-        (Get-Entry '_51DEGREES_RESOURCE_KEY').filledInCiFrom |
+    It 'sets the resource keys from the _51DEGREES_ secrets that carry their properties' {
+        (Get-Entry '_51DEGREES_RESOURCE_KEY').ciSecret |
             Should -BeExactly '_51DEGREES_RESOURCE_KEY_BESPOKE'
-        (Get-Entry '_51DEGREES_RESOURCE_KEY_SUPER').filledInCiFrom |
+        (Get-Entry '_51DEGREES_RESOURCE_KEY_SUPER').ciSecret |
             Should -BeExactly '_51DEGREES_RESOURCE_KEY_BESPOKE'
     }
 
-    It 'fills the 51Did resource key from no other secret' {
+    It 'sets the 51Did and basic keys only from the secrets of their own names' {
         # The 51Did license key cannot read results made with the BESPOKE
-        # key, so the 51Did key comes only from the secret of its own name.
-        (Get-Entry '_51DEGREES_RESOURCE_KEY_51DID').PSObject.Properties['filledInCiFrom'] |
-            Should -BeNullOrEmpty
-    }
-
-    It 'fills the basic resource key from no other secret' {
-        # The organization has a secret of this name, so the basic key comes
-        # only from it, never from the FREE key.
-        (Get-Entry '_51DEGREES_RESOURCE_KEY_BASIC').PSObject.Properties['filledInCiFrom'] |
-            Should -BeNullOrEmpty
+        # key, and the organization has a secret for each of these names, so
+        # none of them comes from the BESPOKE or FREE key.
+        foreach ($name in '_51DEGREES_RESOURCE_KEY_51DID', '_51DEGREES_RESOURCE_KEY_BASIC',
+            '_51DEGREES_LICENSE_KEY_51DID') {
+            (Get-Entry $name).ciSecret | Should -BeExactly $name
+        }
     }
 
     It 'no longer lists a key for each Accept-CH header, a data file address or a duplicate' {
