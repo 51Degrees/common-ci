@@ -83,8 +83,8 @@ Describe 'set-resource-keys.ps1' {
 
     It 'exports the secret of every agreed name, whatever its prefix' {
         $list = New-List @(New-Variable '_51DEGREES_LICENSE_KEY_SRKTEST')
-        Invoke-Script @{ _51DEGREES_LICENSE_KEY_SRKTEST = 'licence' } $list | Out-Null
-        $env:_51DEGREES_LICENSE_KEY_SRKTEST | Should -Be 'licence'
+        Invoke-Script @{ _51DEGREES_LICENSE_KEY_SRKTEST = 'license' } $list | Out-Null
+        $env:_51DEGREES_LICENSE_KEY_SRKTEST | Should -Be 'license'
     }
 
     It 'exports no secret that is neither an agreed name nor a resource key' {

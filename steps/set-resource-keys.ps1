@@ -29,7 +29,7 @@
     with the 51Did resource key, so each repository's own Cloud 51Did workflow
     sets it from its secret, beside _51DEGREES_RESOURCE_KEY_51DID.
 
-    A value the job already set is never replaced. Each resource or licence key
+    A value the job already set is never replaced. Each resource or license key
     that is still empty is named in the log, so a test that skips for want of
     it can be traced. Nothing fails for want of a key.
 
