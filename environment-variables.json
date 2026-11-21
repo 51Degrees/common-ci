@@ -507,7 +507,6 @@
       "name": "_51DEGREES_RESOURCE_KEY_BASIC",
       "holds": "A resource key on the basic data tier, for tests of what that tier can and cannot read.",
       "readByPackages": false,
-      "filledInCiFrom": "_51DEGREES_RESOURCE_KEY_FREE",
       "languages": [
         "dotnet",
         "rust"

@@ -192,6 +192,8 @@ Takes the secrets available to the job as a hashtable (in the framework this is 
 
 Each is set in the process environment and, under GitHub Actions, appended to `$GITHUB_ENV`. A value the job already set is never replaced, and each key still empty is named in the log. Nothing fails for want of a key.
 
+`_51DEGREES_RESOURCE_KEY_BASIC` comes only from the secret of its own name. It is never filled from another secret, so without that secret it stays empty.
+
 Two keys are for the Cloud 51Did tests only.
 
 - `_51DEGREES_RESOURCE_KEY_51DID` comes only from the secret of its own name. It is never filled from another secret, so without that secret it stays empty.

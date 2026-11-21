@@ -62,7 +62,6 @@ In the shared workflows, [`steps/set-resource-keys.ps1`](steps/set-resource-keys
 | Name | Filled from, when it has no value |
 | --- | --- |
 | `_51DEGREES_RESOURCE_KEY` | `_51DEGREES_RESOURCE_KEY_BESPOKE` |
-| `_51DEGREES_RESOURCE_KEY_BASIC` | `_51DEGREES_RESOURCE_KEY_FREE` |
 | `_51DEGREES_RESOURCE_KEY_SUPER` | `_51DEGREES_RESOURCE_KEY_BESPOKE` |
 
 ## Other names

@@ -25,6 +25,10 @@
         are used: an old name never fills anything, even when it has a
         secret.
 
+    _51DEGREES_RESOURCE_KEY_51DID and _51DEGREES_RESOURCE_KEY_BASIC each come
+    only from the secret of their own name. Neither is filled from another
+    secret, so without that secret each stays empty.
+
     _51DEGREES_LICENSE_KEY_51DID is never exported. It reads only results made
     with the 51Did resource key, so each repository's own Cloud 51Did workflow
     sets it from its secret, beside _51DEGREES_RESOURCE_KEY_51DID.
