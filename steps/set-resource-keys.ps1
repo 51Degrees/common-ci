@@ -19,11 +19,15 @@
         the organisation secrets _51DEGREES_RESOURCE_KEY_FREE and
         _51DEGREES_RESOURCE_KEY_PAID);
       * every supplied secret whose name is a current name in
-        environment-variables.json, such as _51DEGREES_LICENSE_KEY_51DID;
+        environment-variables.json, such as _51DEGREES_LICENSE_KEY_BESPOKE;
       * each current name whose entry has filledInCiFrom, when it has no value
         of its own, from the secret that entry names. Only _51DEGREES_ names
         are used: an old name never fills anything, even when it has a
         secret.
+
+    _51DEGREES_LICENSE_KEY_51DID is never exported. It reads only results made
+    with the 51Did resource key, so each repository's own Cloud 51Did workflow
+    sets it from its secret, beside _51DEGREES_RESOURCE_KEY_51DID.
 
     A value the job already set is never replaced. Each resource or licence key
     that is still empty is named in the log, so a test that skips for want of
@@ -60,6 +64,12 @@ $ErrorActionPreference = "Stop"
 
 # The names of the keys whose absence is worth naming in the log.
 $KeyPattern = '^_51DEGREES_(RESOURCE|LICENSE)_KEY(_|$)'
+
+# The names never exported here. The 51Did license key reads only results
+# made with the 51Did resource key, so only the Cloud 51Did workflows set it.
+$NotExported = [System.Collections.Generic.HashSet[string]]::new(
+    [string[]]@('_51DEGREES_LICENSE_KEY_51DID'),
+    [System.StringComparer]::OrdinalIgnoreCase)
 
 # The secrets, with names matched without regard to letter case.
 $secrets = [System.Collections.Generic.Dictionary[string, string]]::new(
@@ -110,6 +120,10 @@ foreach ($variable in $variables) { [void]$agreed.Add([string]$variable.name) }
 $exported = [System.Collections.Generic.List[string]]::new()
 foreach ($name in @($secrets.Keys | Sort-Object)) {
     if ($name -notlike "$Prefix*" -and -not $agreed.Contains($name)) { continue }
+    if ($NotExported.Contains($name)) {
+        Write-Host "Not exporting '$name': only the Cloud 51Did workflows set it."
+        continue
+    }
     $value = Get-Secret $name
     if ($null -eq $value) {
         Write-Host "Skipping '$name': no value (secret not set)."
@@ -131,6 +145,7 @@ foreach ($variable in $variables) {
     $name = [string]$variable.name
     $source = [string]$variable.filledInCiFrom
     if (-not (Test-Value $source)) { continue }
+    if ($NotExported.Contains($name)) { continue }
     if (Test-Value ([Environment]::GetEnvironmentVariable($name))) { continue }
     if (-not $source.StartsWith('_51DEGREES_', [StringComparison]::Ordinal)) {
         Write-Host "Not filling $name from $source, which does not start _51DEGREES_."
@@ -144,7 +159,7 @@ foreach ($variable in $variables) {
 
 # Name each key still empty, for the tests that skip without it.
 $missing = @($variables | ForEach-Object { [string]$_.name } |
-    Where-Object { $_ -cmatch $KeyPattern } |
+    Where-Object { $_ -cmatch $KeyPattern -and -not $NotExported.Contains($_) } |
     Where-Object { -not (Test-Value ([Environment]::GetEnvironmentVariable($_))) })
 foreach ($name in $missing) {
     Write-Host "No value for $name. Tests that need it should skip and say so."

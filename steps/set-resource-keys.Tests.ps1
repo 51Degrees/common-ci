@@ -237,6 +237,23 @@ Describe 'The 51Did resource key, set from the list in this repository' {
         } $script:RealList | Out-Null
         [Environment]::GetEnvironmentVariable($script:Did) | Should -BeExactly 'srktest-51did'
     }
+
+    It 'leaves out the 51Did license key, which only the Cloud 51Did workflows set' {
+        # The 51Did license key reads only results made with the 51Did
+        # resource key, so it is not put into every job. The other license
+        # keys still are.
+        $log = Invoke-Script @{
+            _51DEGREES_LICENSE_KEY_51DID = 'srktest-license-51did'
+            _51DEGREES_LICENSE_KEY_BESPOKE = 'srktest-license-bespoke'
+        } $script:RealList
+        [Environment]::GetEnvironmentVariable('_51DEGREES_LICENSE_KEY_51DID') |
+            Should -BeNullOrEmpty
+        Get-Content -LiteralPath $env:GITHUB_ENV |
+            Should -Not -Contain '_51DEGREES_LICENSE_KEY_51DID=srktest-license-51did'
+        [Environment]::GetEnvironmentVariable('_51DEGREES_LICENSE_KEY_BESPOKE') |
+            Should -BeExactly 'srktest-license-bespoke'
+        $log | Should -Not -Match 'srktest-license-51did'
+    }
 }
 
 Describe 'Where the shared scripts export the keys' {

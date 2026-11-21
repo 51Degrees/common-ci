@@ -57,7 +57,7 @@ The list holds 33 deprecated names, and no release has been decided yet for any 
 
 ## Filled in CI
 
-In the shared workflows, [`steps/set-resource-keys.ps1`](steps/set-resource-keys.ps1) exports each secret whose name is a current name. Where a current name has no secret of its own and the job has not set it, it is filled from the `_51DEGREES_` secret shown here. A name that does not start `_51DEGREES_` never fills anything.
+In the shared workflows, [`steps/set-resource-keys.ps1`](steps/set-resource-keys.ps1) exports each secret whose name is a current name, except `_51DEGREES_LICENSE_KEY_51DID`, which only the Cloud 51Did workflows set. Where a current name has no secret of its own and the job has not set it, it is filled from the `_51DEGREES_` secret shown here. A name that does not start `_51DEGREES_` never fills anything.
 
 | Name | Filled from, when it has no value |
 | --- | --- |
