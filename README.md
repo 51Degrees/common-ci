@@ -360,7 +360,7 @@ This flow modifies the old one, where the JSON string was passed in by the calle
 
 # Environment variable names
 
-[environment-variables.md](environment-variables.md) lists every environment variable name that 51Degrees packages, tests, examples and CI scripts read, in every language, with what each holds and the deprecated names each replaced. It is made from [environment-variables.json](environment-variables.json) by [steps/environment-variables.ps1](steps/environment-variables.ps1). The JSON file decides, so each language repository refers to it rather than keeping a list of its own.
+[environment-variables.md](environment-variables.md) lists every environment variable name that 51Degrees packages, tests, examples and CI scripts read, in every language, with what each holds, the test and example that use it, the organization secret CI sets it from, and the deprecated names each replaced. Every language reads every current name. It is made from [environment-variables.json](environment-variables.json) by [steps/environment-variables.ps1](steps/environment-variables.ps1). The JSON file decides, so each language repository refers to it rather than keeping a list of its own.
 
 # Reusable actions
 
