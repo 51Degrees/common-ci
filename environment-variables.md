@@ -24,9 +24,9 @@ Every current name starts `_51DEGREES_`. "Packages" means a published package re
 | `_51DEGREES_IPI_ENTERPRISE_SHARE` | A folder of dated IP Intelligence Enterprise data files, from which tests and examples take the newest. | Tests, examples and CI | Rust | `51DEGREES_IPI_ENTERPRISE_SHARE` (Rust) |
 | `_51DEGREES_IPI_MEMORY_PROFILES` | The performance profiles the IP Intelligence memory test measures, separated by commas. Every profile is measured when it is not set. | Tests, examples and CI | Rust |  |
 | `_51DEGREES_IPI_PATH` | The path of an IP Intelligence data file (.ipi) for tests and examples to use. The PHP IP Intelligence package also looks beside it for the Translations folder. | Packages | C and C++, .NET, Go, Java, Node.js, PHP, Python, Rust | `51DEGREES_IPI_PATH` (C and C++, .NET, Java, Node.js, Rust), `IPINTELLIGENCEDATAFILE` (.NET, PHP, Python), `DATA_FILE` (Go) |
-| `_51DEGREES_LICENSE_KEY` | A licence key, for data file updates and for 51Did requests that need one. | Tests, examples and CI | .NET, Go, Java, Node.js, PHP, Python, Rust | `LICENSE_KEY` (.NET, Go, Java, Node.js, PHP, Python), `license_key` (Python), `DEVICE_DETECTION_KEY` (Go), `IPI_KEY` (Go), `51DEGREES_LICENSE_KEY` (Rust), `LicenseKey` (Node.js), `LICENSEKEY` (Node.js) |
-| `_51DEGREES_LICENSE_KEY_51DID` | A licence key for the 51Did live tests. | Tests, examples and CI | .NET, Node.js, Rust |  |
-| `_51DEGREES_LICENSE_KEY_BESPOKE` | A licence key that carries the CloudV5Bespoke product, for live cloud tests. | Tests, examples and CI | Java, Rust |  |
+| `_51DEGREES_LICENSE_KEY` | A license key, for data file updates and for 51Did requests that need one. | Tests, examples and CI | .NET, Go, Java, Node.js, PHP, Python, Rust | `LICENSE_KEY` (.NET, Go, Java, Node.js, PHP, Python), `license_key` (Python), `DEVICE_DETECTION_KEY` (Go), `IPI_KEY` (Go), `51DEGREES_LICENSE_KEY` (Rust), `LicenseKey` (Node.js), `LICENSEKEY` (Node.js) |
+| `_51DEGREES_LICENSE_KEY_51DID` | A license key for the 51Did live tests. | Tests, examples and CI | .NET, Node.js, Rust |  |
+| `_51DEGREES_LICENSE_KEY_BESPOKE` | A license key that carries the CloudV5Bespoke product, for live cloud tests. | Tests, examples and CI | Java, Rust |  |
 | `_51DEGREES_REQUIRE_ENTERPRISE` | When set, tests that need an IP Intelligence Enterprise data file fail rather than skip without one. | Tests, examples and CI | Rust |  |
 | `_51DEGREES_REQUIRE_LOCATION` | When set, tests that need location properties fail rather than skip when the IP Intelligence data file has none. | Tests, examples and CI | Rust |  |
 | `_51DEGREES_REQUIRE_TAC` | When set, tests that need the TAC and NativeModel properties fail rather than skip when the Device Detection data file lacks them. | Tests, examples and CI | Rust |  |
@@ -81,8 +81,8 @@ These names do not start `_51DEGREES_`, and 51Degrees files read them. Each is a
 | `CLOUD_ROOT_URL` | The address of the cloud service the browser test suite checks the examples against. | The shared browser test suite in 51Degrees/selenium-api-tests, which every language's CI starts | .NET, Java, Node.js, PHP, Python, Rust |
 | `COMMON_CI` | The folder of a common-ci checkout that is not beside the repository, for the CI scripts that use its steps, and their tests. | Whoever runs those scripts outside the shared workflows | .NET, Python |
 | `DATA_FILES` | The names of the data files a Rust workflow step fetches, one to a line. | The workflow step that reads it, from its own env block | Rust |
-| `DEVICEDETECTIONLICENSEKEY_DOTNET` | A licence key for the .NET Device Detection data file update tests. | The .NET CI scripts | .NET |
-| `DEVICE_DETECTION_KEY` | A licence key the Rust examples workflow reads to download the Device Detection data file. | The workflow step that reads it, from its own env block | Rust |
+| `DEVICEDETECTIONLICENSEKEY_DOTNET` | A license key for the .NET Device Detection data file update tests. | The .NET CI scripts | .NET |
+| `DEVICE_DETECTION_KEY` | A license key the Rust examples workflow reads to download the Device Detection data file. | The workflow step that reads it, from its own env block | Rust |
 | `DEVICE_DETECTION_URL` | The address the Rust examples workflow downloads the Device Detection data file from. | The workflow step that reads it, from its own env block | Rust |
 | `directory` | The folder the Node.js examples and tests find their files from. The example tests set it to the example's own folder, and each reader uses its own folder when it is unset. | The Node.js example tests, or whoever runs an example | Node.js |
 | `EDGEWEBDRIVER` | The folder that holds msedgedriver, or msedgedriver itself, for the browser tests, which use it in place of downloading a driver. | GitHub's Ubuntu and Windows runner images, or whoever runs the browser tests elsewhere | .NET, Java, Node.js, PHP, Python, Rust |
@@ -96,9 +96,9 @@ These names do not start `_51DEGREES_`, and 51Degrees files read them. Each is a
 | `FROM_FORK` | Whether the pull request comes from a fork, for the Rust examples workflow. | The workflow step that reads it, from its own env block | Rust |
 | `GECKOWEBDRIVER` | The folder that holds geckodriver, or geckodriver itself, for the browser tests, which use it in place of downloading a driver. | GitHub's Ubuntu and Windows runner images, or whoever runs the browser tests elsewhere | .NET, Java, Node.js, PHP, Python, Rust |
 | `GEOIPEVIDENCEFILE` | The path of the file of addresses with known locations the .NET IP Intelligence on-premise example tests give the comparison examples, in place of the one they find by name. | Whoever runs those tests | .NET |
-| `IPINTELLIGENCELICENSEKEY_DOTNET` | A licence key for the .NET IP Intelligence data file update tests. | The .NET CI scripts | .NET |
-| `LicenseKey` | A licence key for the Java data file update examples, read as LicenseKey and then as LICENSEKEY. Node.js reads both names only as deprecated names of _51DEGREES_LICENSE_KEY. | Whoever runs those examples | Java |
-| `LICENSEKEY` | A licence key for the Java data file update examples, read when LicenseKey is unset. | Whoever runs those examples | Java |
+| `IPINTELLIGENCELICENSEKEY_DOTNET` | A license key for the .NET IP Intelligence data file update tests. | The .NET CI scripts | .NET |
+| `LicenseKey` | A license key for the Java data file update examples, read as LicenseKey and then as LICENSEKEY. Node.js reads both names only as deprecated names of _51DEGREES_LICENSE_KEY. | Whoever runs those examples | Java |
+| `LICENSEKEY` | A license key for the Java data file update examples, read when LicenseKey is unset. | Whoever runs those examples | Java |
 | `MODE` | Whether a Rust examples workflow job runs the on-premise or the cloud examples. | The workflow step that reads it, from its own env block | Rust |
 | `PAID_RESOURCE_KEY` | A resource key on a paid data tier, for the browser test suite. | The shared browser test suite in 51Degrees/selenium-api-tests, which every language's CI starts | .NET, Java, Node.js, PHP, Python, Rust |
 | `PATHS` | The data file paths the Rust restore-data-files action restores, one to a line. | The workflow step that reads it, from its own env block | Rust |
@@ -120,7 +120,7 @@ These names do not start `_51DEGREES_`, and 51Degrees files read them. Each is a
 | `TESTDATAFILE` | A Device Detection data file for the Java on-premise examples, read when TestDataFile is unset. | Whoever runs those examples or their tests | Java |
 | `TestDeviceDetectionDataFile` | A Device Detection data file that the Java IP Intelligence mixed examples' options files name, read as TestDeviceDetectionDataFile, then TESTDEVICEDETECTIONDATAFILE, then as a system property. | Whoever runs those examples | Java |
 | `TESTDEVICEDETECTIONDATAFILE` | A Device Detection data file for the Java IP Intelligence mixed examples, read when TestDeviceDetectionDataFile is unset. | Whoever runs those examples | Java |
-| `TestLicenseKey` | A licence key for the Java live cloud tests, read after the _51DEGREES_ names. | Whoever runs the Java tests | Java |
+| `TestLicenseKey` | A license key for the Java live cloud tests, read after the _51DEGREES_ names. | Whoever runs the Java tests | Java |
 | `TestResourceKey` | A resource key for the Java cloud tests and examples, read as an environment variable or a system property, and by the examples and their options files under its upper case name as well. | Whoever runs the Java tests or examples | Java |
 | `TESTRESOURCEKEY` | A resource key for the Java cloud tests and examples, read when TestResourceKey is unset. | Whoever runs the Java tests or examples | Java |
 | `VERSION` | The version the Rust publish workflow is releasing. | The workflow step that reads it, from its own env block | Rust |
