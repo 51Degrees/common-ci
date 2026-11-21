@@ -24,8 +24,9 @@ runs:
         args: ${{ inputs.args }}
       run: |
         # GitVersion 7 takes POSIX-style arguments and refuses /format, so
-        # stay on the last 6.x release until this step moves to the new form.
-        dotnet tool install -g GitVersion.Tool --version 6.8.2
+        # stay on the 6.x release steps/install-gitversion.ps1 pins until this
+        # step moves to the new form.
+        pwsh -NoProfile -File "$GITHUB_ACTION_PATH/../../steps/install-gitversion.ps1"
         version=$(dotnet-gitversion /format "$format" /overrideconfig "mode=$mode" $args)
         tee -a "$GITHUB_OUTPUT" <<<"version=$version"
         git show-ref --quiet --tags "$version" || tee -a "$GITHUB_OUTPUT" <<<"bumped=yes"

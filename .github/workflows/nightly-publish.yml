@@ -156,13 +156,7 @@ jobs:
           ref: ${{ inputs.common-ci-ref }}
 
       - name: Install GitVersion
-        run: |
-          if (Get-Command dotnet-gitversion -ErrorAction SilentlyContinue) {
-            Write-Host "GitVersion already installed."
-          } else {
-            Write-Host "Installing GitVersion..."
-            dotnet tool install --global GitVersion.Tool --version '6.1'
-          }
+        run: ./steps/install-gitversion.ps1
 
       - name: Configure
         id: configure
