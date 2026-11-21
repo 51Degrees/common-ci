@@ -497,7 +497,6 @@
       "name": "_51DEGREES_RESOURCE_KEY_51DID",
       "holds": "A resource key for the 51Did live tests and examples.",
       "readByPackages": false,
-      "filledInCiFrom": "_51DEGREES_RESOURCE_KEY_BESPOKE",
       "languages": [
         "dotnet",
         "rust"

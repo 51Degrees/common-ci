@@ -165,10 +165,15 @@ Describe 'The list in this repository' {
             Should -BeExactly '_51DEGREES_RESOURCE_KEY_BESPOKE'
         (Get-Entry '_51DEGREES_RESOURCE_KEY_SUPER').filledInCiFrom |
             Should -BeExactly '_51DEGREES_RESOURCE_KEY_BESPOKE'
-        (Get-Entry '_51DEGREES_RESOURCE_KEY_51DID').filledInCiFrom |
-            Should -BeExactly '_51DEGREES_RESOURCE_KEY_BESPOKE'
         (Get-Entry '_51DEGREES_RESOURCE_KEY_BASIC').filledInCiFrom |
             Should -BeExactly '_51DEGREES_RESOURCE_KEY_FREE'
+    }
+
+    It 'fills the 51Did resource key from no other secret' {
+        # The 51Did license key cannot read results made with the BESPOKE
+        # key, so the 51Did key comes only from the secret of its own name.
+        (Get-Entry '_51DEGREES_RESOURCE_KEY_51DID').PSObject.Properties['filledInCiFrom'] |
+            Should -BeNullOrEmpty
     }
 
     It 'no longer lists a key for each Accept-CH header, a data file address or a duplicate' {
@@ -188,6 +193,49 @@ Describe 'The list in this repository' {
     It 'keeps the keys the tests read in their place' {
         Get-Entry '_51DEGREES_LICENSE_KEY_BESPOKE' | Should -Not -BeNullOrEmpty
         Get-Entry '_51DEGREES_LICENSE_KEY' | Should -Not -BeNullOrEmpty
+    }
+}
+
+Describe 'The 51Did resource key, set from the list in this repository' {
+    BeforeAll {
+        $script:Did = '_51DEGREES_RESOURCE_KEY_51DID'
+        $list = Get-Content -Raw -LiteralPath $script:RealList | ConvertFrom-Json
+        # Every name the script may set from the real list, so each can be
+        # cleared before a test and put back after it.
+        $script:Touched = @(@($list.variables | ForEach-Object { [string]$_.name }) +
+            '_51DEGREES_RESOURCE_KEY_BESPOKE' | Sort-Object -Unique)
+    }
+
+    BeforeEach {
+        $script:Saved = @{}
+        foreach ($name in $script:Touched) {
+            $script:Saved[$name] = [Environment]::GetEnvironmentVariable($name)
+            [Environment]::SetEnvironmentVariable($name, $null)
+        }
+        $script:SavedGitHubEnv = $env:GITHUB_ENV
+        $env:GITHUB_ENV = Join-Path $TestDrive 'github-env.txt'
+        Set-Content -LiteralPath $env:GITHUB_ENV -Value $null
+    }
+
+    AfterEach {
+        foreach ($name in $script:Touched) {
+            [Environment]::SetEnvironmentVariable($name, $script:Saved[$name])
+        }
+        $env:GITHUB_ENV = $script:SavedGitHubEnv
+    }
+
+    It 'is not filled from the BESPOKE secret when it has no secret of its own' {
+        Invoke-Script @{ _51DEGREES_RESOURCE_KEY_BESPOKE = 'srktest-bespoke' } $script:RealList |
+            Out-Null
+        [Environment]::GetEnvironmentVariable($script:Did) | Should -BeNullOrEmpty
+    }
+
+    It 'is set from the secret of its own name' {
+        Invoke-Script @{
+            _51DEGREES_RESOURCE_KEY_51DID = 'srktest-51did'
+            _51DEGREES_RESOURCE_KEY_BESPOKE = 'srktest-bespoke'
+        } $script:RealList | Out-Null
+        [Environment]::GetEnvironmentVariable($script:Did) | Should -BeExactly 'srktest-51did'
     }
 }
 
