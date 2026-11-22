@@ -11,8 +11,9 @@ inputs:
   # _51DEGREES_LICENSE_KEY for the first asset that needs a licence.
   license-key:
     required: false
-  # The old keys and addresses. They are accepted so that a caller not yet
-  # moved still runs, and are never used.
+  # The old keys and addresses, which a caller not yet moved to license-key
+  # still passes. Each is read only when license-key is not given, and then
+  # as it was before, so that caller keeps working until it moves.
   device-detection-key:
     required: false
   device-detection-url:
@@ -52,8 +53,16 @@ runs:
       env:
         assets: ${{ inputs.assets }}
         _51DEGREES_LICENSE_KEY: ${{ inputs.license-key }}
+        device_detection_key: ${{ inputs.device-detection-key }}
+        device_detection_url: ${{ inputs.device-detection-url }}
+        ip_intelligence_key: ${{ inputs.ip-intelligence-key }}
+        ip_intelligence_url: ${{ inputs.ip-intelligence-url }}
       run: |
-        & "${{ github.action_path }}/../../steps/fetch-assets.ps1" -Assets ($env:assets.Trim() -split "`n")
+        & "${{ github.action_path }}/../../steps/fetch-assets.ps1" -Assets ($env:assets.Trim() -split "`n") `
+            -DeviceDetection:$env:device_detection_key `
+            -DeviceDetectionUrl:$env:device_detection_url `
+            -IpIntelligence:$env:ip_intelligence_key `
+            -IpIntelligenceUrl:$env:ip_intelligence_url
 
     - name: Save cache
       if: ${{ inputs.cache == 'true' && steps.cache-restore.outputs.cache-hit != 'true' }}
