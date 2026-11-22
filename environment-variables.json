@@ -388,7 +388,7 @@
     },
     {
       "name": "_51DEGREES_RESOURCE_KEY",
-      "holds": "A resource key for the 51Degrees cloud service, for tests and examples. When it is unset, the examples take the first variable, in name order, whose name starts _51DEGREES_RESOURCE_KEY, such as one for each data tier.",
+      "holds": "A resource key for the 51Degrees cloud service, for tests and examples. When it is unset, the examples take the first variable, in name order, whose name starts _51DEGREES_RESOURCE_KEY, such as one for each data tier. CI sets it from _51DEGREES_RESOURCE_KEY_BESPOKE, which carries every property.",
       "readByPackages": false,
       "usedIn": "The cloud tests and every cloud example.",
       "ciSecret": "_51DEGREES_RESOURCE_KEY_BESPOKE",
@@ -465,7 +465,7 @@
     },
     {
       "name": "_51DEGREES_RESOURCE_KEY_SUPER",
-      "holds": "A resource key that carries every property, for tests.",
+      "holds": "A resource key that carries every property, for tests. CI sets it from _51DEGREES_RESOURCE_KEY_BESPOKE, which carries every property.",
       "readByPackages": false,
       "usedIn": "The Device Detection and IP Intelligence cloud tests.",
       "ciSecret": "_51DEGREES_RESOURCE_KEY_BESPOKE",
