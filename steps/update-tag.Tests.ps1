@@ -72,11 +72,11 @@ Describe 'update-tag.ps1' {
     }
 
     It 'creates the release with every package file in the same call' {
-        $script:Workspace = New-Workspace -Files 'a.nupkg', 'b.tgz'
+        $script:Workspace = New-Workspace -Files 'first.bin', 'second.bin'
         $call = Get-CreateCall (Invoke-Step $script:Workspace)
         $call | Should -Contain '4.5.10'
-        ($call | Where-Object { $_ -like '*a.nupkg' }).Count | Should -Be 1
-        ($call | Where-Object { $_ -like '*b.tgz' }).Count | Should -Be 1
+        ($call | Where-Object { $_ -like '*first.bin' }).Count | Should -Be 1
+        ($call | Where-Object { $_ -like '*second.bin' }).Count | Should -Be 1
     }
 
     It 'zips a folder in the package and attaches the zip' {
@@ -101,20 +101,20 @@ Describe 'update-tag.ps1' {
     }
 
     It 'marks an alpha version as a prerelease' {
-        $script:Workspace = New-Workspace -Files 'a.nupkg'
+        $script:Workspace = New-Workspace -Files 'first.bin'
         $call = Get-CreateCall (Invoke-Step $script:Workspace -Tag '4.5.10-alpha.3')
         $call | Should -Contain '--prerelease'
     }
 
     It 'pushes the tag before creating the release' {
-        $script:Workspace = New-Workspace -Files 'a.nupkg'
+        $script:Workspace = New-Workspace -Files 'first.bin'
         Invoke-Step $script:Workspace | Out-Null
         git -C (Join-Path $script:Workspace 'origin.git') tag --list |
             Should -Be '4.5.10'
     }
 
     It 'creates no release and pushes no tag on a dry run' {
-        $script:Workspace = New-Workspace -Files 'a.nupkg'
+        $script:Workspace = New-Workspace -Files 'first.bin'
         (Invoke-Step $script:Workspace -DryRun $true).Count | Should -Be 0
         git -C (Join-Path $script:Workspace 'origin.git') tag --list |
             Should -BeNullOrEmpty
