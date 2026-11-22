@@ -7,7 +7,7 @@
 # that needs GitVersion runs this script first. To move to another version,
 # change the default below and nothing else.
 param (
-    [string]$Version = '6.1.0'
+    [string]$Version = '6.8.2'
 )
 
 # The installed version, or $null when GitVersion is missing or does not
@@ -29,7 +29,7 @@ function Get-InstalledGitVersion {
 # checks the version that is installed.
 function Install-GitVersion([string]$Version) {
     if ($Version -notmatch '^[0-9]+[.][0-9]+[.][0-9]+$') {
-        throw "GitVersion must be pinned to an exact version such as 6.1.0, not '$Version'."
+        throw "GitVersion must be pinned to an exact version such as 6.8.2, not '$Version'."
     }
 
     $installed = Get-InstalledGitVersion

@@ -36,47 +36,47 @@ Describe 'Get-InstalledGitVersion' {
     }
 
     It 'reads the version before any build metadata' {
-        Set-Runner '6.1.0+Branch.main.Sha.abc' $null
-        Get-InstalledGitVersion | Should -Be '6.1.0'
+        Set-Runner '6.8.2+Branch.main.Sha.abc' $null
+        Get-InstalledGitVersion | Should -Be '6.8.2'
     }
 
     It 'does not take a pre-release for the release' {
-        Set-Runner '6.1.0-beta.1' $null
+        Set-Runner '6.8.2-beta.1' $null
         Get-InstalledGitVersion | Should -BeNullOrEmpty
     }
 }
 
 Describe 'Install-GitVersion' {
     It 'leaves the right version alone' {
-        Set-Runner '6.1.0' '6.1.0'
-        Install-GitVersion -Version '6.1.0'
+        Set-Runner '6.8.2' '6.8.2'
+        Install-GitVersion -Version '6.8.2'
         $script:DotnetCalls | Should -BeNullOrEmpty
     }
 
     It 'installs when GitVersion is missing' {
-        Set-Runner $null '6.1.0'
-        Install-GitVersion -Version '6.1.0'
-        $script:DotnetCalls | Should -Be 'tool update --global GitVersion.Tool --version 6.1.0'
+        Set-Runner $null '6.8.2'
+        Install-GitVersion -Version '6.8.2'
+        $script:DotnetCalls | Should -Be 'tool update --global GitVersion.Tool --version 6.8.2'
     }
 
     It 'changes a different version to the one asked for' {
-        Set-Runner '6.8.2' '6.1.0'
-        Install-GitVersion -Version '6.1.0'
-        $script:DotnetCalls | Should -Be 'tool update --global GitVersion.Tool --version 6.1.0'
+        Set-Runner '6.1.0' '6.8.2'
+        Install-GitVersion -Version '6.8.2'
+        $script:DotnetCalls | Should -Be 'tool update --global GitVersion.Tool --version 6.8.2'
     }
 
     It 'fails when the version is still wrong afterward' {
-        Set-Runner '6.8.2' '6.8.2'
-        { Install-GitVersion -Version '6.1.0' } | Should -Throw '*6.8.2*6.1.0*'
+        Set-Runner '6.1.0' '6.1.0'
+        { Install-GitVersion -Version '6.8.2' } | Should -Throw '*6.1.0*6.8.2*'
     }
 
     It 'fails when dotnet fails' {
-        Set-Runner '6.8.2' '6.1.0' 1
-        { Install-GitVersion -Version '6.1.0' } | Should -Throw
+        Set-Runner '6.1.0' '6.8.2' 1
+        { Install-GitVersion -Version '6.8.2' } | Should -Throw
     }
 
     It 'refuses a version that is not exact' {
-        Set-Runner '6.1.0' '6.1.0'
+        Set-Runner '6.8.2' '6.8.2'
         { Install-GitVersion -Version '6.1' } | Should -Throw '*exact*'
     }
 }
