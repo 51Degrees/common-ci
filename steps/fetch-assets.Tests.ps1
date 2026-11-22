@@ -178,11 +178,12 @@ Set-Content -Path $FullFilePath -Value 'downloaded'
         }
     }
 
-    It 'never uses an old key or address passed to it' {
-        { Invoke-KeyStep 'TAC-HashV41.hash' @{
-                DeviceDetection = 'old-key'; DeviceDetectionUrl = 'https://example.com/old'
-            } } | Should -Throw '*_51DEGREES_LICENSE_KEY is not set*'
-        $global:FetchAssetsKeyTest.Calls | Should -BeNullOrEmpty
+    It 'does not read an old key or address when _51DEGREES_LICENSE_KEY is set' {
+        $env:_51DEGREES_LICENSE_KEY = 'licence'
+        Invoke-KeyStep 'TAC-HashV41.hash' @{
+            DeviceDetection = 'old-key'; DeviceDetectionUrl = 'https://example.com/old'
+        } | Out-Null
+        $global:FetchAssetsKeyTest.Calls | Should -Be 'hash HashV41 V4TAC key=licence url='
     }
 
     It 'skips the all-properties IP Intelligence file, which has no Distributor product' {
@@ -190,5 +191,63 @@ Set-Content -Path $FullFilePath -Value 'downloaded'
         $log = Invoke-KeyStep '51Degrees-EnterpriseIpiV41-AllProperties.ipi'
         $log | Should -Match "No Distributor product is known for '51Degrees-EnterpriseIpiV41-AllProperties\.ipi': skipping it"
         $global:FetchAssetsKeyTest.Calls | Should -BeNullOrEmpty
+    }
+
+    # A calling repository's main still passes the old secrets by name, and
+    # never _51DEGREES_LICENSE_KEY, until it passes 'secrets: inherit'. Those
+    # callers run this step from common-ci's main, so the old key and address
+    # are read when there is no _51DEGREES_LICENSE_KEY, as before that name,
+    # until every caller has moved.
+    Context 'a caller not yet moved, with no _51DEGREES_LICENSE_KEY' {
+        It 'downloads the device detection data file with the old key and address' {
+            Invoke-KeyStep 'TAC-HashV41.hash' @{
+                DeviceDetection = 'old-key'; DeviceDetectionUrl = 'https://example.com/old'
+            } | Out-Null
+            $global:FetchAssetsKeyTest.Calls |
+                Should -Be 'hash HashV41 V4TAC key=old-key url=https://example.com/old'
+            "$script:Work/assets/TAC-HashV41.hash" | Should -Exist
+        }
+
+        It 'downloads the IP Intelligence data file from the old address alone, as .NET and C++ pass it' {
+            Invoke-KeyStep '51Degrees-EnterpriseIpiV41.ipi' @{
+                IpIntelligenceUrl = 'https://example.com/ipi'
+            } | Out-Null
+            $global:FetchAssetsKeyTest.Calls |
+                Should -Be 'hash IPIV41 IPIV4Enterprise key= url=https://example.com/ipi'
+        }
+
+        It 'downloads the CSV file with the old key and address' {
+            Invoke-KeyStep '51Degrees-Tac.zip' @{
+                DeviceDetection = 'old-key'; CsvUrl = 'https://example.com/csv'
+            } | Out-Null
+            $global:FetchAssetsKeyTest.Calls |
+                Should -Be 'file CSV V4TAC key=old-key url=https://example.com/csv'
+        }
+
+        It 'still fails naming _51DEGREES_LICENSE_KEY for an asset the old values do not cover' {
+            { Invoke-KeyStep 'TAC-HashV41.hash' @{ IpIntelligenceUrl = 'https://example.com/ipi' } } |
+                Should -Throw '*_51DEGREES_LICENSE_KEY is not set*'
+            $global:FetchAssetsKeyTest.Calls | Should -BeNullOrEmpty
+        }
+    }
+}
+
+Describe 'actions/fetch-assets and a caller not yet moved' {
+    # The action declares the old inputs for a caller that still passes them,
+    # so it must hand each one to the step, which reads it only when there is
+    # no _51DEGREES_LICENSE_KEY.
+    BeforeAll {
+        $script:Action = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '..' 'actions' 'fetch-assets' 'action.yml')
+    }
+
+    It 'passes <_> on to the step' -ForEach @(
+        'device-detection-key', 'device-detection-url', 'ip-intelligence-key', 'ip-intelligence-url') {
+        $script:Action | Should -Match ([regex]::Escape("`${{ inputs.$_ }}")) -Because 'the action declares the input'
+    }
+
+    It 'names each old parameter of the step' {
+        foreach ($parameter in '-DeviceDetection:', '-DeviceDetectionUrl:', '-IpIntelligence:', '-IpIntelligenceUrl:') {
+            $script:Action | Should -Match ([regex]::Escape($parameter))
+        }
     }
 }
