@@ -111,10 +111,17 @@ Runs GitVersion in the repo, and stores the result object under the variable nam
 
 This will use the GitVersion config in the repo, or the path to a common config can be supplied.
 
+It first runs `install-gitversion.ps1`, so the version used does not depend on what the runner already has.
+
 ## GUnzip File
 **Script: `gunzip-file.ps1`**
 
 Unzips a GZip file.
+
+## Install GitVersion
+**Script: `install-gitversion.ps1`**
+
+Makes sure the one pinned GitVersion version is installed. It reads the version with `dotnet-gitversion /version`, and when it differs runs `dotnet tool update --global --allow-downgrade`, which installs the pinned version, moves an older one up, or moves a newer one down (the flag needs .NET SDK 8.0.200 or later). It fails if the version is still wrong afterward. The pinned version is the default of the `Version` parameter, which is the only place it is set. The nightly publish workflows, the `bump-version` action and `get-next-package-version.ps1` all run it, and `gitversion-pin.Tests.ps1` fails if any other install appears.
 
 ## Has Changed?
 **Script: `has-changed.ps1`**
@@ -211,9 +218,9 @@ A submodule moves when that latest commit holds the commit the repo records for 
 ## Update Tag
 **Script: `update-tag.ps1`**
 
-Tags the repository with the version supplied, and pushed to GitHub.
+Tags the repository with the version supplied, and pushes the tag to GitHub.
 
-A GitHub release is then created from the tag containing a description generated from the PRs linked to the tag.
+A GitHub release is then created from the tag, with a description generated from the pull requests linked to the tag. Every file in the `package` folder is attached in the same call, with a folder zipped first and `dummy.txt` left out. gh publishes the release only once the files are attached, which matters because SourceForge's copy of the releases does not see files added after a release is published ([GitHub Importer](https://sourceforge.net/p/forge/documentation/GitHub%20Importer/)).
 
 ## Version Tags
 **Script: `version-tags.ps1`**
