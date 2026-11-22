@@ -1,324 +1,133 @@
-# Tests for steps/set-resource-keys.ps1, which exports the secrets the tests
-# read as environment variables.
+# Tests for steps/set-resource-keys.ps1. Run with: Invoke-Pester ./steps/set-resource-keys.Tests.ps1
 #
-# Each test runs the script on a small list of agreed names in the test
-# drive, with made-up secrets, and reads what it put in the environment, the
-# GitHub environment file and the log. Every name the tests use holds
-# SRKTEST, so nothing the runner already has is touched, and every such
-# variable is removed before and after each test.
+# The step takes the job's secrets as JSON and exports every secret whose name
+# starts with _51DEGREES_ into the environment under its own name, and nothing
+# else. The tests run it in this process, so each test clears the variables it
+# set, and point GITHUB_ENV at a file of their own.
 
 BeforeAll {
-    $script:Script = Join-Path $PSScriptRoot 'set-resource-keys.ps1'
-    $script:RealList = Join-Path $PSScriptRoot '..' 'environment-variables.json'
+    $script:Step = Join-Path $PSScriptRoot 'set-resource-keys.ps1'
 
-    function New-Variable ([string]$Name, [string[]]$Deprecated = @(),
-        [string]$CiSecret = '') {
-        return [ordered]@{
-            name = $Name
-            holds = 'A value for these tests.'
-            readByPackages = $false
-            usedIn = 'These tests.'
-            ciSecret = $CiSecret
-            deprecated = @($Deprecated | ForEach-Object {
-                    [ordered]@{ name = $_; languages = @('node'); stopsBeingReadIn = '' }
-                })
-        }
+    # Stand-in values. None is a real secret, and each is distinctive so that a
+    # test can tell a value from a name.
+    $script:Given = [ordered]@{
+        _51DEGREES_RESOURCE_KEY_BESPOKE = 'value-resource-key-7f3a'
+        _51DEGREES_LICENSE_KEY = 'value-license-key-2c9e'
+        _51DEGREES_RESOURCE_KEY_51DID = 'value-51did-key-b41d'
+        _51DEGREES_CODE_SIGNING_KEY_VAULT_URL = 'value-vault-url-e5d0'
+        _51DEGREES_JAVA_KEY_PGP_FILE = "-----BEGIN PGP-----`nline-one-9a8b`nline-two-1c2d`n-----END PGP-----"
+        _51DEGREES_NPM_AUTH_TOKEN = 'value-npm-token-4e6f'
+        _51DEGREES_ACCESS_TOKEN = 'value-access-token-0b1c'
+        OTHER_TOKEN = 'value-other-token-3d4e'
+        github_token = 'value-github-token-5f60'
+        SOME_OTHER_NAME = 'value-other-name-7a8b'
     }
+    $script:Json = $script:Given | ConvertTo-Json -Compress
+    $script:Exported = @($script:Given.Keys | Where-Object { $_ -clike '_51DEGREES_*' })
 
-    # Writes a list holding the given variables to the test drive and
-    # returns its path.
-    function New-List ($Variables) {
-        $list = [ordered]@{
-            description = 'A list for these tests.'
-            languages = [ordered]@{
-                node = [ordered]@{ name = 'Node.js'; repository = '51Degrees/51degrees-node' }
+    # The names GITHUB_ENV holds, in the order written, each with its value.
+    # The runner's file takes name=value for one line and name<<delimiter,
+    # the lines, then the delimiter for several.
+    function Read-GitHubEnv ([string]$Path) {
+        $result = [ordered]@{}
+        $lines = @(Get-Content -LiteralPath $Path)
+        for ($i = 0; $i -lt $lines.Count; $i++) {
+            if ($lines[$i] -match '^([^=<]+)<<(.+)$') {
+                $name, $delimiter = $Matches[1], $Matches[2]
+                $value = @()
+                for ($i++; $lines[$i] -ne $delimiter; $i++) { $value += $lines[$i] }
+                $result[$name] = $value -join "`n"
             }
-            variables = @($Variables)
-            otherNames = @()
+            elseif ($lines[$i] -match '^([^=]+)=(.*)$') {
+                $result[$Matches[1]] = $Matches[2]
+            }
         }
-        $path = Join-Path $TestDrive 'environment-variables.json'
-        $list | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $path
-        return $path
+        return $result
     }
 
-    # Runs the script and returns its log as text. The secrets are passed
-    # the way the workflow passes them: parsed from JSON, so the names are
-    # matched with case.
-    function Invoke-Script ([hashtable]$Secrets, [string]$ListPath) {
-        $keys = $Secrets | ConvertTo-Json | ConvertFrom-Json -AsHashtable
-        return (& $script:Script -Keys $keys -ListPath $ListPath 6>&1 |
-                Out-String)
-    }
-
-    function Remove-TestVariables {
-        Get-ChildItem Env: |
-            Where-Object { $_.Name -like '*SRKTEST*' } |
-            ForEach-Object { Remove-Item -LiteralPath "Env:$($_.Name)" }
+    function Invoke-Step ([string]$Json) {
+        # Every stream, so that the output check sees all the step writes.
+        return (& $script:Step -Secrets $Json *>&1 | Out-String)
     }
 }
 
 Describe 'set-resource-keys.ps1' {
+
     BeforeEach {
-        Remove-TestVariables
+        $script:GitHubEnv = Join-Path ([IO.Path]::GetTempPath()) "set-resource-keys-tests-$(New-Guid).env"
+        New-Item -ItemType File -Path $script:GitHubEnv | Out-Null
         $script:SavedGitHubEnv = $env:GITHUB_ENV
-        $env:GITHUB_ENV = Join-Path $TestDrive 'github-env.txt'
-        Set-Content -LiteralPath $env:GITHUB_ENV -Value $null
+        $env:GITHUB_ENV = $script:GitHubEnv
     }
 
     AfterEach {
-        Remove-TestVariables
         $env:GITHUB_ENV = $script:SavedGitHubEnv
-    }
-
-    It 'still exports every secret whose name starts with the prefix' {
-        $list = New-List @()
-        Invoke-Script @{ _51DEGREES_RESOURCE_KEY_SRKTEST_A = 'value-a' } $list | Out-Null
-        $env:_51DEGREES_RESOURCE_KEY_SRKTEST_A | Should -Be 'value-a'
-        Get-Content -LiteralPath $env:GITHUB_ENV |
-            Should -Contain '_51DEGREES_RESOURCE_KEY_SRKTEST_A=value-a'
-    }
-
-    It 'exports the secret of every agreed name, whatever its prefix' {
-        $list = New-List @(New-Variable '_51DEGREES_LICENSE_KEY_SRKTEST')
-        Invoke-Script @{ _51DEGREES_LICENSE_KEY_SRKTEST = 'license' } $list | Out-Null
-        $env:_51DEGREES_LICENSE_KEY_SRKTEST | Should -Be 'license'
-    }
-
-    It 'exports no secret that is neither an agreed name nor a resource key' {
-        $list = New-List @()
-        Invoke-Script @{ _51DEGREES_SRKTEST_UNLISTED = 'x'; SRKTEST_OTHER = 'y' } $list |
-            Out-Null
-        $env:_51DEGREES_SRKTEST_UNLISTED | Should -BeNullOrEmpty
-        $env:SRKTEST_OTHER | Should -BeNullOrEmpty
-    }
-
-    It 'fills an agreed name that has no secret from the secret its entry names' {
-        $list = New-List @(New-Variable '_51DEGREES_RESOURCE_KEY_SRKTEST' `
-                -CiSecret '_51DEGREES_RESOURCE_KEY_SRKTEST_SOURCE')
-        Invoke-Script @{ _51DEGREES_RESOURCE_KEY_SRKTEST_SOURCE = 'source' } $list |
-            Out-Null
-        $env:_51DEGREES_RESOURCE_KEY_SRKTEST | Should -Be 'source'
-        Get-Content -LiteralPath $env:GITHUB_ENV |
-            Should -Contain '_51DEGREES_RESOURCE_KEY_SRKTEST=source'
-    }
-
-    It 'fills only when the agreed name has no secret of its own' {
-        $list = New-List @(New-Variable '_51DEGREES_RESOURCE_KEY_SRKTEST' `
-                -CiSecret '_51DEGREES_RESOURCE_KEY_SRKTEST_SOURCE')
-        Invoke-Script @{
-            _51DEGREES_RESOURCE_KEY_SRKTEST = 'own'
-            _51DEGREES_RESOURCE_KEY_SRKTEST_SOURCE = 'source'
-        } $list | Out-Null
-        $env:_51DEGREES_RESOURCE_KEY_SRKTEST | Should -Be 'own'
-    }
-
-    It 'leaves a value the job already set' {
-        $env:_51DEGREES_RESOURCE_KEY_SRKTEST = 'from-the-job'
-        $list = New-List @(New-Variable '_51DEGREES_RESOURCE_KEY_SRKTEST' `
-                -CiSecret '_51DEGREES_RESOURCE_KEY_SRKTEST_SOURCE')
-        Invoke-Script @{ _51DEGREES_RESOURCE_KEY_SRKTEST_SOURCE = 'source' } $list |
-            Out-Null
-        $env:_51DEGREES_RESOURCE_KEY_SRKTEST | Should -Be 'from-the-job'
-    }
-
-    It 'never fills from an old name, even when only the old name has a secret' {
-        $list = New-List @(New-Variable '_51DEGREES_RESOURCE_KEY_SRKTEST' @('SRKTEST_OLD'))
-        Invoke-Script @{ SRKTEST_OLD = 'old' } $list | Out-Null
-        $env:_51DEGREES_RESOURCE_KEY_SRKTEST | Should -BeNullOrEmpty
-    }
-
-    It 'logs which name filled which, and never a value' {
-        $list = New-List @(New-Variable '_51DEGREES_RESOURCE_KEY_SRKTEST' `
-                -CiSecret '_51DEGREES_RESOURCE_KEY_SRKTEST_SOURCE')
-        $log = Invoke-Script @{ _51DEGREES_RESOURCE_KEY_SRKTEST_SOURCE = 'secret-value-123' } $list
-        $log | Should -Match '_51DEGREES_RESOURCE_KEY_SRKTEST from _51DEGREES_RESOURCE_KEY_SRKTEST_SOURCE'
-        $log | Should -Not -Match 'secret-value-123'
-    }
-
-    It 'names each key that has no value, and does not fail' {
-        $list = New-List @(
-            New-Variable '_51DEGREES_RESOURCE_KEY_SRKTEST' `
-                -CiSecret '_51DEGREES_RESOURCE_KEY_SRKTEST_SOURCE'
-            New-Variable '_51DEGREES_LICENSE_KEY_SRKTEST'
-            New-Variable '_51DEGREES_SRKTEST_NOT_A_KEY'
-        )
-        $log = Invoke-Script @{ SRKTEST_UNRELATED = 'x' } $list
-        $log | Should -Match 'No value for _51DEGREES_RESOURCE_KEY_SRKTEST\b'
-        $log | Should -Match 'No value for _51DEGREES_LICENSE_KEY_SRKTEST\b'
-        $log | Should -Not -Match '_51DEGREES_SRKTEST_NOT_A_KEY'
-    }
-}
-
-Describe 'The list in this repository' {
-    BeforeAll {
-        $script:List = Get-Content -Raw -LiteralPath $script:RealList | ConvertFrom-Json
-        function Get-Entry ([string]$Name) {
-            return $script:List.variables | Where-Object name -CEQ $Name
+        Remove-Item -Force $script:GitHubEnv -ErrorAction SilentlyContinue
+        foreach ($name in $script:Given.Keys) {
+            Remove-Item -Path "Env:$name" -ErrorAction SilentlyContinue
         }
     }
 
-    It 'sets the resource keys from the _51DEGREES_ secrets that carry their properties' {
-        (Get-Entry '_51DEGREES_RESOURCE_KEY').ciSecret |
-            Should -BeExactly '_51DEGREES_RESOURCE_KEY_BESPOKE'
-        (Get-Entry '_51DEGREES_RESOURCE_KEY_SUPER').ciSecret |
-            Should -BeExactly '_51DEGREES_RESOURCE_KEY_BESPOKE'
-    }
-
-    It 'sets the 51Did and basic keys only from the secrets of their own names' {
-        # The 51Did license key cannot read results made with the BESPOKE
-        # key, and the organization has a secret for each of these names, so
-        # none of them comes from the BESPOKE or FREE key.
-        foreach ($name in '_51DEGREES_RESOURCE_KEY_51DID', '_51DEGREES_RESOURCE_KEY_BASIC',
-            '_51DEGREES_LICENSE_KEY_51DID') {
-            (Get-Entry $name).ciSecret | Should -BeExactly $name
+    It 'exports every _51DEGREES_ secret under its own name' {
+        Invoke-Step -Json $script:Json | Out-Null
+        foreach ($name in $script:Exported) {
+            (Get-Item -Path "Env:$name").Value | Should -Be $script:Given[$name] -Because "$name is a _51DEGREES_ secret"
         }
     }
 
-    It 'no longer lists a key for each Accept-CH header, a data file address or a duplicate' {
-        # The Accept-CH tests use _51DEGREES_LICENSE_KEY_BESPOKE with values=
-        # naming the one property each needs, and data files come from the
-        # distributor with _51DEGREES_LICENSE_KEY.
-        foreach ($name in '_51DEGREES_LICENSE_KEY_CLOUDV5BESPOKE',
-            '_51DEGREES_RESOURCE_KEY_PLATFORM', '_51DEGREES_RESOURCE_KEY_HARDWARE',
-            '_51DEGREES_RESOURCE_KEY_BROWSER', '_51DEGREES_RESOURCE_KEY_NO_SETHEADER',
-            '_51DEGREES_RESOURCE_KEY_ACCEPTCH_BROWSER', '_51DEGREES_RESOURCE_KEY_ACCEPTCH_HARDWARE',
-            '_51DEGREES_RESOURCE_KEY_ACCEPTCH_NONE', '_51DEGREES_RESOURCE_KEY_ACCEPTCH_PLATFORM',
-            '_51DEGREES_IPI_DATA_FILE_URL') {
-            Get-Entry $name | Should -BeNullOrEmpty -Because "$name is no longer agreed"
+    It 'exports nothing else' {
+        Invoke-Step -Json $script:Json | Out-Null
+        foreach ($name in $script:Given.Keys) {
+            if ($name -cin $script:Exported) { continue }
+            Test-Path -Path "Env:$name" | Should -BeFalse -Because "$name is not a _51DEGREES_ secret"
         }
     }
 
-    It 'keeps the keys the tests read in their place' {
-        Get-Entry '_51DEGREES_LICENSE_KEY_BESPOKE' | Should -Not -BeNullOrEmpty
-        Get-Entry '_51DEGREES_LICENSE_KEY' | Should -Not -BeNullOrEmpty
-    }
-}
-
-Describe 'The 51Did resource key, set from the list in this repository' {
-    BeforeAll {
-        $script:Did = '_51DEGREES_RESOURCE_KEY_51DID'
-        $list = Get-Content -Raw -LiteralPath $script:RealList | ConvertFrom-Json
-        # Every name the script may set from the real list, so each can be
-        # cleared before a test and put back after it.
-        $script:Touched = @(@($list.variables | ForEach-Object { [string]$_.name }) +
-            '_51DEGREES_RESOURCE_KEY_BESPOKE' | Sort-Object -Unique)
-    }
-
-    BeforeEach {
-        $script:Saved = @{}
-        foreach ($name in $script:Touched) {
-            $script:Saved[$name] = [Environment]::GetEnvironmentVariable($name)
-            [Environment]::SetEnvironmentVariable($name, $null)
-        }
-        $script:SavedGitHubEnv = $env:GITHUB_ENV
-        $env:GITHUB_ENV = Join-Path $TestDrive 'github-env.txt'
-        Set-Content -LiteralPath $env:GITHUB_ENV -Value $null
-    }
-
-    AfterEach {
-        foreach ($name in $script:Touched) {
-            [Environment]::SetEnvironmentVariable($name, $script:Saved[$name])
-        }
-        $env:GITHUB_ENV = $script:SavedGitHubEnv
-    }
-
-    It 'is not filled from the BESPOKE secret when it has no secret of its own' {
-        Invoke-Script @{ _51DEGREES_RESOURCE_KEY_BESPOKE = 'srktest-bespoke' } $script:RealList |
-            Out-Null
-        [Environment]::GetEnvironmentVariable($script:Did) | Should -BeNullOrEmpty
-    }
-
-    It 'is set from the secret of its own name' {
-        Invoke-Script @{
-            _51DEGREES_RESOURCE_KEY_51DID = 'srktest-51did'
-            _51DEGREES_RESOURCE_KEY_BESPOKE = 'srktest-bespoke'
-        } $script:RealList | Out-Null
-        [Environment]::GetEnvironmentVariable($script:Did) | Should -BeExactly 'srktest-51did'
-    }
-
-    It 'leaves out the 51Did license key, which only the Cloud 51Did workflows set' {
-        # The 51Did license key reads only results made with the 51Did
-        # resource key, so it is not put into every job. The other license
-        # keys still are.
-        $log = Invoke-Script @{
-            _51DEGREES_LICENSE_KEY_51DID = 'srktest-license-51did'
-            _51DEGREES_LICENSE_KEY_BESPOKE = 'srktest-license-bespoke'
-        } $script:RealList
-        [Environment]::GetEnvironmentVariable('_51DEGREES_LICENSE_KEY_51DID') |
-            Should -BeNullOrEmpty
-        Get-Content -LiteralPath $env:GITHUB_ENV |
-            Should -Not -Contain '_51DEGREES_LICENSE_KEY_51DID=srktest-license-51did'
-        [Environment]::GetEnvironmentVariable('_51DEGREES_LICENSE_KEY_BESPOKE') |
-            Should -BeExactly 'srktest-license-bespoke'
-        $log | Should -Not -Match 'srktest-license-51did'
-    }
-}
-
-Describe 'The basic resource key, set from the list in this repository' {
-    BeforeAll {
-        $script:Basic = '_51DEGREES_RESOURCE_KEY_BASIC'
-        $list = Get-Content -Raw -LiteralPath $script:RealList | ConvertFrom-Json
-        # Every name the script may set from the real list, so each can be
-        # cleared before a test and put back after it.
-        $script:Touched = @(@($list.variables | ForEach-Object { [string]$_.name }) +
-            '_51DEGREES_RESOURCE_KEY_FREE' | Sort-Object -Unique)
-    }
-
-    BeforeEach {
-        $script:Saved = @{}
-        foreach ($name in $script:Touched) {
-            $script:Saved[$name] = [Environment]::GetEnvironmentVariable($name)
-            [Environment]::SetEnvironmentVariable($name, $null)
-        }
-        $script:SavedGitHubEnv = $env:GITHUB_ENV
-        $env:GITHUB_ENV = Join-Path $TestDrive 'github-env.txt'
-        Set-Content -LiteralPath $env:GITHUB_ENV -Value $null
-    }
-
-    AfterEach {
-        foreach ($name in $script:Touched) {
-            [Environment]::SetEnvironmentVariable($name, $script:Saved[$name])
-        }
-        $env:GITHUB_ENV = $script:SavedGitHubEnv
-    }
-
-    It 'is not filled from the FREE secret when it has no secret of its own' {
-        $log = Invoke-Script @{ _51DEGREES_RESOURCE_KEY_FREE = 'srktest-free' } $script:RealList
-        [Environment]::GetEnvironmentVariable($script:Basic) | Should -BeNullOrEmpty
-        Get-Content -LiteralPath $env:GITHUB_ENV |
-            Should -Not -Contain "$($script:Basic)=srktest-free"
-        $log | Should -Match "No value for $($script:Basic)\b"
-    }
-
-    It 'is set from the secret of its own name' {
-        Invoke-Script @{
-            _51DEGREES_RESOURCE_KEY_BASIC = 'srktest-basic'
-            _51DEGREES_RESOURCE_KEY_FREE = 'srktest-free'
-        } $script:RealList | Out-Null
-        [Environment]::GetEnvironmentVariable($script:Basic) | Should -BeExactly 'srktest-basic'
-    }
-}
-
-Describe 'Where the shared scripts export the keys' {
-    # The keys must be in the environment before anything of the repository
-    # runs: its own CI, its fetch-assets.ps1 (which reads
-    # _51DEGREES_LICENSE_KEY) and its setup.
-    It "runs before the repository's own scripts in <_>" -ForEach @(
-        'nightly-pull-request.build-and-test.ps1', 'nightly-publish.test.ps1') {
-        $lines = Get-Content -LiteralPath (Join-Path $PSScriptRoot '..' $_)
-        $keys = ($lines | Select-String -SimpleMatch 'steps/set-resource-keys.ps1' |
-                Select-Object -First 1).LineNumber
-        $keys | Should -Not -BeNullOrEmpty
-        foreach ($later in '$Options.CI', 'ci/fetch-assets.ps1', 'ci/setup-environment.ps1') {
-            $line = ($lines | Select-String -SimpleMatch $later | Select-Object -First 1).LineNumber
-            $keys | Should -BeLessThan $line -Because "the keys are needed by $later"
+    It 'writes exactly the exported names to GITHUB_ENV, with their values, a multi-line value whole' {
+        Invoke-Step -Json $script:Json | Out-Null
+        $written = Read-GitHubEnv $script:GitHubEnv
+        @($written.Keys | Sort-Object) | Should -Be @($script:Exported | Sort-Object)
+        foreach ($name in $script:Exported) {
+            $written[$name] | Should -Be $script:Given[$name]
         }
     }
 
-    It 'runs in the prefetch action before the repository fetches its assets' {
-        $text = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '..' '.github' 'actions' 'prefetch_assets' 'action.yml')
-        $keys = $text.IndexOf('steps/set-resource-keys.ps1')
-        $keys | Should -BeGreaterThan 0
-        $keys | Should -BeLessThan $text.IndexOf('& "$env:repo/ci/fetch-assets.ps1"')
+    It 'writes only names to its output' {
+        $output = Invoke-Step -Json $script:Json
+        foreach ($name in $script:Given.Keys) {
+            foreach ($line in ($script:Given[$name] -split "`n")) {
+                $output | Should -Not -Match ([regex]::Escape($line)) -Because "the output holds names alone"
+            }
+        }
+        foreach ($name in $script:Exported) {
+            $output | Should -Match ([regex]::Escape($name))
+        }
+    }
+
+    It 'renames nothing and fills nothing from another name' {
+        Invoke-Step -Json $script:Json | Out-Null
+        $written = Read-GitHubEnv $script:GitHubEnv
+        @($written.Keys | Sort-Object) | Should -Be @($script:Exported | Sort-Object)
+        foreach ($name in $written.Keys) {
+            $written[$name] | Should -Be $script:Given[$name] -Because "$name holds its own secret's value"
+        }
+    }
+
+    It 'skips a secret with no value' {
+        $json = @{ _51DEGREES_RESOURCE_KEY_BESPOKE = ''; _51DEGREES_LICENSE_KEY = 'value-license-key-2c9e' } | ConvertTo-Json -Compress
+        Invoke-Step -Json $json | Out-Null
+        Test-Path -Path 'Env:_51DEGREES_RESOURCE_KEY_BESPOKE' | Should -BeFalse
+        (Get-Item -Path 'Env:_51DEGREES_LICENSE_KEY').Value | Should -Be 'value-license-key-2c9e'
+    }
+
+    It 'does nothing with no secrets' {
+        { Invoke-Step -Json '{}' | Out-Null } | Should -Not -Throw
+        (Get-Content -LiteralPath $script:GitHubEnv) | Should -BeNullOrEmpty
+    }
+
+    It 'sets the process environment without GITHUB_ENV' {
+        $env:GITHUB_ENV = $null
+        Invoke-Step -Json $script:Json | Out-Null
+        (Get-Item -Path 'Env:_51DEGREES_LICENSE_KEY').Value | Should -Be $script:Given['_51DEGREES_LICENSE_KEY']
     }
 }
