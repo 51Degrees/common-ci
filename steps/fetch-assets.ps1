@@ -36,6 +36,10 @@ elseif (@($DeviceDetection, $DeviceDetectionUrl, $IpIntelligence, $IpIntelligenc
     Write-Host "_51DEGREES_LICENSE_KEY is not set, so the old keys and addresses passed are used, as before that name. They go when the calling workflow passes 'secrets: inherit'."
 }
 
+# An asset named <name>.json, in lower case letters, digits, and hyphens, is
+# the bulkdata data source <name>.
+$dataSourceAsset = '^[a-z0-9][a-z0-9-]*\.json$'
+
 # Whether an asset that needs a licence has one: _51DEGREES_LICENSE_KEY, or
 # for a caller not yet moved the old key or address for it. Without one, the
 # step fails naming the variable, rather than with the Distributor's refusal.
@@ -45,8 +49,7 @@ function Test-Licensed ([string]$Asset) {
         '51Degrees-EnterpriseIpiV41.ipi' { return (Test-Given $IpIntelligence) -or (Test-Given $IpIntelligenceUrl) }
         '51Degrees.csv' { return (Test-Given $DeviceDetection) -or (Test-Given $CsvUrl) }
         '51Degrees-Tac.zip' { return (Test-Given $DeviceDetection) -or (Test-Given $CsvUrl) }
-        'chargify.json' { return Test-Given $DeviceDetection }
-        'entitlement.json' { return Test-Given $DeviceDetection }
+        { $_ -cmatch $dataSourceAsset } { return Test-Given $DeviceDetection }
         default { return $true }
     }
 }
@@ -204,11 +207,9 @@ foreach ($asset in $Assets) {
             "51Degrees-Tac.zip" {  # same as the CSV above, without extracting
                 & $PSScriptRoot/download-data-file.ps1 -LicenseKey:$DeviceDetection -DataType 'CSV' -Product 'V4TAC' -Url:$CsvUrl -FullFilePath "$cache/$_"
             }
-            # Any other <name>.json is the Pearl API data source <name>,
-            # newest day first: chargify.json, entitlement.json, and the
-            # Cloud's browser-contradictions.json among them. A repository
-            # can fetch a new data source without a change here.
-            { $_ -cmatch '^[a-z0-9][a-z0-9-]*\.json$' } {
+            # A data source is fetched newest day first, so a new one needs
+            # no change here.
+            { $_ -cmatch $dataSourceAsset } {
                 Get-FromBulkData -License:$DeviceDetection -Data ($_ -creplace '\.json$', '') -Output $cache/$_
             }
             default { Write-Error "Unknown asset: $_" }

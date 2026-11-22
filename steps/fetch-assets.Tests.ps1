@@ -169,7 +169,8 @@ Set-Content -Path $FullFilePath -Value 'downloaded'
 
     It 'fails for each asset that needs a licence when there is none, naming the variable' {
         foreach ($asset in 'TAC-HashV41.hash', '51Degrees-EnterpriseIpiV41.ipi',
-            '51Degrees.csv', '51Degrees-Tac.zip', 'chargify.json', 'entitlement.json') {
+            '51Degrees.csv', '51Degrees-Tac.zip', 'chargify.json', 'entitlement.json',
+            'example-source.json') {
             { Invoke-KeyStep $asset } |
                 Should -Throw "*'$asset' needs the data licence key, and _51DEGREES_LICENSE_KEY is not set*"
             $global:FetchAssetsKeyTest.Calls | Should -BeNullOrEmpty
@@ -288,7 +289,7 @@ Describe 'fetch-assets.ps1 with bulkdata' {
         function Invoke-BulkStep ([string]$Asset) {
             Push-Location $global:FetchAssetsTest.Work
             try {
-                & $script:Step -Assets $Asset -DeviceDetection 'KEY' 3>$null
+                & $script:Step -Assets $Asset -LicenseKey 'KEY' 3>$null
             } finally {
                 Pop-Location
             }
@@ -296,10 +297,10 @@ Describe 'fetch-assets.ps1 with bulkdata' {
     }
 
     It 'gets <Asset> as the <Source> data source, newest day first' -ForEach @(
-        @{ Asset = 'browser-contradictions.json'; Source = 'browser-contradictions' }
+        @{ Asset = 'example-source.json'; Source = 'example-source' }
         @{ Asset = 'chargify.json'; Source = 'chargify' }
         @{ Asset = 'entitlement.json'; Source = 'entitlement' }
-        @{ Asset = 'a-name-nobody-listed.json'; Source = 'a-name-nobody-listed' }
+        @{ Asset = 'source-2.json'; Source = 'source-2' }
     ) {
         Invoke-BulkStep $Asset
         $file = Get-Content -Raw "$($global:FetchAssetsTest.Work)/assets/$Asset" | ConvertFrom-Json
@@ -309,9 +310,9 @@ Describe 'fetch-assets.ps1 with bulkdata' {
 
     It 'falls back to the day before when the newest file is empty' {
         $global:FetchAssetsTest.EmptyNewest = $true
-        Invoke-BulkStep 'browser-contradictions.json'
-        $file = Get-Content -Raw "$($global:FetchAssetsTest.Work)/assets/browser-contradictions.json" | ConvertFrom-Json
-        $file.url | Should -BeLike '*/browser-contradictions/KEY/2026-11-10'
+        Invoke-BulkStep 'example-source.json'
+        $file = Get-Content -Raw "$($global:FetchAssetsTest.Work)/assets/example-source.json" | ConvertFrom-Json
+        $file.url | Should -BeLike '*/example-source/KEY/2026-11-10'
     }
 
     It 'refuses <Asset>, which is no data source name' -ForEach @(
