@@ -45,7 +45,10 @@ function Install-GitVersion([string]$Version) {
     }
     $global:LASTEXITCODE = 0
     # Out-Host keeps the tool's output out of what a caller captures.
-    dotnet tool update --global GitVersion.Tool --version $Version | Out-Host
+    # --allow-downgrade lets the SDK move a newer GitVersion down to $Version.
+    # Without it the update is refused and a runner that carries GitVersion 7
+    # keeps it. The flag needs .NET SDK 8.0.200 or later.
+    dotnet tool update --global GitVersion.Tool --version $Version --allow-downgrade | Out-Host
     if ($LASTEXITCODE -ne 0) {
         throw "dotnet tool update for GitVersion $Version failed with exit code $LASTEXITCODE."
     }

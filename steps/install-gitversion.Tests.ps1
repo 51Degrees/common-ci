@@ -62,13 +62,13 @@ Describe 'Install-GitVersion' {
     It 'installs when GitVersion is missing' {
         Set-Runner $null '6.8.2'
         Install-GitVersion -Version '6.8.2'
-        $script:DotnetCalls | Should -Be 'tool update --global GitVersion.Tool --version 6.8.2'
+        $script:DotnetCalls | Should -Be 'tool update --global GitVersion.Tool --version 6.8.2 --allow-downgrade'
     }
 
     It 'changes a different version to the one asked for' {
         Set-Runner '6.1.0' '6.8.2'
         Install-GitVersion -Version '6.8.2'
-        $script:DotnetCalls | Should -Be 'tool update --global GitVersion.Tool --version 6.8.2'
+        $script:DotnetCalls | Should -Be 'tool update --global GitVersion.Tool --version 6.8.2 --allow-downgrade'
     }
 
     It 'moves a newer version down to the one asked for' {
