@@ -24,19 +24,15 @@ $Branch = ./steps/get-target-branch.ps1 -RepoName $RepoName -OrgName $OrgName -B
 Write-Output "Pull requests into '$Branch' are built and merged"
 "branch=$Branch" | Out-File $GitHubOutput -Append
 
-# If the list of pull requests is provided as a CI parameter - output it and exit early.
-# An environment variable is used instead of a parameter to avoid arbitrary code injection.
-if ($env:PULL_REQUEST_IDS) {
-    Write-Output "Pull request ids are: $env:PULL_REQUEST_IDS"
-    "pull_request_ids=[$env:PULL_REQUEST_IDS]" | Out-File $GitHubOutput -Append
-    exit
-}
-
+# Each pull request comes with the head commit it was selected at, which the
+# build and the merge hold to. Numbers given as a CI parameter go through the
+# same check on forks. They come through an environment variable rather than a
+# parameter, to avoid arbitrary code injection.
 Write-Output "::group::Get Pull Requests"
-./steps/get-pull-requests.ps1 -RepoName $RepoName -OrgName $OrgName -Branch $Branch -SetVariable PullRequestIds
-if (!$BuildWithoutPullRequests -and "$PullRequestIds" -eq '0') {
+./steps/get-pull-requests.ps1 -RepoName $RepoName -OrgName $OrgName -Branch $Branch -Ids "$env:PULL_REQUEST_IDS" -SetVariable PullRequests
+if (!$BuildWithoutPullRequests -and $PullRequests.Count -eq 1 -and $PullRequests[0].id -eq 0) {
     Write-Output "No pull request is eligible, so nothing is built"
-    $PullRequestIds = @()
+    $PullRequests = @()
 }
-Write-Output "pull_request_ids=[$($PullRequestIds -Join ',')]" | Out-File $GitHubOutput -Append
+Write-Output "pull_requests=$(ConvertTo-Json -InputObject @($PullRequests) -Compress -AsArray)" | Out-File $GitHubOutput -Append
 Write-Output "::endgroup::"

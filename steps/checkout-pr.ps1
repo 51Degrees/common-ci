@@ -4,7 +4,10 @@ param (
     [Parameter(Mandatory=$true)]
     [int]$PullRequestId,
     [string]$Branch = "main",
-    [string]$SetVariable = "PullRequestSha"
+    [string]$SetVariable = "PullRequestSha",
+    # The head commit the pull request was selected at. When given, only that
+    # commit is built: if the pull request has moved since, nothing is.
+    [string]$HeadSha = ""
 )
 $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
@@ -22,6 +25,13 @@ try {
     Write-Output "Checking out PR '$PrTitle'"
     gh pr checkout --force --recurse-submodules $PullRequestId
 
+    if ($HeadSha) {
+        $CheckedOut = git rev-parse HEAD
+        if ($CheckedOut -ne $HeadSha) {
+            throw "PR #$PullRequestId has moved since it was selected: its head is $CheckedOut, not $HeadSha, so it is not built"
+        }
+    }
+
     Write-Output "Merging in any changes from $Branch"
     git merge origin/$Branch
 
@@ -29,7 +39,7 @@ try {
     git submodule sync --recursive
     git submodule update --init --recursive
 
-    $Sha = gh pr view $PullRequestId --json headRefOid --jq '.headRefOid'
+    $Sha = if ($HeadSha) { $HeadSha } else { gh pr view $PullRequestId --json headRefOid --jq '.headRefOid' }
     Write-Output "Setting '$SetVariable' to '$Sha'"
     Set-Variable -Scope 1 -Name $SetVariable -Value $Sha
 

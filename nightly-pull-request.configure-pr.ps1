@@ -12,11 +12,19 @@ param (
     [string]$GitHubEmail,
     [Parameter(Mandatory=$true)]
     [string]$PullRequestId,
+    # The head commit the pull request was selected at. Empty for the branch
+    # itself, which is pull request 0.
+    [string]$HeadSha = "",
     # Builds every entry in ci/options.json, even where the repository's
     # ci/select-options.ps1 would choose fewer.
     [bool]$FullMatrix
 )
 $ErrorActionPreference = "Stop"
+
+# A pull request is built only at the head commit it was selected at.
+if ([int]$PullRequestId -ne 0 -and -not $HeadSha) {
+    throw "PR #$PullRequestId has no head commit from when it was selected, so it is not built"
+}
 
 Write-Output "::group::Configure Git"
 ./steps/configure-git.ps1 -GitHubToken $GitHubToken -GitHubUser $GitHubUser -GitHubEmail $GitHubEmail
@@ -27,7 +35,7 @@ Write-Output "::group::Clone $RepoName"
 Write-Output "::endgroup::"
 
 Write-Output "::group::Checkout PR"
-./steps/checkout-pr.ps1 -RepoName $RepoName -Branch $Branch -PullRequestId $PullRequestId
+./steps/checkout-pr.ps1 -RepoName $RepoName -Branch $Branch -PullRequestId $PullRequestId -HeadSha $HeadSha
 Write-Output "::endgroup::"
 
 Write-Output "::group::Get Build Options"

@@ -104,22 +104,25 @@ jobs:
           -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
           -GitHubOutput $Env:GITHUB_OUTPUT
     outputs:
-      pull_request_ids: ${{ steps.get_pull_requests.outputs.pull_request_ids }}
+      pull_requests: ${{ steps.get_pull_requests.outputs.pull_requests }}
       branch: ${{ steps.get_pull_requests.outputs.branch }}
 
   # Run the common workflow on each pull request
   NightlyPullRequest:
     needs: GetPullRequests
+    if: needs.GetPullRequests.outputs.pull_requests != '[]'
     strategy:
       fail-fast: false
       matrix:
-        id: ${{ fromJSON(needs.GetPullRequests.outputs.pull_request_ids) }}
+        # Each entry is a pull request id and the head commit it was selected at.
+        include: ${{ fromJSON(needs.GetPullRequests.outputs.pull_requests) }}
     name: Nightly PR - ${{ matrix.id }}
     uses: ./.github/workflows/nightly-pull-request.yml
     with:
       repo-name: ${{ inputs.repo-name }}
       org-name: ${{ inputs.org-name }}
       pull-request-id: ${{ matrix.id }}
+      head-sha: ${{ matrix.sha }}
       user: ${{ inputs.user }}
       email: ${{ inputs.email }}
       dryrun: ${{ inputs.dryrun }}

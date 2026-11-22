@@ -86,7 +86,9 @@ This will also copy the generated classes to the directory specified.
 ## Get PRs
 **Script: `get-pull-requests.ps1`**
 
-Gets the open PRs into the branch given, and sets the ids of valid PRs as an array under a variable name provided.
+Gets the open PRs into the branch given, or the PR numbers given with `-Ids`, and sets the valid PRs as an array under a variable name provided. Each entry is the PR's `id` and `sha`, the head commit it was selected at. Configure, build and test check out that commit only and stop if the PR has moved since, and the merge names it, so GitHub refuses the merge if anything was pushed after selection. With no valid PR from the open ones, the entry is PR `0` with no commit, which is the branch itself.
+
+A PR whose head is in a fork is never selected, whatever its approvals, and neither is one that gh doesn't say this about. This also applies to PR numbers given with `-Ids`. The build runs a PR's code with the organization's secrets and paid data, so code from a fork never runs. To build a contributor's change, someone in the organization pushes that exact commit to a branch in the repository and opens a PR from it.
 
 A PR is considered valid if it was created by one of the following roles:
 - `OWNER`
