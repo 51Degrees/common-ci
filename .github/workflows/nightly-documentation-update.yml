@@ -32,9 +32,6 @@ on:
         required: false
         type: string
         default: false
-    secrets:
-      token:
-        required: false        
 
 jobs:
   NightlyDocumentationUpdate:
@@ -56,7 +53,7 @@ jobs:
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
           $SeparateExamples = [bool]::Parse( "${{ inputs.separate-examples}}" )
           ./nightly-documentation-update.ps1 `
-          -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
+          -GitHubToken ${{ secrets._51DEGREES_ACCESS_TOKEN }} `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch '${{ inputs.branch }}' `

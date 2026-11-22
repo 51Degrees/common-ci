@@ -26,9 +26,6 @@ on:
         required: false
         type: string
         default: ''
-    secrets:
-      token:
-        required: false
 
 jobs:
   nightly-package-update:
@@ -51,7 +48,7 @@ jobs:
         run: |
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
           . ${{ github.workspace }}/common/nightly-package-update.ps1 `
-          -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
+          -GitHubToken ${{ secrets._51DEGREES_ACCESS_TOKEN }} `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ github.ref_name }} `

@@ -29,9 +29,6 @@ on:
       common-ci-ref:
         type: string
         default: ''
-    secrets:
-      token:
-        required: false
 
 jobs:
   NightlyExampleAssetsUpdate:
@@ -51,7 +48,7 @@ jobs:
         run: |
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
           ./nightly-example-assets-update.ps1 `
-          -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
+          -GitHubToken ${{ secrets._51DEGREES_ACCESS_TOKEN }} `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ github.ref_name }} `

@@ -49,17 +49,7 @@ on:
       pr-branch:
         type: string
         default: ''
-    secrets:
-      token:
-        required: false
-      # Not used: the job reads no data file. Kept so that a caller still
-      # passing it runs.
-      data-key:
-        required: false
-      # Not used, as data-key.
-      data-url:
-        required: false
-        
+
 jobs:
   nightly-data-file-change:
     runs-on: ubuntu-latest
@@ -81,7 +71,7 @@ jobs:
         run: |
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
           . ${{ github.workspace }}/common/nightly-data-file-change.ps1 `
-          -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
+          -GitHubToken ${{ secrets._51DEGREES_ACCESS_TOKEN }} `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ github.ref_name }} `

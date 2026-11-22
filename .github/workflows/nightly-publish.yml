@@ -41,9 +41,7 @@ on:
       skip-tests:
         type: boolean
         default: false
-      skip-web-performance:
-        type: boolean
-        default: false
+
       examples-branch:
         description: 'Examples repo branch for the tests; empty keeps the one in options.json'
         type: string
@@ -59,73 +57,6 @@ on:
       version:
         description: 'The version to publish.'
         value: ${{ jobs.Configure.outputs.version }}
-    secrets:
-      # PAT that we use to authenticate on behalf of GitHub Actions.
-      token:
-        required: false
-      AcceptCHBrowserKey:
-      AcceptCHHardwareKey:
-      AcceptCHNoneKey:
-      AcceptCHPlatformKey:
-      ApiKey:
-      CodeSigningKeyVaultName:
-      CodeSigningKeyVaultUrl:
-      CodeSigningKeyVaultClientId:
-      CodeSigningKeyVaultTenantId:
-      CodeSigningKeyVaultClientSecret:
-      CodeSigningKeyVaultCertificateName:
-      CodeSigningKeyVaultCertificateData:
-      StrongNameKeyBase64:
-      CsvUrl:
-      DeviceDetection:
-      DeviceDetectionUrl:
-      IpIntelligence:
-      IpIntelligenceUrl:
-      JavaGpgKeyPassphrase:
-      JavaPGP:
-      MavenSettings:
-      NPMAuthToken:
-      NginxCert:
-      NginxKey:
-      NginxJwtToken:
-      PypiToken:
-      ResourceKeyCloudV5Bespoke:
-      TestBrowserResourceKey:
-      TestHardwareResourceKey:
-      TestLicenseKey:
-      TestNoSetHeaderResourceKey:
-      TestPlatformResourceKey:
-      TestPypiToken:
-      TestResourceKey:
-      TestSuperResourceKey:
-      UsePublishTests:
-      WordpressSvnUrl:
-      WordpressSvnUser:
-      WordpressSvnPassword:
-      DockerPassword:
-      DockerContainer:
-      DockerRegistry:
-      DockerUser:
-      PearlLicense:
-      PearlHetznerS3AccessKeyId:
-      PearlHetznerS3SecretAccessKey:
-      PearlOvhEuS3AccessKeyId:
-      PearlOvhEuS3SecretAccessKey:
-      PearlOvhUsS3AccessKeyId:
-      PearlOvhUsS3SecretAccessKey:
-      PearlCollectorHetznerS3AccessKeyId:
-      PearlCollectorHetznerS3SecretAccessKey:
-      PearlCollectorOvhUk1S3AccessKeyId:
-      PearlCollectorOvhUk1S3SecretAccessKey:
-      PearlCollectorOvhUsEastVa1S3AccessKeyId:
-      PearlCollectorOvhUsEastVa1S3SecretAccessKey:
-      MaxioApiKeyUs:
-      MaxioApiKeyEu:
-      MaxioApiKeyUsSandbox:
-      MaxioApiKeyEuSandbox:
-      PearlTableauToken:
-      PearlFodCloudDatabaseKey:
-      PearlDeviceDataSubmissionsKey:
 
 defaults:
   run:
@@ -134,14 +65,6 @@ defaults:
 jobs:
   Configure:
     runs-on: ubuntu-latest
-    env:
-      # The repositories that give each package its own version, which check
-      # every package they are about to publish in their own
-      # ci/check-version-bump.ps1 and ci/check-release-interval.ps1, with the
-      # same exit codes, because one version or tag cannot speak for them all.
-      # Only these may replace the shared checks, so a script that checks
-      # nothing cannot switch a check off.
-      OWN_CHECK: 51degrees-dotnet 51degrees-go 51degrees-java 51degrees-node 51degrees-php
     outputs:
       asset_cache_key: ${{ steps.prefetch-assets.outputs.cache-key }}
       options: ${{ steps.configure.outputs.options }}
@@ -171,7 +94,7 @@ jobs:
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ github.ref_name }} `
-          -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
+          -GitHubToken ${{ secrets._51DEGREES_ACCESS_TOKEN }} `
           -GitHubOutput $Env:GITHUB_OUTPUT `
           -GitHubUser ${{ inputs.user }} `
           -GitHubEmail ${{ inputs.email }} `
@@ -180,14 +103,16 @@ jobs:
       # Every route to a version meets here: a '+semver' directive, a tag
       # pushed by hand, a version committed in a file, or one typed into a
       # dispatch. Gating any one of them leaves the others open, so the
-      # check is at the publish rather than at the merge.
+      # check is at the publish rather than at the merge. A repository that
+      # gives each package its own version checks every package it is about
+      # to publish in its own ci/check-version-bump.ps1, with the same exit
+      # codes, because one version cannot speak for them all.
       - name: Refuse a version bump nobody asked for
         shell: pwsh
         env:
           ALLOW_VERSION_BUMP: ${{ inputs.allow-version-bump }}
         run: |
-          $OwnCheck = $env:OWN_CHECK -split ' '
-          if ('${{ inputs.repo-name }}' -in $OwnCheck -and (Test-Path ./${{ inputs.repo-name }}/ci/check-version-bump.ps1)) {
+          if (Test-Path ./${{ inputs.repo-name }}/ci/check-version-bump.ps1) {
             ./${{ inputs.repo-name }}/ci/check-version-bump.ps1 -RepoName '${{ inputs.repo-name }}' -Version '${{ steps.configure.outputs.version }}'
           } else {
             ./steps/check-version-bump.ps1 -Version '${{ steps.configure.outputs.version }}' -RepoName '${{ inputs.repo-name }}'
@@ -202,15 +127,14 @@ jobs:
         shell: pwsh
         env:
           ALLOW_EARLY_RELEASE: ${{ inputs.allow-early-release }}
-          GH_TOKEN: ${{ secrets.ACCESS_TOKEN || secrets.token }}
+          GH_TOKEN: ${{ secrets._51DEGREES_ACCESS_TOKEN }}
           REPO_NAME: ${{ inputs.repo-name }}
           REPOSITORY: ${{ inputs.org-name }}/${{ inputs.repo-name }}
           # The calling repository's variable, or the organisation's.
-          WEEKLY_RELEASES_FROM: ${{ vars.WEEKLY_RELEASES_FROM }}
+          _51DEGREES_WEEKLY_RELEASES_FROM: ${{ vars._51DEGREES_WEEKLY_RELEASES_FROM }}
         run: |
-          $OwnCheck = $env:OWN_CHECK -split ' '
           $HowToAllow = "run this repository's Publish workflow with allow-early-release set."
-          if ($env:REPO_NAME -in $OwnCheck -and (Test-Path "./$env:REPO_NAME/ci/check-release-interval.ps1")) {
+          if (Test-Path "./$env:REPO_NAME/ci/check-release-interval.ps1") {
             & "./$env:REPO_NAME/ci/check-release-interval.ps1" -RepoName $env:REPO_NAME -Repository $env:REPOSITORY -HowToAllow $HowToAllow
           } else {
             ./steps/check-release-interval.ps1 -RepoName $env:REPO_NAME -Repository $env:REPOSITORY -HowToAllow $HowToAllow
@@ -246,19 +170,24 @@ jobs:
           language: ${{ matrix.options.Language }}
           version: ${{ matrix.options.LanguageVersion }}
 
-      - name: PreBuild
+      # The _51DEGREES_ secrets, each under its own name, for the steps that
+      # follow. The secrets context is read here alone.
+      - name: Export secrets
         if: ${{ matrix.options.packagerequirement }}
         env:
           SECRETS: ${{ toJSON(secrets) }}
+        run: ./steps/set-resource-keys.ps1 -Secrets $env:SECRETS
+
+      - name: PreBuild
+        if: ${{ matrix.options.packagerequirement }}
         run: |
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
           $Options = $(ConvertFrom-Json -AsHashtable '${{ toJSON(matrix.options) }}')
-          $Options.Add("Keys", $(ConvertFrom-Json -AsHashtable $env:SECRETS))
           ./nightly-publish.prebuild.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ github.ref_name }} `
-          -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
+          -GitHubToken ${{ secrets._51DEGREES_ACCESS_TOKEN }} `
           -Options $Options `
           -GitHubUser ${{ inputs.user }} `
           -GitHubEmail ${{ inputs.email }} `
@@ -291,19 +220,23 @@ jobs:
           pattern: package_*
           path: ${{ github.workspace }}/package-files
 
-      - name: Build
+      # The _51DEGREES_ secrets, each under its own name, for the steps that
+      # follow. The secrets context is read here alone.
+      - name: Export secrets
         env:
           SECRETS: ${{ toJSON(secrets) }}
+        run: ./steps/set-resource-keys.ps1 -Secrets $env:SECRETS
+
+      - name: Build
         run: |
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
           $Options = @{}
-          $Options.Add("Keys", $(ConvertFrom-Json -AsHashtable $env:SECRETS))
           $Options.Add("Version", "${{ needs.configure.outputs.version }}")
           ./nightly-publish.build.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ github.ref_name }} `
-          -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
+          -GitHubToken ${{ secrets._51DEGREES_ACCESS_TOKEN }} `
           -Options $Options `
           -GitHubUser ${{ inputs.user }} `
           -GitHubEmail ${{ inputs.email }} `
@@ -360,11 +293,18 @@ jobs:
           path: assets
           enableCrossOsArchive: true
 
-      - name: Test
+      # The _51DEGREES_ secrets, each under its own name, for the steps that
+      # follow. The secrets context is read here alone.
+      - name: Export secrets
         if: ${{ success() && matrix.options.packagerequirement }}
         env:
           SECRETS: ${{ toJSON(secrets) }}
-          SKIP_WEB_PERFORMANCE: ${{ inputs.skip-web-performance }}
+        run: ./steps/set-resource-keys.ps1 -Secrets $env:SECRETS
+
+      - name: Test
+        if: ${{ success() && matrix.options.packagerequirement }}
+        env:
+
           # Through env rather than inline, so the branch name is never
           # parsed as PowerShell.
           EXAMPLES_BRANCH: ${{ inputs.examples-branch }}
@@ -378,12 +318,11 @@ jobs:
           {
             $Options["ExamplesBranch"] = $env:EXAMPLES_BRANCH
           }
-          $Options.Add("Keys", $(ConvertFrom-Json -AsHashtable $env:SECRETS))
           ./nightly-publish.test.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ github.ref_name }} `
-          -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
+          -GitHubToken ${{ secrets._51DEGREES_ACCESS_TOKEN }} `
           -Options $Options `
           -GitHubUser ${{ inputs.user }} `
           -GitHubEmail ${{ inputs.email }} `
@@ -434,7 +373,7 @@ jobs:
           -RepoName '${{ inputs.repo-name }}' `
           -OrgName '${{ inputs.org-name }}' `
           -Branch '${{ github.ref_name }}' `
-          -GitHubToken '${{ secrets.ACCESS_TOKEN || secrets.token }}' `
+          -GitHubToken '${{ secrets._51DEGREES_ACCESS_TOKEN }}' `
           -GitHubOutput $Env:GITHUB_OUTPUT `
           -Options (ConvertFrom-Json -AsHashtable '${{ needs.Configure.outputs.options }}') `
           -RunId '${{ github.run_id }}' `
@@ -488,20 +427,25 @@ jobs:
           name: package
           path: ${{ github.workspace }}/package
 
-      - name: Package
+      # The _51DEGREES_ secrets, each under its own name, for the steps that
+      # follow. The secrets context is read here alone.
+      - name: Export secrets
         if: ${{ success() }}
         env:
           SECRETS: ${{ toJSON(secrets) }}
+        run: ./steps/set-resource-keys.ps1 -Secrets $env:SECRETS
+
+      - name: Package
+        if: ${{ success() }}
         run: |
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
           $Options = @{}
-          $Options.Add("Keys", $(ConvertFrom-Json -AsHashtable $env:SECRETS))
           $Options.Add("Version", "${{ needs.configure.outputs.version }}")
           ./nightly-publish.package.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ github.ref_name }} `
-          -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
+          -GitHubToken ${{ secrets._51DEGREES_ACCESS_TOKEN }} `
           -Options $Options `
           -GitHubUser ${{ inputs.user }} `
           -GitHubEmail ${{ inputs.email }} `

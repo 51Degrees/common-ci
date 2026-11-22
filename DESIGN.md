@@ -60,7 +60,7 @@ Scripts should be written to support PowerShell 7.
 | `compare-performance.ps1` |
 | `configure-git.ps1` |
 | `download-data-file.ps1` |
-| `fetch-csv-assets.ps1` |
+
 | `fetch-hash-assets.ps1` |
 | `get-next-package-version.ps1` |
 | `gunzip-file.ps1` |
@@ -300,7 +300,7 @@ steps:
     working-directory: ${{ github.workspace }}/common/
     run: |
       . ${{ github.workspace }}/common/some-powershell-workflow.ps1 `
-      -GitHubToken ${{ secrets.token }} `
+      -GitHubToken ${{ secrets._51DEGREES_ACCESS_TOKEN }} `
       -RepoName ${{ inputs.repo-name }}
 ```
 
@@ -343,7 +343,7 @@ jobs:
         working-directory: ${{ github.workspace }}/common/
         run: |
           . ${{ github.workspace }}/common/some-powershell-workflow.ps1 `
-          -GitHubToken ${{ secrets.token }} `
+          -GitHubToken ${{ secrets._51DEGREES_ACCESS_TOKEN }} `
           -RepoName ${{ inputs.repo-name }} `
           -Options $(ConvertFrom-Json -AsHashtable '${{ toJSON(matrix.options) }}')
 ```

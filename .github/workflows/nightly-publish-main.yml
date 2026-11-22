@@ -33,73 +33,6 @@ on:
       skip-compare-performance:
         type: boolean
         default: false
-    secrets:
-      # PAT that we use to authenticate on behalf of GitHub Actions.
-      token:
-        required: false
-      AcceptCHBrowserKey:
-      AcceptCHHardwareKey:
-      AcceptCHNoneKey:
-      AcceptCHPlatformKey:
-      ApiKey:
-      CodeSigningKeyVaultName:
-      CodeSigningKeyVaultUrl:
-      CodeSigningKeyVaultClientId:
-      CodeSigningKeyVaultTenantId:
-      CodeSigningKeyVaultClientSecret:
-      CodeSigningKeyVaultCertificateName:
-      CodeSigningKeyVaultCertificateData:
-      StrongNameKeyBase64:
-      CsvUrl:
-      DeviceDetection:
-      DeviceDetectionUrl:
-      IpIntelligence:
-      IpIntelligenceUrl:
-      JavaGpgKeyPassphrase:
-      JavaPGP:
-      MavenSettings:
-      NPMAuthToken:
-      NginxCert:
-      NginxKey:
-      NginxJwtToken:
-      PypiToken:
-      ResourceKeyCloudV5Bespoke:
-      TestBrowserResourceKey:
-      TestHardwareResourceKey:
-      TestLicenseKey:
-      TestNoSetHeaderResourceKey:
-      TestPlatformResourceKey:
-      TestPypiToken:
-      TestResourceKey:
-      TestSuperResourceKey:
-      UsePublishTests:
-      WordpressSvnUrl:
-      WordpressSvnUser:
-      WordpressSvnPassword:
-      DockerPassword:
-      DockerContainer:
-      DockerRegistry:
-      DockerUser:
-      PearlLicense:
-      PearlHetznerS3AccessKeyId:
-      PearlHetznerS3SecretAccessKey:
-      PearlOvhEuS3AccessKeyId:
-      PearlOvhEuS3SecretAccessKey:
-      PearlOvhUsS3AccessKeyId:
-      PearlOvhUsS3SecretAccessKey:
-      PearlCollectorHetznerS3AccessKeyId:
-      PearlCollectorHetznerS3SecretAccessKey:
-      PearlCollectorOvhUk1S3AccessKeyId:
-      PearlCollectorOvhUk1S3SecretAccessKey:
-      PearlCollectorOvhUsEastVa1S3AccessKeyId:
-      PearlCollectorOvhUsEastVa1S3SecretAccessKey:
-      MaxioApiKeyUs:
-      MaxioApiKeyEu:
-      MaxioApiKeyUsSandbox:
-      MaxioApiKeyEuSandbox:
-      PearlTableauToken:
-      PearlFodCloudDatabaseKey:
-      PearlDeviceDataSubmissionsKey:
 
 defaults:
   run:
@@ -137,7 +70,7 @@ jobs:
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ github.ref_name }} `
-          -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
+          -GitHubToken ${{ secrets._51DEGREES_ACCESS_TOKEN }} `
           -GitHubOutput $Env:GITHUB_OUTPUT `
           -GitHubUser ${{ inputs.user }} `
           -GitHubEmail ${{ inputs.email }} `
@@ -173,19 +106,24 @@ jobs:
           language: ${{ matrix.options.Language }}
           version: ${{ matrix.options.LanguageVersion }}
 
-      - name: PreBuild
+      # The _51DEGREES_ secrets, each under its own name, for the steps that
+      # follow. The secrets context is read here alone.
+      - name: Export secrets
         if: ${{ matrix.options.packagerequirement }}
         env:
           SECRETS: ${{ toJSON(secrets) }}
+        run: ./steps/set-resource-keys.ps1 -Secrets $env:SECRETS
+
+      - name: PreBuild
+        if: ${{ matrix.options.packagerequirement }}
         run: |
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
           $Options = $(ConvertFrom-Json -AsHashtable '${{ toJSON(matrix.options) }}')
-          $Options.Add("Keys", $(ConvertFrom-Json -AsHashtable $env:SECRETS))
           ./nightly-publish.prebuild.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ github.ref_name }} `
-          -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
+          -GitHubToken ${{ secrets._51DEGREES_ACCESS_TOKEN }} `
           -Options $Options `
           -GitHubUser ${{ inputs.user }} `
           -GitHubEmail ${{ inputs.email }} `
@@ -218,19 +156,23 @@ jobs:
           pattern: package_*
           path: ${{ github.workspace }}/package-files
 
-      - name: Build
+      # The _51DEGREES_ secrets, each under its own name, for the steps that
+      # follow. The secrets context is read here alone.
+      - name: Export secrets
         env:
           SECRETS: ${{ toJSON(secrets) }}
+        run: ./steps/set-resource-keys.ps1 -Secrets $env:SECRETS
+
+      - name: Build
         run: |
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
           $Options = @{}
-          $Options.Add("Keys", $(ConvertFrom-Json -AsHashtable $env:SECRETS))
           $Options.Add("Version", "${{ needs.configure.outputs.version }}")
           ./nightly-publish.build.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ github.ref_name }} `
-          -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
+          -GitHubToken ${{ secrets._51DEGREES_ACCESS_TOKEN }} `
           -Options $Options `
           -GitHubUser ${{ inputs.user }} `
           -GitHubEmail ${{ inputs.email }} `
@@ -285,19 +227,25 @@ jobs:
           path: assets
           enableCrossOsArchive: true
 
-      - name: Test
+      # The _51DEGREES_ secrets, each under its own name, for the steps that
+      # follow. The secrets context is read here alone.
+      - name: Export secrets
         if: ${{ success() && matrix.options.packagerequirement }}
         env:
           SECRETS: ${{ toJSON(secrets) }}
+        run: ./steps/set-resource-keys.ps1 -Secrets $env:SECRETS
+
+      - name: Test
+        if: ${{ success() && matrix.options.packagerequirement }}
+        env:
         run: |
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
           $Options = $(ConvertFrom-Json -AsHashtable '${{ toJSON(matrix.options) }}')
-          $Options.Add("Keys", $(ConvertFrom-Json -AsHashtable $env:SECRETS))
           ./nightly-publish.test.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ github.ref_name }} `
-          -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
+          -GitHubToken ${{ secrets._51DEGREES_ACCESS_TOKEN }} `
           -Options $Options `
           -GitHubUser ${{ inputs.user }} `
           -GitHubEmail ${{ inputs.email }} `
@@ -348,7 +296,7 @@ jobs:
           -RepoName '${{ inputs.repo-name }}' `
           -OrgName '${{ inputs.org-name }}' `
           -Branch '${{ github.ref_name }}' `
-          -GitHubToken '${{ secrets.ACCESS_TOKEN || secrets.token }}' `
+          -GitHubToken '${{ secrets._51DEGREES_ACCESS_TOKEN }}' `
           -GitHubOutput $Env:GITHUB_OUTPUT `
           -Options (ConvertFrom-Json -AsHashtable '${{ needs.Configure.outputs.options }}') `
           -RunId '${{ github.run_id }}' `
@@ -401,20 +349,25 @@ jobs:
           name: package
           path: ${{ github.workspace }}/package
 
-      - name: Package
+      # The _51DEGREES_ secrets, each under its own name, for the steps that
+      # follow. The secrets context is read here alone.
+      - name: Export secrets
         if: ${{ success() }}
         env:
           SECRETS: ${{ toJSON(secrets) }}
+        run: ./steps/set-resource-keys.ps1 -Secrets $env:SECRETS
+
+      - name: Package
+        if: ${{ success() }}
         run: |
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
           $Options = @{}
-          $Options.Add("Keys", $(ConvertFrom-Json -AsHashtable $env:SECRETS))
           $Options.Add("Version", "${{ needs.configure.outputs.version }}")
           ./nightly-publish.package.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ github.ref_name }} `
-          -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
+          -GitHubToken ${{ secrets._51DEGREES_ACCESS_TOKEN }} `
           -Options $Options `
           -GitHubUser ${{ inputs.user }} `
           -GitHubEmail ${{ inputs.email }} `

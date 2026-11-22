@@ -354,13 +354,19 @@ To run these PowerShell scripts, either locally, or in a CI/CD pipeline, the fol
 
 # Secrets
 
-CI workflows that need secrets accept a [superset of all possible secrets](https://github.com/51Degrees/common-ci/blob/2badf94c075c4a73b188d6647fcd88df69ca8ce1/.github/workflows/nightly-pr-to-main.yml#L38-L64). During workflow execution non-null secrets get [combined into a JSON string](https://github.com/51Degrees/common-ci/blob/2badf94c075c4a73b188d6647fcd88df69ca8ce1/.github/workflows/nightly-pr-to-main.yml#L145), and [parsed as a PowerShell object](https://github.com/51Degrees/common-ci/blob/2badf94c075c4a73b188d6647fcd88df69ca8ce1/.github/workflows/nightly-pr-to-main.yml#L149), which is then passed to all build scripts that require secrets.
+Every secret the workflows read is an organization secret named `_51DEGREES_<NAME>`. A calling workflow passes `secrets: inherit`, and the reusable workflows declare no secret of their own.
 
-This flow modifies the old one, where the JSON string was passed in by the caller directly as a single secret. The rationale for the new flow is making sure that in case secrets leak to CI logs, they get hidden by GitHub (replaced with `***`). This was not possible when all secrets were passed as a single JSON string - GitHub has to know about every single secret to be able to hide them.
+In each job that builds, tests or publishes, one step, [steps/set-resource-keys.ps1](steps/set-resource-keys.ps1), exports every secret whose name starts with `_51DEGREES_` into the environment under its own name, so the scripts and tests that follow read each by that name. Nothing is renamed or filled from another name, and this repository keeps no list of names: a new organization secret with a `_51DEGREES_` name reaches every job with no change here. The secrets context is read in that step alone.
+
+A publishing or signing secret is `_51DEGREES_` followed by its name, such as `_51DEGREES_NUGET_API_KEY`, and the script that publishes or signs reads it at the point of use. The automation token is `_51DEGREES_ACCESS_TOKEN`, which the workflows pass to the scripts that need it.
+
+A name that a tool defines, such as `GITHUB_TOKEN` or twine's `TWINE_PASSWORD`, is set at the point of use straight from the `_51DEGREES_` secret.
+
+The export step writes only names to the log.
 
 # Environment variable names
 
-[environment-variables.md](environment-variables.md) lists every environment variable name that 51Degrees packages, tests, examples and CI scripts read, in every language, with what each holds, the test and example that use it, the organization secret CI sets it from, and the deprecated names each replaced. Every language reads every current name. It is made from [environment-variables.json](environment-variables.json) by [steps/environment-variables.ps1](steps/environment-variables.ps1). The JSON file decides, so each language repository refers to it rather than keeping a list of its own.
+The names every language reads are a shared contract that lives in the specifications repository. Each language repository documents the names only it reads.
 
 # Reusable actions
 

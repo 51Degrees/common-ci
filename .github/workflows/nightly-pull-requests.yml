@@ -53,39 +53,6 @@ on:
         description: 'When no pull request is eligible, build the branch itself on every entry'
         type: boolean
         default: true
-    secrets:
-      token:
-        required: false
-      AcceptCHBrowserKey:
-      AcceptCHHardwareKey:
-      AcceptCHNoneKey:
-      AcceptCHPlatformKey:
-      ApiKey:
-      CsvUrl:
-      DeviceDetection:
-      DeviceDetectionUrl:
-      IpIntelligence:
-      IpIntelligenceUrl:
-      JavaGpgKeyPassphrase:
-      JavaPGP:
-      MavenSettings:
-      NPMAuthToken:
-      NginxCert:
-      NginxKey:
-      NginxJwtToken:
-      PypiToken:
-      ResourceKeyCloudV5Bespoke:
-      StrongNameKeyBase64:
-      TestBrowserResourceKey:
-      TestHardwareResourceKey:
-      TestLicenseKey:
-      TestNoSetHeaderResourceKey:
-      TestPlatformResourceKey:
-      TestPypiToken:
-      TestResourceKey:
-      TestSuperResourceKey:
-      UsePublishTests:
-      PearlLicense:
 
 defaults:
   run:
@@ -118,7 +85,7 @@ jobs:
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ inputs.branch != '' && inputs.branch || github.ref_name }} `
-          -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
+          -GitHubToken ${{ secrets._51DEGREES_ACCESS_TOKEN }} `
           -GitHubOutput $Env:GITHUB_OUTPUT `
           -BuildWithoutPullRequests $BuildWithoutPullRequests
     outputs:

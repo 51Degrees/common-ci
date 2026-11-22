@@ -58,7 +58,7 @@ BeforeEach {
     $global:Releases = @()
     $global:GhCalls = @()
     # The rule applies unless a test says otherwise.
-    $env:WEEKLY_RELEASES_FROM = '2026-01-01'
+    $env:_51DEGREES_WEEKLY_RELEASES_FROM = '2026-01-01'
 }
 
 AfterEach {
@@ -67,24 +67,24 @@ AfterEach {
     }
     $script:Repo = $null
     $env:ALLOW_EARLY_RELEASE = $null
-    $env:WEEKLY_RELEASES_FROM = $null
+    $env:_51DEGREES_WEEKLY_RELEASES_FROM = $null
 }
 
-Describe 'with the date the rule starts from in WEEKLY_RELEASES_FROM' {
+Describe 'with the date the rule starts from in _51DEGREES_WEEKLY_RELEASES_FROM' {
     # Each release here comes two days after the last, which the rule refuses.
 
     It 'reports and passes when the variable is not set' {
-        $env:WEEKLY_RELEASES_FROM = $null
+        $env:_51DEGREES_WEEKLY_RELEASES_FROM = $null
         $result = Invoke-Check @{
             LastRelease = '2026-11-04T09:00:00Z'; Now = '2026-11-06T09:00:00Z' }
         $result.ExitCode | Should -Be 0
         $result.Output | Should -Match 'Weekly release rule not enforced'
         $result.Output | Should -Match 'would be refused'
-        $result.Output | Should -Match 'WEEKLY_RELEASES_FROM is not set'
+        $result.Output | Should -Match '_51DEGREES_WEEKLY_RELEASES_FROM is not set'
     }
 
     It 'reports and passes before a date still ahead' {
-        $env:WEEKLY_RELEASES_FROM = '2026-11-10'
+        $env:_51DEGREES_WEEKLY_RELEASES_FROM = '2026-11-10'
         $result = Invoke-Check @{
             LastRelease = '2026-11-04T09:00:00Z'; Now = '2026-11-06T09:00:00Z' }
         $result.ExitCode | Should -Be 0
@@ -92,7 +92,7 @@ Describe 'with the date the rule starts from in WEEKLY_RELEASES_FROM' {
     }
 
     It 'refuses from a date already past' {
-        $env:WEEKLY_RELEASES_FROM = '2026-11-03'
+        $env:_51DEGREES_WEEKLY_RELEASES_FROM = '2026-11-03'
         $result = Invoke-Check @{
             LastRelease = '2026-11-04T09:00:00Z'; Now = '2026-11-06T09:00:00Z' }
         $result.ExitCode | Should -Be 1
@@ -100,16 +100,16 @@ Describe 'with the date the rule starts from in WEEKLY_RELEASES_FROM' {
     }
 
     It 'refuses on the date itself' {
-        $env:WEEKLY_RELEASES_FROM = '2026-11-06'
+        $env:_51DEGREES_WEEKLY_RELEASES_FROM = '2026-11-06'
         (Invoke-Check @{
             LastRelease = '2026-11-04T09:00:00Z'; Now = '2026-11-06T09:00:00Z' }
         ).ExitCode | Should -Be 1
     }
 
     It 'stops on a value it cannot read, naming the variable' {
-        $env:WEEKLY_RELEASES_FROM = 'soon'
+        $env:_51DEGREES_WEEKLY_RELEASES_FROM = 'soon'
         { & $script:Check -LastRelease '2026-11-04T09:00:00Z' -Now '2026-11-06T09:00:00Z' } |
-            Should -Throw "*WEEKLY_RELEASES_FROM is 'soon'*"
+            Should -Throw "*_51DEGREES_WEEKLY_RELEASES_FROM is 'soon'*"
     }
 }
 

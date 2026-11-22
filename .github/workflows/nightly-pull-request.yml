@@ -55,39 +55,6 @@ on:
         description: 'Build every entry in ci/options.json, even where ci/select-options.ps1 would choose fewer'
         type: boolean
         default: false
-    secrets:
-      token:
-        required: false
-      AcceptCHBrowserKey:
-      AcceptCHHardwareKey:
-      AcceptCHNoneKey:
-      AcceptCHPlatformKey:
-      ApiKey:
-      CsvUrl:
-      DeviceDetection:
-      DeviceDetectionUrl:
-      IpIntelligence:
-      IpIntelligenceUrl:
-      JavaGpgKeyPassphrase:
-      JavaPGP:
-      MavenSettings:
-      NPMAuthToken:
-      NginxCert:
-      NginxKey:
-      NginxJwtToken:
-      PypiToken:
-      ResourceKeyCloudV5Bespoke:
-      StrongNameKeyBase64:
-      TestBrowserResourceKey:
-      TestHardwareResourceKey:
-      TestLicenseKey:
-      TestNoSetHeaderResourceKey:
-      TestPlatformResourceKey:
-      TestPypiToken:
-      TestResourceKey:
-      TestSuperResourceKey:
-      UsePublishTests:
-      Pearl.License:
 
 defaults:
   run:
@@ -116,7 +83,7 @@ jobs:
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ inputs.branch != '' && inputs.branch || github.ref_name }} `
-          -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
+          -GitHubToken ${{ secrets._51DEGREES_ACCESS_TOKEN }} `
           -GitHubOutput $Env:GITHUB_OUTPUT `
           -PullRequestId ${{ inputs.pull-request-id }} `
           -GitHubUser ${{ inputs.user }} `
@@ -164,10 +131,16 @@ jobs:
           path: assets
           enableCrossOsArchive: true
 
+      # The _51DEGREES_ secrets, each under its own name, for the steps that
+      # follow. The secrets context is read here alone.
+      - name: Export secrets
+        env:
+          SECRETS: ${{ toJSON(secrets) }}
+        run: ./steps/set-resource-keys.ps1 -Secrets $env:SECRETS
+
       - name: Build and Test
         id: build-and-test
         env:
-          SECRETS: ${{ toJSON(secrets) }}
           # Through env rather than inline, so the branch name is never
           # parsed as PowerShell.
           EXAMPLES_BRANCH: ${{ inputs.examples-branch }}
@@ -181,13 +154,12 @@ jobs:
           {
             $Options["ExamplesBranch"] = $env:EXAMPLES_BRANCH
           }
-          $Options.Add("Keys", $(ConvertFrom-Json -AsHashtable $env:SECRETS))
           $SkipLiteTests = [bool]::Parse("${{ inputs.skip-lite-tests }}")
           ./nightly-pull-request.build-and-test.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ inputs.branch != '' && inputs.branch || github.ref_name }} `
-          -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
+          -GitHubToken ${{ secrets._51DEGREES_ACCESS_TOKEN }} `
           -GitHubOutput $Env:GITHUB_OUTPUT `
           -PullRequestId ${{ inputs.pull-request-id }} `
           -Options $Options `
@@ -256,7 +228,7 @@ jobs:
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ inputs.performance-branch != '' && inputs.performance-branch || (inputs.branch != '' && inputs.branch || github.ref_name) }} `
-          -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
+          -GitHubToken ${{ secrets._51DEGREES_ACCESS_TOKEN }} `
           -GitHubOutput $Env:GITHUB_OUTPUT `
           -Options $Options `
           -RunId ${{ github.run_id }} `
@@ -300,7 +272,7 @@ jobs:
           ./nightly-pull-request.complete.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
-          -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
+          -GitHubToken ${{ secrets._51DEGREES_ACCESS_TOKEN }} `
           -PullRequestId ${{ inputs.pull-request-id }} `
           -Branch ${{ inputs.branch != '' && inputs.branch || github.ref_name }} `
           -DryRun $DryRun

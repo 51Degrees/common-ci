@@ -40,12 +40,12 @@ BeforeEach {
     $global:Closed = @()
     $global:GhCalls = @()
     # The rule applies unless a test says otherwise.
-    $env:WEEKLY_RELEASES_FROM = '2026-01-01'
+    $env:_51DEGREES_WEEKLY_RELEASES_FROM = '2026-01-01'
 }
 
 AfterEach {
     $env:ALLOW_EARLY_RELEASE = $null
-    $env:WEEKLY_RELEASES_FROM = $null
+    $env:_51DEGREES_WEEKLY_RELEASES_FROM = $null
 }
 
 It 'passes the first release from rc' {

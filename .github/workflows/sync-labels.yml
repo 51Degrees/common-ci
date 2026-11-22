@@ -31,4 +31,4 @@ jobs:
               51Degrees/common-ci
               51Degrees/data-file-tool
               51Degrees/pipeline-specification
-          token: ${{ secrets.LABEL_SYNC_TOKEN }}
+          token: ${{ secrets._51DEGREES_LABEL_SYNC_TOKEN }}
