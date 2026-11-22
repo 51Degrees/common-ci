@@ -43,6 +43,5 @@ if ($global:SkipUpdateTag) { # Using a global here so that it can be set by publ
   Write-Host "Tag update skipped"
 } else {
   ./steps/update-tag.ps1 -RepoName $RepoName -OrgName $OrgName -Tag $Options.Version -DryRun $DryRun
-  ./steps/upload-release-assets.ps1 -RepoName $RepoName -OrgName $OrgName -Tag $Options.Version -DryRun $DryRun
 }
 Write-Host "::endgroup::"
