@@ -7,9 +7,11 @@
 BeforeAll {
     $script:Check = Join-Path $PSScriptRoot 'package-update-required.ps1'
 
-    # A repository with a source file and a README, tagged 4.5.0, then one
-    # commit for each group of files given, each file written with new text.
-    function New-ReleasedRepo ([string[][]]$Commits, [switch]$NoTag) {
+    # A repository with a source file and a README, tagged 4.5.0 or $Tag, then
+    # one commit for each group of files given, each file written with new
+    # text.
+    function New-ReleasedRepo ([string[][]]$Commits, [switch]$NoTag,
+            [string]$Tag = '4.5.0') {
         $path = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
         git init --quiet $path
         Set-Content -Path (Join-Path $path 'engine.c') -Value 'int x;'
@@ -18,19 +20,24 @@ BeforeAll {
         git -C $path -c user.name=test -c user.email=test@example.com `
             commit --quiet -m 'Release'
         if (-not $NoTag) {
-            git -C $path tag 4.5.0
+            git -C $path tag $Tag
         }
         foreach ($files in $Commits) {
-            foreach ($file in $files) {
-                $full = Join-Path $path $file
-                New-Item -ItemType Directory -Force (Split-Path $full) | Out-Null
-                Set-Content -Path $full -Value ([Guid]::NewGuid().ToString())
-            }
-            git -C $path add --all
-            git -C $path -c user.name=test -c user.email=test@example.com `
-                commit --quiet -m 'Change'
+            Add-Change $path $files
         }
         return $path
+    }
+
+    # Commits the files given, each written with new text.
+    function Add-Change ([string]$Path, [string[]]$Files) {
+        foreach ($file in $Files) {
+            $full = Join-Path $Path $file
+            New-Item -ItemType Directory -Force (Split-Path $full) | Out-Null
+            Set-Content -Path $full -Value ([Guid]::NewGuid().ToString())
+        }
+        git -C $Path add --all
+        git -C $Path -c user.name=test -c user.email=test@example.com `
+            commit --quiet -m 'Change'
     }
 
     # Runs the check and returns its exit code and output together.
@@ -116,5 +123,26 @@ Describe 'package-update-required.ps1' {
     It 'publishes from a repository with no release tag, as before' {
         $script:Repo = New-ReleasedRepo @(, @('README.md')) -NoTag
         (Invoke-Check $script:Repo '4.5.1').ExitCode | Should -Be 0
+    }
+
+    It 'publishes from a repository whose only tag is a pre-release' {
+        # A pre-release is not a release, so there is nothing to compare with.
+        $script:Repo = New-ReleasedRepo @(, @('README.md')) -Tag '4.5.0-alpha.1'
+        (Invoke-Check $script:Repo '4.5.1').ExitCode | Should -Be 0
+    }
+
+    It 'compares with the last release, not a later tag that is not one' {
+        $script:Repo = New-ReleasedRepo @(, @('engine.c'))
+        git -C $script:Repo tag '4.5.1-alpha.1'
+        git -C $script:Repo tag 'zig'
+        Add-Change $script:Repo @('README.md')
+        (Invoke-Check $script:Repo '4.5.1').ExitCode | Should -Be 0
+    }
+
+    It 'compares with a package''s release tag' {
+        $script:Repo = New-ReleasedRepo @(, @('README.md')) -Tag 'pipeline/4.5.0'
+        $result = Invoke-Check $script:Repo '4.5.1'
+        $result.ExitCode | Should -Be 1
+        $result.Output | Should -Match 'changed since pipeline/4\.5\.0'
     }
 }

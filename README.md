@@ -283,6 +283,16 @@ All tests associated with the repository are run only at this point to avoid rep
 
 Pull Requests can only be initiated by a project Contributor, Administrator, or GitHub actions.
 
+A repository can build each pull request on only the entries of `ci/options.json` its changes need, by adding `ci/select-options.ps1`, as [Select Options](./REPO_SCRIPTS.md#select-options) describes. Without that script every entry is built. [`release-pull-request.yml`](.github/workflows/release-pull-request.yml) builds the release pull request from `rc` into the default branch on every entry, as a dry run that merges nothing, so everything a release carries is built and tested in full before it reaches the default branch.
+
+These inputs of `nightly-pull-requests.yml` keep the behaviour described above unless a repository changes them.
+
+| Input | Default | Effect |
+| --- | --- | --- |
+| `fail-fast` | `true` | When one configuration of a pull request fails, the others are cancelled. With `false` they finish, so "Re-run failed jobs" repeats only the one that failed. |
+| `full-matrix` | `false` | Builds every entry, even where `ci/select-options.ps1` would choose fewer. |
+| `build-without-pull-requests` | `true` | When no pull request is eligible, builds the branch itself on every entry. A run started by hand can set it to `false` and leave that build to the nightly. |
+
 ### Nightly Package
 
 **This job should only be run once all the other nightly jobs have completed.**
@@ -340,13 +350,17 @@ To run these PowerShell scripts, either locally, or in a CI/CD pipeline, the fol
 - [Git CLI](https://git-scm.com/downloads)
 - [Hub CLI](https://hub.github.com/)
 - `GITHUB_TOKEN` environment variable (this is automatically set if using GitHub actions)
-- Some repositories require a cloud resource key. This can be obtained on the [Configurator](https://configure.51degrees.com)
+- Some repositories require a cloud resource key. This can be obtained on the [configuration page](https://51degrees.com/configure)
 
 # Secrets
 
 CI workflows that need secrets accept a [superset of all possible secrets](https://github.com/51Degrees/common-ci/blob/2badf94c075c4a73b188d6647fcd88df69ca8ce1/.github/workflows/nightly-pr-to-main.yml#L38-L64). During workflow execution non-null secrets get [combined into a JSON string](https://github.com/51Degrees/common-ci/blob/2badf94c075c4a73b188d6647fcd88df69ca8ce1/.github/workflows/nightly-pr-to-main.yml#L145), and [parsed as a PowerShell object](https://github.com/51Degrees/common-ci/blob/2badf94c075c4a73b188d6647fcd88df69ca8ce1/.github/workflows/nightly-pr-to-main.yml#L149), which is then passed to all build scripts that require secrets.
 
 This flow modifies the old one, where the JSON string was passed in by the caller directly as a single secret. The rationale for the new flow is making sure that in case secrets leak to CI logs, they get hidden by GitHub (replaced with `***`). This was not possible when all secrets were passed as a single JSON string - GitHub has to know about every single secret to be able to hide them.
+
+# Environment variable names
+
+[environment-variables.md](environment-variables.md) lists every environment variable name that 51Degrees packages, tests, examples and CI scripts read, in every language, with what each holds, the test and example that use it, the organization secret CI sets it from, and the deprecated names each replaced. Every language reads every current name. It is made from [environment-variables.json](environment-variables.json) by [steps/environment-variables.ps1](steps/environment-variables.ps1). The JSON file decides, so each language repository refers to it rather than keeping a list of its own.
 
 # Reusable actions
 

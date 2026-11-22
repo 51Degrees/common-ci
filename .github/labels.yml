@@ -91,6 +91,11 @@
   description: This item has been scheduled for 2nd Feb 2022 release
   color: 6ff076
 
+# Release labels
+- name: "early-release"
+  description: Allows a release less than a week after the last
+  color: d93f0b
+
 # Area labels
 - name: "device-detection"
   description: Device Detection
