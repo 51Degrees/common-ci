@@ -35,7 +35,7 @@ Please note: on Linux distributions, the versions of glibc and libstdc++ (GLIBCX
 
 # Design
 
-When implementing changes, see the [Design Document](/DESIGN.md) for detailed descriptions of how each part works.
+When implementing changes, see the [Design Document](/DESIGN.md) for detailed descriptions of how each part works. Every change follows its [Rules](/DESIGN.md#rules).
 
 # Contributing
 

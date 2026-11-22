@@ -2,6 +2,31 @@
 
 This document lays out the overall design of continuous integration in this repository.
 
+## Rules
+
+Every change to this repository, and to the CI of a repository that calls it, follows these rules. A change that breaks one isn't merged.
+
+1. **Name every variable and secret `_51DEGREES_<NAME>`.** This covers anything our code, CI, tests, examples or publishing reads, including publishing, signing and automation secrets. Use no other name, no alias, and never fill one name from another. Where GitHub, an operating system or a third-party tool defines a name, such as `GITHUB_TOKEN` or `NODE_AUTH_TOKEN`, set it where it's used, straight from the `_51DEGREES_` secret.
+   Why: wherever a name appears, it's clear it belongs to 51Degrees.
+2. **Add a name only when no existing one holds that thing, and keep one thing in each.** A setting only one repository uses lives in that repository's own files, not in a variable.
+   Why: fewer names are easier to set, check and keep right.
+3. **Give each job only the secrets it uses.** Publishing and signing secrets reach only the job that publishes or signs, never a build or test job.
+   Why: a mistake or a bad dependency in one job can't reach secrets it never had.
+4. **Never run code from a fork with our secrets or paid data.** A contributor's change runs with them only after a 51Degrees member pushes that exact commit to a branch in our repository. Anyone can still fork and offer changes, and [CONTRIBUTING.md](./CONTRIBUTING.md) says how to test with your own keys in your own fork.
+   Why: anyone can open a pull request from a fork, including someone who wants our secrets.
+5. **Keep paid data readable only in our own runs.** A cache a fork could restore holds paid data files only encrypted, with the key in a `_51DEGREES_` secret, and no cache key is made from a secret value. Free data files may be cached as they are. Fix a leak at its cause, not with a clean-up that the next run undoes.
+   Why: paid data is what customers pay for.
+6. **Keep this repository neutral about who calls it.** It holds code shared by several repositories, including a language's scripts that several repositories of that language use. Code for one calling repository lives in that repository. The list of names every language reads lives in the [specifications](https://github.com/51Degrees/specifications) repository.
+   Why: a shared repository that knows its callers has to change every time one of them does.
+7. **Give a name a customer sets no organization secret.** For a name such as `_51DEGREES_RESOURCE_KEY`, the example's own test, in the language's repository, sets it to each key it checks.
+   Why: the example has to behave the same with whatever key a customer gives it.
+8. **Write evidence as YAML only.**
+   Why: one format means one reader, and one place to fix.
+9. **Keep only current names in a repository.** An old or deprecated name belongs in the pull request text, the commit messages and, where useful, an issue, never in the files.
+   Why: what's in the repository should show how it works now.
+10. **Name each workflow for what it does and how often it runs, and keep it simple.** For example, the copyright update runs yearly, on 1 January. A secret moves to a new name through a one-off copy workflow that prints nothing.
+    Why: a true name tells you what to expect without opening the file.
+
 ## Structure
 
 ### Workflows

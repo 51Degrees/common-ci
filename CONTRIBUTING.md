@@ -151,7 +151,7 @@ If the PR aims to resolve an open issue, the issue should be linked and closed u
 
 # Build Process
 
-The build, test, and publish process is all automated. For details of this, see [common-ci](https://github.com/51degrees/common-ci).
+The build, test, and publish process is all automated. For details of this, see [common-ci](https://github.com/51degrees/common-ci). A change to CI, in common-ci or in a repository that calls it, follows the [CI rules](https://github.com/51Degrees/common-ci/blob/main/DESIGN.md#rules).
 
 Once a PR has been tested, it is merged into `rc`, where it waits for the next release. When the release pull request merges `rc` into `main`, a release is created on GitHub, and any packages are built and published to the appropriate package manager.
 
