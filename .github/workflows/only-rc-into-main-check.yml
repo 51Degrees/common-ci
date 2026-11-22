@@ -6,4 +6,8 @@ on:
 jobs:
   rc:
     name: Only rc into main
+    # The shared check reads the pull request and its labels.
+    permissions:
+      contents: read
+      pull-requests: read
     uses: ./.github/workflows/only-rc-into-main.yml
