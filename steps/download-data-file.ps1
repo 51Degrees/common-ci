@@ -1,18 +1,18 @@
 param (
     [Parameter(Mandatory)][string]$FullFilePath,
-    [string]$Url,
-    [string]$LicenseKey,
-    [string]$DataType,
-    [string]$Product
+    [Parameter(Mandatory)][string]$DataType,
+    [Parameter(Mandatory)][string]$Product
 )
 $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
 
-if (!$Url -and (!$LicenseKey -or !$DataType -or !$Product)) {
-    Write-Error "Either full Url or LicenseKey+DataType+Product must be provided"
+# Data files come from the Distributor with the data license key, which the
+# shared workflows export as _51DEGREES_LICENSE_KEY.
+if ([string]::IsNullOrWhiteSpace($env:_51DEGREES_LICENSE_KEY)) {
+    throw "'$FullFilePath' needs the data license key, and _51DEGREES_LICENSE_KEY is not set. It is an organization secret, which the calling workflow passes with 'secrets: inherit'."
 }
 
-$Url = $Url ? $Url : "https://distributor.51degrees.com/api/v2/download?LicenseKeys=$LicenseKey&Type=$DataType&Download=True&Product=$Product"
+$Url = "https://distributor.51degrees.com/api/v2/download?LicenseKeys=$env:_51DEGREES_LICENSE_KEY&Type=$DataType&Download=True&Product=$Product"
 # Same rationale as the flags in fetch-assets.ps1, with two differences: these
 # files are several GB, so there is no --max-time (any ceiling loose enough for
 # a slow runner would never fire), and -C - resumes a retry from where the last

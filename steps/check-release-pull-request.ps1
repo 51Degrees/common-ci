@@ -38,8 +38,8 @@ $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
 
 $labels = @(gh api "repos/$Repository/pulls/$PullRequest" --jq '.labels[].name')
-$env:ALLOW_EARLY_RELEASE = ($labels -contains $Label) ? 'true' : 'false'
-if ($env:ALLOW_EARLY_RELEASE -eq 'true') {
+$env:_51DEGREES_ALLOW_EARLY_RELEASE = ($labels -contains $Label) ? 'true' : 'false'
+if ($env:_51DEGREES_ALLOW_EARLY_RELEASE -eq 'true') {
     Write-Output "The label '$Label' is on pull request #$PullRequest."
 }
 

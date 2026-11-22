@@ -2,9 +2,7 @@ param (
     [Parameter(Mandatory=$true)]
     [string]$RepoName,
     [Parameter(Mandatory=$true)]
-    [string[]]$Packages,
-    [Parameter(Mandatory=$true)]
-    [hashtable]$Keys
+    [string[]]$Packages
 )
 
 $commonTestResults = New-Item -ItemType directory -Path $RepoName/test-results/integration -Force

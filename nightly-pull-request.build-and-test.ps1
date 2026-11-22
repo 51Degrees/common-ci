@@ -1,7 +1,6 @@
 param (
     [Parameter(Mandatory)][string]$RepoName,
     [Parameter(Mandatory)][string]$OrgName,
-    [Parameter(Mandatory)][string]$GitHubToken,
     [Parameter(Mandatory)][string]$GitHubOutput,
     [Parameter(Mandatory)][string]$PullRequestId,
     [Parameter(Mandatory)][hashtable]$Options,
@@ -14,14 +13,9 @@ param (
 $ErrorActionPreference = "Stop"
 
 $Options += $PSBoundParameters # Add RepoName, DryRun etc.
-if ($Options.Keys) {
-    # Publishing and setup secrets under the names the scripts ask for.
-    ./steps/publishing-secret-names.ps1 -Keys $Options.Keys
-    $Options += $Options.Keys # Expand keys into options
-}
 
 Write-Host "::group::Configure Git"
-./steps/configure-git.ps1 -GitHubToken $GitHubToken -GitHubUser $GitHubUser -GitHubEmail $GitHubEmail
+./steps/configure-git.ps1 -GitHubUser $GitHubUser -GitHubEmail $GitHubEmail
 Write-Host "::endgroup::"
 
 # On Windows, map the workspace to a short drive letter to avoid MAX_PATH (260 char)
@@ -42,12 +36,6 @@ Write-Host "::group::Checkout PR"
 "pr-sha=$PullRequestSha" | Out-File $GitHubOutput -Append
 Write-Host "::endgroup::"
 
-# The keys go into the environment under their agreed _51DEGREES_ names
-# before anything of the repository's runs, so that its own CI, its assets
-# and its setup can read them.
-Write-Host "::group::Set Resource Keys"
-./steps/set-resource-keys.ps1 -Keys $Options.Keys
-Write-Host "::endgroup::"
 
 if ($Options.CI) {
     & "./$RepoName/$($Options.CI)/build-and-test.ps1" @Options

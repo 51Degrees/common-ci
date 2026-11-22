@@ -40,12 +40,12 @@ BeforeEach {
     $global:Closed = @()
     $global:GhCalls = @()
     # The rule applies unless a test says otherwise.
-    $env:WEEKLY_RELEASES_FROM = '2026-01-01'
+    $env:_51DEGREES_WEEKLY_RELEASES_FROM = '2026-01-01'
 }
 
 AfterEach {
-    $env:ALLOW_EARLY_RELEASE = $null
-    $env:WEEKLY_RELEASES_FROM = $null
+    $env:_51DEGREES_ALLOW_EARLY_RELEASE = $null
+    $env:_51DEGREES_WEEKLY_RELEASES_FROM = $null
 }
 
 It 'passes the first release from rc' {
@@ -73,9 +73,9 @@ It 'allows an early release when the label is on the pull request' {
     $result.Output | Should -Match "The label 'early-release' is on pull request #100"
 }
 
-It 'is not allowed early by ALLOW_EARLY_RELEASE alone' {
+It 'is not allowed early by _51DEGREES_ALLOW_EARLY_RELEASE alone' {
     # Only the label allows it, so who allowed it is on the pull request.
-    $env:ALLOW_EARLY_RELEASE = 'true'
+    $env:_51DEGREES_ALLOW_EARLY_RELEASE = 'true'
     $global:Closed = @(@{ Number = 95; MergedAt = '2026-11-02T19:30:25Z' })
     (Invoke-Check '2026-11-04T10:00:00Z').ExitCode | Should -Be 1
 }

@@ -6,22 +6,6 @@ inputs:
     required: false
   lazy: # don't actually fetch if the files are cached
     required: false
-  # The licence key for the data files, which come from the Distributor:
-  # pass secrets._51DEGREES_LICENSE_KEY. Without it, the step fails naming
-  # _51DEGREES_LICENSE_KEY for the first asset that needs a licence.
-  license-key:
-    required: false
-  # The old keys and addresses, which a caller not yet moved to license-key
-  # still passes. Each is read only when license-key is not given, and then
-  # as it was before, so that caller keeps working until it moves.
-  device-detection-key:
-    required: false
-  device-detection-url:
-    required: false
-  ip-intelligence-key:
-    required: false
-  ip-intelligence-url:
-    required: false
 runs:
   using: "composite"
   steps:
@@ -30,10 +14,10 @@ runs:
       if: ${{ inputs.cache == 'true' }}
       shell: pwsh
       env:
-        inputs: ${{ toJSON(inputs) }}
+        _51DEGREES_INPUTS: ${{ toJSON(inputs) }}
       run: |
         $sha1 = [Security.Cryptography.SHA1Managed]::new()
-        $key = ($env:inputs | ConvertFrom-Json -AsHashtable).GetEnumerator().Where({$_.Key -ne 'lazy' -and $_.Value}).ForEach({$_.Value}) | Sort-Object | Join-String -Separator `n
+        $key = ($env:_51DEGREES_INPUTS | ConvertFrom-Json -AsHashtable).GetEnumerator().Where({$_.Key -ne 'lazy' -and $_.Value}).ForEach({$_.Value}) | Sort-Object | Join-String -Separator `n
         $hash = [Convert]::ToHexString($sha1.ComputeHash([Text.Encoding]::Utf8.GetBytes($key)))
         "key=$(Get-Date -Format FileDate)-$hash" >> $env:GITHUB_OUTPUT
 
@@ -47,22 +31,16 @@ runs:
         enableCrossOsArchive: true
         lookup-only: ${{ inputs.lazy == 'true' }}
 
+    # The licensed files come from the Distributor with _51DEGREES_LICENSE_KEY,
+    # which the calling job sets in its environment from the secret of that
+    # name.
     - name: Fetch assets
       if: ${{ !inputs.lazy || steps.cache-restore.outputs.cache-hit != 'true' }}
       shell: pwsh
       env:
-        assets: ${{ inputs.assets }}
-        _51DEGREES_LICENSE_KEY: ${{ inputs.license-key }}
-        device_detection_key: ${{ inputs.device-detection-key }}
-        device_detection_url: ${{ inputs.device-detection-url }}
-        ip_intelligence_key: ${{ inputs.ip-intelligence-key }}
-        ip_intelligence_url: ${{ inputs.ip-intelligence-url }}
+        _51DEGREES_ASSETS: ${{ inputs.assets }}
       run: |
-        & "${{ github.action_path }}/../../steps/fetch-assets.ps1" -Assets ($env:assets.Trim() -split "`n") `
-            -DeviceDetection:$env:device_detection_key `
-            -DeviceDetectionUrl:$env:device_detection_url `
-            -IpIntelligence:$env:ip_intelligence_key `
-            -IpIntelligenceUrl:$env:ip_intelligence_url
+        & "${{ github.action_path }}/../../steps/fetch-assets.ps1" -Assets ($env:_51DEGREES_ASSETS.Trim() -split "`n")
 
     - name: Save cache
       if: ${{ inputs.cache == 'true' && steps.cache-restore.outputs.cache-hit != 'true' }}

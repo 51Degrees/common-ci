@@ -2,9 +2,8 @@ param ([Parameter(Mandatory)][string]$RepoName)
 $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
 
-# Different tests require different environment variables, so they should be
-# set by the caller, e.g.:
-#   $env:RESOURCEKEY = $Keys.TestResourceKey
+# The tests read their keys from the environment, under the _51DEGREES_ names
+# the workflow exports.
 
 $options = @("--fail-on-warning")
 & {

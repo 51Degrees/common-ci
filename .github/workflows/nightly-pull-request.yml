@@ -55,39 +55,6 @@ on:
         description: 'Build every entry in ci/options.json, even where ci/select-options.ps1 would choose fewer'
         type: boolean
         default: false
-    secrets:
-      token:
-        required: false
-      AcceptCHBrowserKey:
-      AcceptCHHardwareKey:
-      AcceptCHNoneKey:
-      AcceptCHPlatformKey:
-      ApiKey:
-      CsvUrl:
-      DeviceDetection:
-      DeviceDetectionUrl:
-      IpIntelligence:
-      IpIntelligenceUrl:
-      JavaGpgKeyPassphrase:
-      JavaPGP:
-      MavenSettings:
-      NPMAuthToken:
-      NginxCert:
-      NginxKey:
-      NginxJwtToken:
-      PypiToken:
-      ResourceKeyCloudV5Bespoke:
-      StrongNameKeyBase64:
-      TestBrowserResourceKey:
-      TestHardwareResourceKey:
-      TestLicenseKey:
-      TestNoSetHeaderResourceKey:
-      TestPlatformResourceKey:
-      TestPypiToken:
-      TestResourceKey:
-      TestSuperResourceKey:
-      UsePublishTests:
-      Pearl.License:
 
 defaults:
   run:
@@ -110,13 +77,14 @@ jobs:
 
       - name: Configure
         id: configure
+        env:
+          _51DEGREES_ACCESS_TOKEN: ${{ secrets._51DEGREES_ACCESS_TOKEN }}
         run: |
           $FullMatrix = [bool]::Parse("${{ inputs.full-matrix }}")
           ./nightly-pull-request.configure-pr.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ inputs.branch != '' && inputs.branch || github.ref_name }} `
-          -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
           -GitHubOutput $Env:GITHUB_OUTPUT `
           -PullRequestId ${{ inputs.pull-request-id }} `
           -GitHubUser ${{ inputs.user }} `
@@ -130,6 +98,7 @@ jobs:
         with:
           repo: ${{ inputs.repo-name }}
           secrets: ${{ toJSON(secrets) }}
+          vars: ${{ toJSON(vars) }}
 
   BuildAndTest:
     needs: Configure
@@ -164,30 +133,35 @@ jobs:
           path: assets
           enableCrossOsArchive: true
 
+      # The _51DEGREES_ secrets and variables, each under its own name, for the
+      # steps that follow. The secrets context is read here alone.
+      - name: Export secrets and variables
+        env:
+          _51DEGREES_SECRETS: ${{ toJSON(secrets) }}
+          _51DEGREES_VARS: ${{ toJSON(vars) }}
+        run: ./steps/export-secrets.ps1 -Secrets $env:_51DEGREES_SECRETS -Vars $env:_51DEGREES_VARS
+
       - name: Build and Test
         id: build-and-test
         env:
-          SECRETS: ${{ toJSON(secrets) }}
           # Through env rather than inline, so the branch name is never
           # parsed as PowerShell.
-          EXAMPLES_BRANCH: ${{ inputs.examples-branch }}
+          _51DEGREES_EXAMPLES_BRANCH: ${{ inputs.examples-branch }}
         run: |
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
           $Options = $(ConvertFrom-Json -AsHashtable '${{ toJSON(matrix.options) }}')
           # Overrides every matrix entry. run-script.ps1 only hands it to
           # scripts declaring an ExamplesBranch parameter, so repos without
           # one are unaffected.
-          if ([string]::IsNullOrEmpty($env:EXAMPLES_BRANCH) -eq $false)
+          if ([string]::IsNullOrEmpty($env:_51DEGREES_EXAMPLES_BRANCH) -eq $false)
           {
-            $Options["ExamplesBranch"] = $env:EXAMPLES_BRANCH
+            $Options["ExamplesBranch"] = $env:_51DEGREES_EXAMPLES_BRANCH
           }
-          $Options.Add("Keys", $(ConvertFrom-Json -AsHashtable $env:SECRETS))
           $SkipLiteTests = [bool]::Parse("${{ inputs.skip-lite-tests }}")
           ./nightly-pull-request.build-and-test.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ inputs.branch != '' && inputs.branch || github.ref_name }} `
-          -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
           -GitHubOutput $Env:GITHUB_OUTPUT `
           -PullRequestId ${{ inputs.pull-request-id }} `
           -Options $Options `
@@ -249,6 +223,8 @@ jobs:
       - name: Compare Performance
         id: compare
         continue-on-error: true
+        env:
+          _51DEGREES_ACCESS_TOKEN: ${{ secrets._51DEGREES_ACCESS_TOKEN }}
         run: |
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
           $Options = $(ConvertFrom-Json -AsHashtable '${{ needs.configure.outputs.options }}')
@@ -256,7 +232,6 @@ jobs:
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ inputs.performance-branch != '' && inputs.performance-branch || (inputs.branch != '' && inputs.branch || github.ref_name) }} `
-          -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
           -GitHubOutput $Env:GITHUB_OUTPUT `
           -Options $Options `
           -RunId ${{ github.run_id }} `
@@ -295,12 +270,13 @@ jobs:
           ref: ${{ inputs.common-ci-ref }}
 
       - name: Complete
+        env:
+          _51DEGREES_ACCESS_TOKEN: ${{ secrets._51DEGREES_ACCESS_TOKEN }}
         run: |
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
           ./nightly-pull-request.complete.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
-          -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
           -PullRequestId ${{ inputs.pull-request-id }} `
           -Branch ${{ inputs.branch != '' && inputs.branch || github.ref_name }} `
           -DryRun $DryRun

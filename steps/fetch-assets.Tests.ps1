@@ -97,7 +97,7 @@ Describe 'fetch-assets.ps1 with the data repository' {
     }
 }
 
-Describe 'fetch-assets.ps1 and the licence key' {
+Describe 'fetch-assets.ps1 and the license key' {
     # The step runs from a copy beside stand-ins for the two download scripts,
     # which record what they were asked for and write a small file, so no
     # test reaches the Distributor. The key reaches the step as the
@@ -108,25 +108,25 @@ Describe 'fetch-assets.ps1 and the licence key' {
         New-Item -ItemType Directory -Path $script:Folder | Out-Null
         Copy-Item -LiteralPath $script:Step -Destination $script:Folder
         Set-Content -Path (Join-Path $script:Folder 'fetch-hash-assets.ps1') -Value @'
-param([string]$RepoName, [string]$LicenseKey, [string]$Url, [string]$DataType = 'HashV41',
-    [string]$Product = 'V4TAC', [string]$ArchiveName = 'TAC-HashV41.hash.gz')
-$global:FetchAssetsKeyTest.Calls.Add("hash $DataType $Product key=$LicenseKey url=$Url")
+param([string]$RepoName, [string]$DataType = 'HashV41', [string]$Product = 'V4TAC',
+    [string]$ArchiveName = 'TAC-HashV41.hash.gz')
+$global:FetchAssetsKeyTest.Calls.Add("hash $DataType $Product key=$env:_51DEGREES_LICENSE_KEY")
 Set-Content -Path ($ArchiveName -replace '\.gz$', '') -Value 'downloaded'
 '@
         Set-Content -Path (Join-Path $script:Folder 'download-data-file.ps1') -Value @'
-param([string]$LicenseKey, [string]$DataType, [string]$Product, [string]$Url, [string]$FullFilePath)
-$global:FetchAssetsKeyTest.Calls.Add("file $DataType $Product key=$LicenseKey url=$Url")
+param([string]$FullFilePath, [string]$DataType, [string]$Product)
+$global:FetchAssetsKeyTest.Calls.Add("file $DataType $Product key=$env:_51DEGREES_LICENSE_KEY")
 Set-Content -Path $FullFilePath -Value 'downloaded'
 '@
         $script:KeyStep = Join-Path $script:Folder 'fetch-assets.ps1'
 
-        function Invoke-KeyStep ([string]$Asset, [hashtable]$Arguments = @{}) {
+        function Invoke-KeyStep ([string]$Asset) {
             $global:FetchAssetsKeyTest = @{ Calls = [Collections.Generic.List[string]]::new() }
             $script:Work = Join-Path ([IO.Path]::GetTempPath()) "fetch-assets-key-work-$(New-Guid)"
             New-Item -ItemType Directory -Path $script:Work | Out-Null
             Push-Location $script:Work
             try {
-                return (& $script:KeyStep -Assets $Asset @Arguments 6>&1 | Out-String)
+                return (& $script:KeyStep -Assets $Asset 6>&1 | Out-String)
             } finally {
                 Pop-Location
             }
@@ -149,107 +149,64 @@ Set-Content -Path $FullFilePath -Value 'downloaded'
     }
 
     It 'downloads the device detection data file with _51DEGREES_LICENSE_KEY' {
-        $env:_51DEGREES_LICENSE_KEY = 'licence'
+        $env:_51DEGREES_LICENSE_KEY = 'license'
         Invoke-KeyStep 'TAC-HashV41.hash' | Out-Null
-        $global:FetchAssetsKeyTest.Calls | Should -Be 'hash HashV41 V4TAC key=licence url='
+        $global:FetchAssetsKeyTest.Calls | Should -Be 'hash HashV41 V4TAC key=license'
         "$script:Work/assets/TAC-HashV41.hash" | Should -Exist
     }
 
     It 'downloads the IP Intelligence data file from the Distributor, as IPIV41 and IPIV4Enterprise' {
-        $env:_51DEGREES_LICENSE_KEY = 'licence'
+        $env:_51DEGREES_LICENSE_KEY = 'license'
         Invoke-KeyStep '51Degrees-EnterpriseIpiV41.ipi' | Out-Null
-        $global:FetchAssetsKeyTest.Calls | Should -Be 'hash IPIV41 IPIV4Enterprise key=licence url='
+        $global:FetchAssetsKeyTest.Calls | Should -Be 'hash IPIV41 IPIV4Enterprise key=license'
     }
 
-    It 'downloads the CSV file with _51DEGREES_LICENSE_KEY and no address' {
-        $env:_51DEGREES_LICENSE_KEY = 'licence'
+    It 'downloads the CSV file with _51DEGREES_LICENSE_KEY' {
+        $env:_51DEGREES_LICENSE_KEY = 'license'
         Invoke-KeyStep '51Degrees-Tac.zip' | Out-Null
-        $global:FetchAssetsKeyTest.Calls | Should -Be 'file CSV V4TAC key=licence url='
+        $global:FetchAssetsKeyTest.Calls | Should -Be 'file CSV V4TAC key=license'
     }
 
-    It 'fails for each asset that needs a licence when there is none, naming the variable' {
+    It 'fails for each asset that needs a license when there is none, naming the variable' {
         foreach ($asset in 'TAC-HashV41.hash', '51Degrees-EnterpriseIpiV41.ipi',
             '51Degrees.csv', '51Degrees-Tac.zip', 'chargify.json', 'entitlement.json',
             'example-source.json') {
             { Invoke-KeyStep $asset } |
-                Should -Throw "*'$asset' needs the data licence key, and _51DEGREES_LICENSE_KEY is not set*"
+                Should -Throw "*'$asset' needs the data license key, and _51DEGREES_LICENSE_KEY is not set*"
             $global:FetchAssetsKeyTest.Calls | Should -BeNullOrEmpty
             "$script:Work/assets/$asset" | Should -Not -Exist
             Remove-Item -Recurse -Force $script:Work
         }
     }
 
-    It 'does not read an old key or address when _51DEGREES_LICENSE_KEY is set' {
-        $env:_51DEGREES_LICENSE_KEY = 'licence'
-        Invoke-KeyStep 'TAC-HashV41.hash' @{
-            DeviceDetection = 'old-key'; DeviceDetectionUrl = 'https://example.com/old'
-        } | Out-Null
-        $global:FetchAssetsKeyTest.Calls | Should -Be 'hash HashV41 V4TAC key=licence url='
+    It 'takes no key or address as a parameter' {
+        $parameters = (Get-Command $script:Step).Parameters.Keys
+        $parameters | Should -Not -Contain 'LicenseKey'
+        foreach ($name in $parameters) {
+            $name | Should -Not -Match 'Key|Url|Detection|Intelligence' -Because 'the license comes only from _51DEGREES_LICENSE_KEY'
+        }
     }
 
-    It 'skips the all-properties IP Intelligence file, which has no Distributor product' {
-        $env:_51DEGREES_LICENSE_KEY = 'licence'
-        $log = Invoke-KeyStep '51Degrees-EnterpriseIpiV41-AllProperties.ipi'
-        $log | Should -Match "No Distributor product is known for '51Degrees-EnterpriseIpiV41-AllProperties\.ipi': skipping it"
-        $global:FetchAssetsKeyTest.Calls | Should -BeNullOrEmpty
-    }
-
-    # A calling repository's main still passes the old secrets by name, and
-    # never _51DEGREES_LICENSE_KEY, until it passes 'secrets: inherit'. Those
-    # callers run this step from common-ci's main, so the old key and address
-    # are read when there is no _51DEGREES_LICENSE_KEY, as before that name,
-    # until every caller has moved.
-    Context 'a caller not yet moved, with no _51DEGREES_LICENSE_KEY' {
-        It 'downloads the device detection data file with the old key and address' {
-            Invoke-KeyStep 'TAC-HashV41.hash' @{
-                DeviceDetection = 'old-key'; DeviceDetectionUrl = 'https://example.com/old'
-            } | Out-Null
-            $global:FetchAssetsKeyTest.Calls |
-                Should -Be 'hash HashV41 V4TAC key=old-key url=https://example.com/old'
-            "$script:Work/assets/TAC-HashV41.hash" | Should -Exist
-        }
-
-        It 'downloads the IP Intelligence data file from the old address alone, as .NET and C++ pass it' {
-            Invoke-KeyStep '51Degrees-EnterpriseIpiV41.ipi' @{
-                IpIntelligenceUrl = 'https://example.com/ipi'
-            } | Out-Null
-            $global:FetchAssetsKeyTest.Calls |
-                Should -Be 'hash IPIV41 IPIV4Enterprise key= url=https://example.com/ipi'
-        }
-
-        It 'downloads the CSV file with the old key and address' {
-            Invoke-KeyStep '51Degrees-Tac.zip' @{
-                DeviceDetection = 'old-key'; CsvUrl = 'https://example.com/csv'
-            } | Out-Null
-            $global:FetchAssetsKeyTest.Calls |
-                Should -Be 'file CSV V4TAC key=old-key url=https://example.com/csv'
-        }
-
-        It 'still fails naming _51DEGREES_LICENSE_KEY for an asset the old values do not cover' {
-            { Invoke-KeyStep 'TAC-HashV41.hash' @{ IpIntelligenceUrl = 'https://example.com/ipi' } } |
-                Should -Throw '*_51DEGREES_LICENSE_KEY is not set*'
-            $global:FetchAssetsKeyTest.Calls | Should -BeNullOrEmpty
+    It 'knows no CSV evidence file and no file that came only from an address' {
+        $env:_51DEGREES_LICENSE_KEY = 'license'
+        foreach ($asset in 'evidence.csv', '51Degrees-EnterpriseIpiV41-AllProperties.ipi') {
+            { Invoke-KeyStep $asset } | Should -Throw "*Unknown asset: $asset*"
+            Remove-Item -Recurse -Force $script:Work
         }
     }
 }
 
-Describe 'actions/fetch-assets and a caller not yet moved' {
-    # The action declares the old inputs for a caller that still passes them,
-    # so it must hand each one to the step, which reads it only when there is
-    # no _51DEGREES_LICENSE_KEY.
+Describe 'actions/fetch-assets' {
     BeforeAll {
         $script:Action = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '..' 'actions' 'fetch-assets' 'action.yml')
     }
 
-    It 'passes <_> on to the step' -ForEach @(
-        'device-detection-key', 'device-detection-url', 'ip-intelligence-key', 'ip-intelligence-url') {
-        $script:Action | Should -Match ([regex]::Escape("`${{ inputs.$_ }}")) -Because 'the action declares the input'
+    It 'takes no key or address as an input' {
+        $script:Action | Should -Not -Match '-(key|url):' -Because 'the license comes from the job environment as _51DEGREES_LICENSE_KEY'
     }
 
-    It 'names each old parameter of the step' {
-        foreach ($parameter in '-DeviceDetection:', '-DeviceDetectionUrl:', '-IpIntelligence:', '-IpIntelligenceUrl:') {
-            $script:Action | Should -Match ([regex]::Escape($parameter))
-        }
+    It 'passes the step only the assets' {
+        $script:Action | Should -Match 'fetch-assets\.ps1" -Assets \(\$env:_51DEGREES_ASSETS\.Trim\(\) -split "`n"\)\r?\n'
     }
 }
 
@@ -285,13 +242,17 @@ Describe 'fetch-assets.ps1 with bulkdata' {
     }
 
     BeforeAll {
-        # Runs the step for $Asset in the stand-in work folder.
+        # Runs the step for $Asset in the stand-in work folder, with the
+        # license key in the environment as the shared workflows export it.
         function Invoke-BulkStep ([string]$Asset) {
+            $before = $env:_51DEGREES_LICENSE_KEY
+            $env:_51DEGREES_LICENSE_KEY = 'KEY'
             Push-Location $global:FetchAssetsTest.Work
             try {
-                & $script:Step -Assets $Asset -LicenseKey 'KEY' 3>$null
+                & $script:Step -Assets $Asset 3>$null
             } finally {
                 Pop-Location
+                $env:_51DEGREES_LICENSE_KEY = $before
             }
         }
     }

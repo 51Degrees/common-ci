@@ -30,9 +30,6 @@ on:
         required: false
         type: number
         default: 0
-    secrets:
-      token:
-        required: false        
 
 jobs:
   generate-documentation-preview:
@@ -51,10 +48,11 @@ jobs:
       - name: Generate Documentation
         shell: pwsh
         working-directory: ${{ github.workspace }}/common/
+        env:
+          _51DEGREES_ACCESS_TOKEN: ${{ secrets._51DEGREES_ACCESS_TOKEN }}
         run: |
           $SeparateExamples = [bool]::Parse( "${{ inputs.separate-examples}}" )
           . ${{ github.workspace }}/common/generate-documentation.ps1 `
-          -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -GitHubUser ${{ inputs.user }} `
@@ -73,11 +71,12 @@ jobs:
       - name: Comment on PR
         shell: pwsh
         working-directory: ${{ github.workspace }}/common/
+        env:
+          _51DEGREES_ACCESS_TOKEN: ${{ secrets._51DEGREES_ACCESS_TOKEN }}
         run: |
           . ${{ github.workspace }}/common/steps/comment-on-issue.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
-          -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
           -Id ${{ inputs.pull-request-id }} `
           -Message "Preview available [here](https://github.com/${{ inputs.org-name }}/${{ inputs.repo-name }}/actions/runs/${{ github.run_id }}#artifacts)."
           

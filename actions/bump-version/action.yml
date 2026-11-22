@@ -19,15 +19,15 @@ runs:
     - id: bump
       shell: bash
       env:
-        format: ${{ inputs.format }}
-        mode: ${{ inputs.mode }}
-        args: ${{ inputs.args }}
+        _51DEGREES_FORMAT: ${{ inputs.format }}
+        _51DEGREES_MODE: ${{ inputs.mode }}
+        _51DEGREES_ARGS: ${{ inputs.args }}
       run: |
         # GitVersion 7 takes POSIX-style arguments and refuses /format, so
         # stay on the 6.x release steps/install-gitversion.ps1 pins until this
         # step moves to the new form.
         pwsh -NoProfile -File "$GITHUB_ACTION_PATH/../../steps/install-gitversion.ps1"
-        version=$(dotnet-gitversion /format "$format" /overrideconfig "mode=$mode" $args)
+        version=$(dotnet-gitversion /format "$_51DEGREES_FORMAT" /overrideconfig "mode=$_51DEGREES_MODE" $_51DEGREES_ARGS)
         tee -a "$GITHUB_OUTPUT" <<<"version=$version"
         git show-ref --quiet --tags "$version" || tee -a "$GITHUB_OUTPUT" <<<"bumped=yes"
 

@@ -1,57 +1,22 @@
 param (
     [Parameter(Mandatory)][string[]]$Assets,
-    # The licence key for the data files, which come from the Distributor.
-    # The shared workflows export it as _51DEGREES_LICENSE_KEY before this
-    # runs.
-    [string]$LicenseKey = $env:_51DEGREES_LICENSE_KEY,
-    [switch]$FullCsv,
-    # The old keys and addresses, which a calling repository's main still
-    # passes by name until it passes 'secrets: inherit'. Each is read only
-    # when _51DEGREES_LICENSE_KEY has no value, and then as it was before that
-    # name, so a caller not yet moved keeps working. When
-    # _51DEGREES_LICENSE_KEY is set, none of them is read.
-    [string]$DeviceDetection,
-    [string]$DeviceDetectionUrl,
-    [string]$IpIntelligence,
-    [string]$IpIntelligenceUrl,
-    [string]$CsvUrl
+    [switch]$FullCsv
 )
 $ErrorActionPreference = "Stop"
-
-function Test-Given ([string]$Value) {
-    return -not [string]::IsNullOrWhiteSpace($Value)
-}
-
-# With _51DEGREES_LICENSE_KEY, every licensed file comes from the Distributor
-# with that key, and the old keys and addresses are not read. Without it, the
-# old ones are used as they were before, for a caller not yet moved.
-if (Test-Given $LicenseKey) {
-    $DeviceDetection = $LicenseKey
-    $DeviceDetectionUrl = ''
-    $IpIntelligence = $LicenseKey
-    $IpIntelligenceUrl = ''
-    $CsvUrl = ''
-}
-elseif (@($DeviceDetection, $DeviceDetectionUrl, $IpIntelligence, $IpIntelligenceUrl, $CsvUrl).Where({ Test-Given $_ })) {
-    Write-Host "_51DEGREES_LICENSE_KEY is not set, so the old keys and addresses passed are used, as before that name. They go when the calling workflow passes 'secrets: inherit'."
-}
 
 # An asset named <name>.json, in lower case letters, digits, and hyphens, is
 # the bulkdata data source <name>.
 $dataSourceAsset = '^[a-z0-9][a-z0-9-]*\.json$'
 
-# Whether an asset that needs a licence has one: _51DEGREES_LICENSE_KEY, or
-# for a caller not yet moved the old key or address for it. Without one, the
-# step fails naming the variable, rather than with the Distributor's refusal.
+# The licensed files and every data source come from the Distributor and the
+# bulk data service with the data license key, which the shared workflows
+# export as _51DEGREES_LICENSE_KEY. Without it, the step fails naming the
+# variable, rather than with the service's refusal.
+$licensed = @('TAC-HashV41.hash', '51Degrees-EnterpriseIpiV41.ipi', '51Degrees.csv',
+    '51Degrees-Tac.zip')
 function Test-Licensed ([string]$Asset) {
-    switch -Exact -CaseSensitive ($Asset) {
-        'TAC-HashV41.hash' { return (Test-Given $DeviceDetection) -or (Test-Given $DeviceDetectionUrl) }
-        '51Degrees-EnterpriseIpiV41.ipi' { return (Test-Given $IpIntelligence) -or (Test-Given $IpIntelligenceUrl) }
-        '51Degrees.csv' { return (Test-Given $DeviceDetection) -or (Test-Given $CsvUrl) }
-        '51Degrees-Tac.zip' { return (Test-Given $DeviceDetection) -or (Test-Given $CsvUrl) }
-        { $_ -cmatch $dataSourceAsset } { return Test-Given $DeviceDetection }
-        default { return $true }
-    }
+    if (($Asset -cnotin $licensed) -and ($Asset -cnotmatch $dataSourceAsset)) { return $true }
+    return -not [string]::IsNullOrWhiteSpace($env:_51DEGREES_LICENSE_KEY)
 }
 $PSNativeCommandUseErrorActionPreference = $true
 
@@ -81,7 +46,6 @@ $curlFlags = @(
 $dataFiles = @{
     '51Degrees-LiteV4.1.hash' = 'device-detection/51Degrees-LiteV4.1.hash'
     '20000 Evidence Records.yml' = 'device-detection/20000 Evidence Records.yml'
-    '20000 User Agents.csv' = 'device-detection/20000 User Agents.csv'
     '51Degrees-LiteIpiV41.ipi' = 'ip-intelligence/51Degrees-LiteV41.ipi'
     '51Degrees-IPIV4AsnIpiV41.ipi' = 'ip-intelligence/51Degrees-IPIV4AsnIpiV41.ipi'
     'ip-intelligence-evidence.yml' = 'ip-intelligence/evidence.yml'
@@ -121,10 +85,10 @@ function Get-FromData {
 
 function Get-FromBulkData {
     param (
-        [Parameter(Mandatory)][string]$License,
         [Parameter(Mandatory)][string]$Data,
         [Parameter(Mandatory)][string]$Output
     )
+    $License = $env:_51DEGREES_LICENSE_KEY
     $monthAgo = [DateTime]::Now.AddDays(-30).ToString('yyyy-MM-dd')
     $tomorrow = [DateTime]::Now.AddDays(1).ToString('yyyy-MM-dd')
     Write-Host "Retrieving the latest $Data version..."
@@ -165,7 +129,7 @@ foreach ($asset in $Assets) {
         continue
     }
     if (-not (Test-Licensed $asset)) {
-        throw "'$asset' needs the data licence key, and _51DEGREES_LICENSE_KEY is not set. It is an organisation secret, which the calling workflow passes with 'secrets: inherit'."
+        throw "'$asset' needs the data license key, and _51DEGREES_LICENSE_KEY is not set. It is an organization secret, which the calling workflow passes with 'secrets: inherit'."
     }
     Write-Host "Fetching '$asset'"
     try {
@@ -175,27 +139,15 @@ foreach ($asset in $Assets) {
         }
         switch -Exact -CaseSensitive ($asset) {
             "TAC-HashV41.hash" {
-                & $PSScriptRoot/fetch-hash-assets.ps1 -RepoName . -LicenseKey $DeviceDetection -Url $DeviceDetectionUrl
+                & $PSScriptRoot/fetch-hash-assets.ps1 -RepoName .
                 Move-Item -Path $_ -Destination $cache
             }
             "51Degrees-EnterpriseIpiV41.ipi" {
-                & $PSScriptRoot/fetch-hash-assets.ps1 -RepoName . -ArchiveName "$_.gz" -LicenseKey $IpIntelligence -DataType IPIV41 -Product IPIV4Enterprise -Url $IpIntelligenceUrl
+                & $PSScriptRoot/fetch-hash-assets.ps1 -RepoName . -ArchiveName "$_.gz" -DataType IPIV41 -Product IPIV4Enterprise
                 Move-Item -Path $_ -Destination $cache
             }
-            "51Degrees-EnterpriseIpiV41-AllProperties.ipi" {
-                # This file came only from an address in a secret. Data files
-                # now come from the Distributor with _51DEGREES_LICENSE_KEY,
-                # and no Distributor product for it is known yet, so it comes
-                # only from the old address of a caller not yet moved.
-                if (Test-Given $IpIntelligenceUrl) {
-                    & $PSScriptRoot/fetch-hash-assets.ps1 -RepoName . -ArchiveName "$_.gz" -Url $IpIntelligenceUrl
-                    Move-Item -Path $_ -Destination $cache
-                } else {
-                    Write-Host "No Distributor product is known for '$_': skipping it. Tests that need it should skip and say so."
-                }
-            }
             "51Degrees.csv" {
-                & $PSScriptRoot/download-data-file.ps1 -LicenseKey:$DeviceDetection -DataType 'CSV' -Product 'V4TAC' -Url:$CsvUrl -FullFilePath "$_.zip"
+                & $PSScriptRoot/download-data-file.ps1 -DataType 'CSV' -Product 'V4TAC' -FullFilePath "$_.zip"
                 Expand-Archive -DestinationPath . "$_.zip"
                 if ($FullCsv) {
                     Move-Item -Path '51Degrees-Tac-All.csv' -Destination $cache/$_
@@ -205,12 +157,12 @@ foreach ($asset in $Assets) {
                 Remove-Item -Force "$_.zip", '51Degrees-Tac-All.csv'
             }
             "51Degrees-Tac.zip" {  # same as the CSV above, without extracting
-                & $PSScriptRoot/download-data-file.ps1 -LicenseKey:$DeviceDetection -DataType 'CSV' -Product 'V4TAC' -Url:$CsvUrl -FullFilePath "$cache/$_"
+                & $PSScriptRoot/download-data-file.ps1 -DataType 'CSV' -Product 'V4TAC' -FullFilePath "$cache/$_"
             }
             # A data source is fetched newest day first, so a new one needs
             # no change here.
             { $_ -cmatch $dataSourceAsset } {
-                Get-FromBulkData -License:$DeviceDetection -Data ($_ -creplace '\.json$', '') -Output $cache/$_
+                Get-FromBulkData -Data ($_ -creplace '\.json$', '') -Output $cache/$_
             }
             default { Write-Error "Unknown asset: $_" }
         }

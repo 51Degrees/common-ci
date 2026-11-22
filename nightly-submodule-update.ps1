@@ -4,8 +4,6 @@ param (
     [Parameter(Mandatory=$true)]
     [string]$OrgName,
     [string]$Branch = "main",
-    [Parameter(Mandatory=$true)]
-    [string]$GitHubToken,
     [string]$GitHubUser,
     [string]$GitHubEmail,
     [bool]$DryRun = $False
@@ -13,7 +11,7 @@ param (
 $ErrorActionPreference = "Stop"
 
 Write-Output "::group::Configure Git"
-./steps/configure-git.ps1 -GitHubToken $GitHubToken -GitHubUser $GitHubUser -GitHubEmail $GitHubEmail
+./steps/configure-git.ps1 -GitHubUser $GitHubUser -GitHubEmail $GitHubEmail
 Write-Output "::endgroup::"
 
 # The pull request targets rc where the repository takes changes through rc.

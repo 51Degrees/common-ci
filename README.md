@@ -15,7 +15,7 @@ The following rules are common across the organisation.
 -   PowerShell scripts contain the implementation as they operate consistently across platform and avoid duplicating logic associated with a mixed environment.
 -   PowerShell scripts contain all the necessary documentation at the top of the script.
 -   PowerShell scripts have defined input parameters and outputs following PowerShell conventions.
--   All parameters are GitHub secrets, or options defined in the repo, and passed by the YAML script as parameters to the PowerShell script.
+-   Options defined in the repo are passed by the YAML script as parameters to the PowerShell script. Secrets are not parameters: each script reads the `_51DEGREES_` secrets it needs from the environment, as described under [Secrets and variables](#secrets-and-variables).
 -   YAML scripts simply call the top level PowerShell scripts within the GitHub actions. Each YAML script will have a corresponding PowerShell script which can be used to test all the steps on any environment. These scripts must have the same name with only the file extension being different.
 -   Orchestration of the PowerShell step scripts is handled by the top level PowerShell scripts as much as possible. There are some exceptions to this, e.g. running on multiple VM images needs to be handled in YAML.
 -   GitHub triggers initiate the stages.
@@ -349,18 +349,26 @@ To run these PowerShell scripts, either locally, or in a CI/CD pipeline, the fol
 
 - [Git CLI](https://git-scm.com/downloads)
 - [Hub CLI](https://hub.github.com/)
-- `GITHUB_TOKEN` environment variable (this is automatically set if using GitHub actions)
+- `_51DEGREES_ACCESS_TOKEN` environment variable, a GitHub token that the scripts sign in with (the workflows set it from the secret of that name)
 - Some repositories require a cloud resource key. This can be obtained on the [configuration page](https://51degrees.com/configure)
 
-# Secrets
+# Secrets and variables
 
-CI workflows that need secrets accept a [superset of all possible secrets](https://github.com/51Degrees/common-ci/blob/2badf94c075c4a73b188d6647fcd88df69ca8ce1/.github/workflows/nightly-pr-to-main.yml#L38-L64). During workflow execution non-null secrets get [combined into a JSON string](https://github.com/51Degrees/common-ci/blob/2badf94c075c4a73b188d6647fcd88df69ca8ce1/.github/workflows/nightly-pr-to-main.yml#L145), and [parsed as a PowerShell object](https://github.com/51Degrees/common-ci/blob/2badf94c075c4a73b188d6647fcd88df69ca8ce1/.github/workflows/nightly-pr-to-main.yml#L149), which is then passed to all build scripts that require secrets.
+Every secret the workflows read is an organization secret named `_51DEGREES_<NAME>`. A calling workflow passes `secrets: inherit`, and the reusable workflows declare no secret of their own.
 
-This flow modifies the old one, where the JSON string was passed in by the caller directly as a single secret. The rationale for the new flow is making sure that in case secrets leak to CI logs, they get hidden by GitHub (replaced with `***`). This was not possible when all secrets were passed as a single JSON string - GitHub has to know about every single secret to be able to hide them.
+In each job that builds, tests or publishes, one step, [steps/export-secrets.ps1](steps/export-secrets.ps1), exports every secret and every variable whose name starts with `_51DEGREES_` into the environment under its own name, so the scripts and tests that follow read each by that name. Nothing is renamed or filled from another name, and this repository keeps no list of names: a new organization secret or variable with a `_51DEGREES_` name reaches the jobs with no change here. A name holds one thing, so a `_51DEGREES_` name that is both a secret and a variable fails the step. The whole secrets context is read in that step alone, apart from the asset prefetch, where it is also hashed into the cache key. The prefetch exports the secrets in a step of its own as well, and runs the repository's `ci/fetch-assets.ps1` in the next step, which has the exported names and not the secrets context. A step in a job without the export step reads `_51DEGREES_ACCESS_TOKEN` alone, by name.
+
+An organization or repository variable, such as `_51DEGREES_CLOUD_ENDPOINT`, reaches the called workflows with no change to the calling workflow.
+
+A job receives only the secrets it uses. A secret used only to publish is named `_51DEGREES_PUBLISH_<NAME>`, such as `_51DEGREES_PUBLISH_NUGET_API_KEY`, and a secret used to sign is named `_51DEGREES_SIGN_<NAME>`, such as `_51DEGREES_SIGN_KEY_VAULT_URL`. The export step takes `-Publish` in the job that publishes and `-Sign` in the job that signs, and exports neither class to any other job. The start of the name decides, so a new publishing or signing secret needs no change here. The script that publishes or signs reads each at the point of use. The automation token is `_51DEGREES_ACCESS_TOKEN`, which each script that needs it reads from the environment. No script takes it as a parameter.
+
+A name that a tool defines, such as `GITHUB_TOKEN` or twine's `TWINE_PASSWORD`, is set at the point of use straight from the `_51DEGREES_` secret.
+
+The export step writes only names to the log, for variables as for secrets.
 
 # Environment variable names
 
-[environment-variables.md](environment-variables.md) lists every environment variable name that 51Degrees packages, tests, examples and CI scripts read, in every language, with what each holds, the test and example that use it, the organization secret CI sets it from, and the deprecated names each replaced. Every language reads every current name. It is made from [environment-variables.json](environment-variables.json) by [steps/environment-variables.ps1](steps/environment-variables.ps1). The JSON file decides, so each language repository refers to it rather than keeping a list of its own.
+The names every language reads are a shared contract that lives in the specifications repository. Each language repository documents the names only it reads.
 
 # Package distribution
 

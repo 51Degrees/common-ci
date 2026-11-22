@@ -78,8 +78,7 @@ Takes the following additional parameters:
 Takes the following additional parameters:
 | Parameter | Mandatory | Description |
 | --------- | :-------: | ----------- |
-| ApiKey | :check: | Auth key for the NuGet source to publish to. |
-| Source | | NuGet source to publish to. By default this is `https://api.nuget.org/v3/index.json`. |
+| Source | | NuGet source to publish to. By default this is `https://api.nuget.org/v3/index.json`. The key is read from `_51DEGREES_PUBLISH_NUGET_API_KEY`. |
 | DryRun | | If true, list the packages and do not push them. |
 
 ## Publish Package GitHub
@@ -89,8 +88,7 @@ Takes the following additional parameters:
 Takes the following additional parameters:
 | Parameter | Mandatory | Description |
 | --------- | :-------: | ----------- |
-| ApiKey | :check: | Auth token for the GitHub repo to publish to. |
-| DryRun | | If true, list the packages and do not push them. |
+| DryRun | | If true, list the packages and do not push them. The GitHub feed takes the automation token, read from `_51DEGREES_ACCESS_TOKEN`. |
 
 ## Run Unit Tests
 

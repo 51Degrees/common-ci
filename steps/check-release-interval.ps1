@@ -8,8 +8,8 @@ A package repository releases at most once a week, as CONTRIBUTING.md
 explains under "Releasing at most once a week". Days are whole calendar days
 in UTC.
 
-ALLOW_EARLY_RELEASE set to 'true' allows an early release. The rule applies
-from the date in WEEKLY_RELEASES_FROM, such as 2026-11-03. Unset, or set to a
+_51DEGREES_ALLOW_EARLY_RELEASE set to 'true' allows an early release. The rule applies
+from the date in _51DEGREES_WEEKLY_RELEASES_FROM, such as 2026-11-03. Unset, or set to a
 date still ahead, the check reports what it would decide and passes.
 
 .PARAMETER LastRelease
@@ -63,7 +63,7 @@ param (
     [string]$RepoName,
     [string]$TagPrefix,
     [string]$Repository,
-    [string]$HowToAllow = "run this again with ALLOW_EARLY_RELEASE set to 'true'.",
+    [string]$HowToAllow = "run this again with _51DEGREES_ALLOW_EARLY_RELEASE set to 'true'.",
     [string]$Now,
     [object[]]$Plan
 )
@@ -187,20 +187,20 @@ if ($RepoName) {
 $today = ($Now ? (ConvertTo-UtcTime $Now) : [DateTimeOffset]::UtcNow).UtcDateTime.Date
 
 # Read first, so a value that cannot be read is reported whatever the release.
-$from = $env:WEEKLY_RELEASES_FROM
+$from = $env:_51DEGREES_WEEKLY_RELEASES_FROM
 if ($from) {
     try {
         $fromDay = (ConvertTo-UtcTime $from).UtcDateTime.Date
     } catch {
-        throw "WEEKLY_RELEASES_FROM is '$from', which is not a date such as 2026-11-03. Correct the configuration variable of that name."
+        throw "_51DEGREES_WEEKLY_RELEASES_FROM is '$from', which is not a date such as 2026-11-03. Correct the configuration variable of that name."
     }
     $enforced = $today -ge $fromDay
     $state = $enforced `
-        ? "The weekly release rule applies from $(Format-Day $fromDay), the date in WEEKLY_RELEASES_FROM." `
-        : "The weekly release rule is not enforced until $(Format-Day $fromDay), the date in WEEKLY_RELEASES_FROM."
+        ? "The weekly release rule applies from $(Format-Day $fromDay), the date in _51DEGREES_WEEKLY_RELEASES_FROM." `
+        : "The weekly release rule is not enforced until $(Format-Day $fromDay), the date in _51DEGREES_WEEKLY_RELEASES_FROM."
 } else {
     $enforced = $false
-    $state = "The weekly release rule is not enforced, as WEEKLY_RELEASES_FROM is not set."
+    $state = "The weekly release rule is not enforced, as _51DEGREES_WEEKLY_RELEASES_FROM is not set."
 }
 Write-Output $state
 
@@ -224,8 +224,8 @@ if (-not $enforced) {
     exit 0
 }
 
-if ($env:ALLOW_EARLY_RELEASE -eq 'true') {
-    Write-Output "::warning title=Early release::$facts This one goes early, on $(Format-Day $today), allowed by ALLOW_EARLY_RELEASE."
+if ($env:_51DEGREES_ALLOW_EARLY_RELEASE -eq 'true') {
+    Write-Output "::warning title=Early release::$facts This one goes early, on $(Format-Day $today), allowed by _51DEGREES_ALLOW_EARLY_RELEASE."
     exit 0
 }
 
