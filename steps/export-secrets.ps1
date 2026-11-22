@@ -8,8 +8,14 @@
     in the process environment and, under GitHub Actions, written to
     $GITHUB_ENV for the steps that follow. Nothing else is exported. Nothing
     is renamed, filled from another name or defaulted, and no list of names is
-    kept here: an organisation secret or variable with a _51DEGREES_ name
+    kept here: an organization secret or variable with a _51DEGREES_ name
     reaches the job with no change to this repository.
+
+    A job receives only what it uses. A name that starts with
+    _51DEGREES_PUBLISH_ is exported only to a job that publishes, and a name
+    that starts with _51DEGREES_SIGN_ only to a job that signs. The start of
+    the name decides, so a new publishing or signing secret needs no change
+    here either.
 
     A name holds one thing. A _51DEGREES_ name that is both a secret and a
     variable is an error: the step fails naming it and exports nothing.
@@ -21,14 +27,29 @@
 
 .PARAMETER Vars
     The job's variables as JSON: ${{ toJSON(vars) }}.
+
+.PARAMETER Publish
+    The job publishes, so it takes the _51DEGREES_PUBLISH_ names.
+
+.PARAMETER Sign
+    The job signs, so it takes the _51DEGREES_SIGN_ names.
 #>
 param(
     [Parameter(Mandatory)][string]$Secrets,
-    [Parameter(Mandatory)][string]$Vars
+    [Parameter(Mandatory)][string]$Vars,
+    [switch]$Publish,
+    [switch]$Sign
 )
 $ErrorActionPreference = "Stop"
 
 $prefix = '_51DEGREES_'
+
+# Whether this job takes a name, by the class the name starts with.
+function Test-Taken ([string]$Name) {
+    if ($Name.StartsWith("${prefix}PUBLISH_", [StringComparison]::Ordinal)) { return [bool]$Publish }
+    if ($Name.StartsWith("${prefix}SIGN_", [StringComparison]::Ordinal)) { return [bool]$Sign }
+    return $true
+}
 
 function Get-Named ([string]$Json) {
     $all = $Json | ConvertFrom-Json -AsHashtable
@@ -51,6 +72,7 @@ if ($both.Count -gt 0) {
 function Export-Named ([hashtable]$Named) {
     $exported = [System.Collections.Generic.List[string]]::new()
     foreach ($name in @($Named.Keys | Sort-Object)) {
+        if (-not (Test-Taken $name)) { continue }
         $value = [string]$Named[$name]
         if ([string]::IsNullOrEmpty($value)) { continue }
 

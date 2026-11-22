@@ -1,14 +1,15 @@
-# Tests for steps/set-resource-keys.ps1. Run with: Invoke-Pester ./steps/set-resource-keys.Tests.ps1
+# Tests for steps/export-secrets.ps1. Run with: Invoke-Pester ./steps/export-secrets.Tests.ps1
 #
 # The step takes the job's secrets and variables as JSON and exports every
 # secret and every variable whose name starts with _51DEGREES_ into the
-# environment under its own name, and nothing else. A name that is both a
-# secret and a variable is an error. The tests run it in this process, so each
-# test clears the variables it set, and point GITHUB_ENV at a file of their
-# own.
+# environment under its own name, and nothing else. A name that starts with
+# _51DEGREES_PUBLISH_ is exported only with -Publish, and one that starts with
+# _51DEGREES_SIGN_ only with -Sign. A name that is both a secret and a
+# variable is an error. The tests run it in this process, so each test clears
+# the variables it set, and point GITHUB_ENV at a file of their own.
 
 BeforeAll {
-    $script:Step = Join-Path $PSScriptRoot 'set-resource-keys.ps1'
+    $script:Step = Join-Path $PSScriptRoot 'export-secrets.ps1'
     $script:Root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 
     # Stand-in values. None is a real secret, and each is distinctive so that a
@@ -17,9 +18,11 @@ BeforeAll {
         _51DEGREES_RESOURCE_KEY_BESPOKE = 'value-resource-key-7f3a'
         _51DEGREES_LICENSE_KEY = 'value-license-key-2c9e'
         _51DEGREES_RESOURCE_KEY_51DID = 'value-51did-key-b41d'
-        _51DEGREES_CODE_SIGNING_KEY_VAULT_URL = 'value-vault-url-e5d0'
-        _51DEGREES_JAVA_KEY_PGP_FILE = "-----BEGIN PGP-----`nline-one-9a8b`nline-two-1c2d`n-----END PGP-----"
-        _51DEGREES_NPM_AUTH_TOKEN = 'value-npm-token-4e6f'
+        _51DEGREES_SIGN_KEY_VAULT_URL = 'value-vault-url-e5d0'
+        _51DEGREES_SIGN_JAVA_KEY_PGP_FILE = "-----BEGIN PGP-----`nline-one-9a8b`nline-two-1c2d`n-----END PGP-----"
+        _51DEGREES_PUBLISH_NPM_AUTH_TOKEN = 'value-npm-token-4e6f'
+        _51DEGREES_PUBLISH_NUGET_API_KEY = 'value-nuget-key-8d2b'
+        _51DEGREES_NOT_PUBLISH_OR_SIGN = 'value-neither-class-6c1a'
         _51DEGREES_ACCESS_TOKEN = 'value-access-token-0b1c'
         OTHER_TOKEN = 'value-other-token-3d4e'
         github_token = 'value-github-token-5f60'
@@ -27,6 +30,9 @@ BeforeAll {
     }
     $script:Json = $script:Given | ConvertTo-Json -Compress
     $script:Exported = @($script:Given.Keys | Where-Object { $_ -clike '_51DEGREES_*' })
+    $script:Publishing = @($script:Exported | Where-Object { $_ -clike '_51DEGREES_PUBLISH_*' })
+    $script:Signing = @($script:Exported | Where-Object { $_ -clike '_51DEGREES_SIGN_*' })
+    $script:Unclassed = @($script:Exported | Where-Object { $_ -cnotin $script:Publishing -and $_ -cnotin $script:Signing })
 
     # Stand-in variables, none a real address.
     $script:GivenVars = [ordered]@{
@@ -58,10 +64,11 @@ BeforeAll {
     }
 
     # Runs the step with the secrets and the variables given, no variables
-    # when none are given. Every stream, so that the output check sees all
-    # the step writes.
-    function Invoke-Step ([string]$Json, [string]$Vars = '{}') {
-        return (& $script:Step -Secrets $Json -Vars $Vars *>&1 | Out-String)
+    # when none are given, as a job that publishes and signs unless told
+    # otherwise. Every stream, so that the output check sees all the step
+    # writes.
+    function Invoke-Step ([string]$Json, [string]$Vars = '{}', [bool]$Publish = $true, [bool]$Sign = $true) {
+        return (& $script:Step -Secrets $Json -Vars $Vars -Publish:$Publish -Sign:$Sign *>&1 | Out-String)
     }
 
     # The steps of a workflow or action file as a list of texts. A step
@@ -81,10 +88,10 @@ BeforeAll {
     }
 }
 
-Describe 'set-resource-keys.ps1' {
+Describe 'export-secrets.ps1' {
 
     BeforeEach {
-        $script:GitHubEnv = Join-Path ([IO.Path]::GetTempPath()) "set-resource-keys-tests-$(New-Guid).env"
+        $script:GitHubEnv = Join-Path ([IO.Path]::GetTempPath()) "export-secrets-tests-$(New-Guid).env"
         New-Item -ItemType File -Path $script:GitHubEnv | Out-Null
         $script:SavedGitHubEnv = $env:GITHUB_ENV
         $env:GITHUB_ENV = $script:GitHubEnv
@@ -161,6 +168,64 @@ Describe 'set-resource-keys.ps1' {
         (Get-Item -Path 'Env:_51DEGREES_LICENSE_KEY').Value | Should -Be $script:Given['_51DEGREES_LICENSE_KEY']
     }
 
+    Context 'publishing and signing names' {
+
+        BeforeAll {
+            # The names a run left, which the process environment and
+            # GITHUB_ENV must agree on.
+            function Get-Left {
+                $written = Read-GitHubEnv $script:GitHubEnv
+                $inProcess = @($script:Given.Keys | Where-Object { Test-Path -Path "Env:$_" } | Sort-Object)
+                @($written.Keys | Sort-Object) | Should -Be $inProcess -Because "GITHUB_ENV and the process hold the same names"
+                return $inProcess
+            }
+        }
+
+        It 'exports no publishing or signing name without a switch' {
+            $output = Invoke-Step -Json $script:Json -Publish $false -Sign $false
+            Get-Left | Should -Be @($script:Unclassed | Sort-Object)
+            foreach ($name in $script:Publishing + $script:Signing) {
+                $output | Should -Not -Match ([regex]::Escape($name)) -Because "$name is not exported"
+            }
+        }
+
+        It 'exports the publishing names and no signing name with -Publish' {
+            Invoke-Step -Json $script:Json -Publish $true -Sign $false | Out-Null
+            Get-Left | Should -Be @($script:Unclassed + $script:Publishing | Sort-Object)
+        }
+
+        It 'exports the signing names and no publishing name with -Sign' {
+            Invoke-Step -Json $script:Json -Publish $false -Sign $true | Out-Null
+            Get-Left | Should -Be @($script:Unclassed + $script:Signing | Sort-Object)
+        }
+
+        It 'exports both with both switches' {
+            Invoke-Step -Json $script:Json -Publish $true -Sign $true | Out-Null
+            Get-Left | Should -Be @($script:Exported | Sort-Object)
+        }
+
+        It 'takes the class from the start of the name alone' {
+            Invoke-Step -Json $script:Json -Publish $false -Sign $false | Out-Null
+            (Get-Item -Path 'Env:_51DEGREES_NOT_PUBLISH_OR_SIGN').Value | Should -Be $script:Given['_51DEGREES_NOT_PUBLISH_OR_SIGN']
+        }
+
+        It 'treats a variable as it treats a secret' {
+            $vars = [ordered]@{
+                _51DEGREES_PUBLISH_FEED = 'value-publish-feed-1a2b'
+                _51DEGREES_SIGN_TIMESTAMP_SERVER = 'value-sign-server-3c4d'
+                _51DEGREES_CLOUD_ENDPOINT = 'value-cloud-endpoint-9e1f'
+            }
+            try {
+                Invoke-Step -Json '{}' -Vars ($vars | ConvertTo-Json -Compress) -Publish $false -Sign $true | Out-Null
+                Test-Path -Path 'Env:_51DEGREES_PUBLISH_FEED' | Should -BeFalse
+                (Get-Item -Path 'Env:_51DEGREES_SIGN_TIMESTAMP_SERVER').Value | Should -Be 'value-sign-server-3c4d'
+                (Get-Item -Path 'Env:_51DEGREES_CLOUD_ENDPOINT').Value | Should -Be 'value-cloud-endpoint-9e1f'
+            } finally {
+                foreach ($name in $vars.Keys) { Remove-Item -Path "Env:$name" -ErrorAction SilentlyContinue }
+            }
+        }
+    }
+
     Context 'variables' {
 
         It 'exports every _51DEGREES_ variable under its own name, with the secrets' {
@@ -199,7 +264,7 @@ Describe 'set-resource-keys.ps1' {
                 _51DEGREES_CLOUD_ENDPOINT = 'value-cloud-endpoint-9e1f'
             } | ConvertTo-Json -Compress
             $failure = $null
-            try { & $script:Step -Secrets $script:Json -Vars $vars *>&1 | Out-Null }
+            try { & $script:Step -Secrets $script:Json -Vars $vars -Publish -Sign *>&1 | Out-Null }
             catch { $failure = $_ }
             $failure | Should -Not -BeNullOrEmpty -Because "a name that is both a secret and a variable is an error"
             $failure.Exception.Message | Should -Match '_51DEGREES_LICENSE_KEY'
@@ -208,6 +273,12 @@ Describe 'set-resource-keys.ps1' {
                 Test-Path -Path "Env:$name" | Should -BeFalse -Because "nothing is exported on a clash"
             }
             (Get-Content -LiteralPath $script:GitHubEnv) | Should -BeNullOrEmpty
+        }
+
+        It 'fails on such a name in a class the job does not take' {
+            $secrets = @{ _51DEGREES_PUBLISH_NPM_AUTH_TOKEN = 'value-npm-token-4e6f' } | ConvertTo-Json -Compress
+            $vars = @{ _51DEGREES_PUBLISH_NPM_AUTH_TOKEN = 'value-variable-npm-2f7d' } | ConvertTo-Json -Compress
+            { & $script:Step -Secrets $secrets -Vars $vars *>&1 | Out-Null } | Should -Throw '*_51DEGREES_PUBLISH_NPM_AUTH_TOKEN*'
         }
 
         It 'writes only names to its output, no variable value' {
@@ -238,7 +309,7 @@ Describe 'Every place the step runs passes the variables with the secrets' {
         $root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
         $Files = @(Get-ChildItem (Join-Path $root '.github/workflows') -Filter '*.yml') +
             @(Get-ChildItem (Join-Path $root '.github/actions'), (Join-Path $root 'actions') -Recurse -Filter 'action.yml')
-        $Files = @($Files | Where-Object { (Get-Content -Raw $_.FullName) -cmatch 'toJSON\(secrets\)|set-resource-keys\.ps1' })
+        $Files = @($Files | Where-Object { (Get-Content -Raw $_.FullName) -cmatch 'toJSON\(secrets\)|export-secrets\.ps1' })
     }
 
     It '<_.FullName> passes the variables wherever it passes the secrets' -ForEach $Files {
@@ -248,7 +319,7 @@ Describe 'Every place the step runs passes the variables with the secrets' {
             if ($step -cmatch 'toJSON\(secrets\)') {
                 $step | Should -Match 'toJSON\(vars\)' -Because "a step that takes the secrets context takes the variables context too"
             }
-            if ($step -cmatch 'set-resource-keys\.ps1') {
+            if ($step -cmatch 'export-secrets\.ps1') {
                 $step | Should -Match '-Secrets ' -Because "the step takes the secrets"
                 $step | Should -Match '-Vars ' -Because "the step takes the variables with the secrets"
             }

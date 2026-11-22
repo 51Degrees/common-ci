@@ -1,7 +1,7 @@
 param(
-    [string]$Metrics = $env:metrics,
-    [switch]$Save = ($env:save -eq 'true'),
-    [string]$Branch = ($env:branch ? $env:branch : 'performance-results')
+    [string]$Metrics = $env:_51DEGREES_METRICS,
+    [switch]$Save = ($env:_51DEGREES_SAVE -eq 'true'),
+    [string]$Branch = ($env:_51DEGREES_BRANCH ? $env:_51DEGREES_BRANCH : 'performance-results')
 )
 $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true

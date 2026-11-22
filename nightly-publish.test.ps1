@@ -1,7 +1,6 @@
 param (
     [Parameter(Mandatory)][string]$RepoName,
     [Parameter(Mandatory)][string]$OrgName,
-    [Parameter(Mandatory)][string]$GitHubToken,
     [Parameter(Mandatory)][Hashtable]$Options,
     [string]$Branch = "main",
     [string]$GitHubUser,
@@ -13,7 +12,7 @@ $ErrorActionPreference = "Stop"
 $Options += $PSBoundParameters # Add RepoName, DryRun etc.
 
 Write-Host "::group::Configure Git"
-./steps/configure-git.ps1 -GitHubToken $GitHubToken -GitHubUser $GitHubUser -GitHubEmail $GitHubEmail
+./steps/configure-git.ps1 -GitHubUser $GitHubUser -GitHubEmail $GitHubEmail
 Write-Host "::endgroup::"
 
 Write-Host "::group::Clone $RepoName"

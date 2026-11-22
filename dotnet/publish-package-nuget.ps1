@@ -9,9 +9,9 @@ param(
 )
 $ErrorActionPreference = "Stop"
 # The feed's key, which the job that publishes exports as
-# _51DEGREES_NUGET_API_KEY. It is read at the push below.
-if (-not $DryRun -and [string]::IsNullOrWhiteSpace($env:_51DEGREES_NUGET_API_KEY)) {
-    throw "_51DEGREES_NUGET_API_KEY is not set, so publishing cannot succeed."
+# _51DEGREES_PUBLISH_NUGET_API_KEY. It is read at the push below.
+if (-not $DryRun -and [string]::IsNullOrWhiteSpace($env:_51DEGREES_PUBLISH_NUGET_API_KEY)) {
+    throw "_51DEGREES_PUBLISH_NUGET_API_KEY is not set, so publishing cannot succeed."
 }
 # dotnet's exit codes are checked by hand, so that every package is verified
 # and all the failures are reported together.
@@ -61,7 +61,7 @@ try {
     if ($DryRun) {
         Write-Output "Dry run - not pushing $((Get-ChildItem *.nupkg).Name -join ', ') to '$Source'"
     } else {
-        dotnet nuget push "*.nupkg" --source $Source --api-key $env:_51DEGREES_NUGET_API_KEY --skip-duplicate
+        dotnet nuget push "*.nupkg" --source $Source --api-key $env:_51DEGREES_PUBLISH_NUGET_API_KEY --skip-duplicate
     }
 
 }

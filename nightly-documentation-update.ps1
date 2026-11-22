@@ -6,7 +6,6 @@ param (
     [string]$Branch = "main",
     [string]$GitHubUser,
     [string]$GitHubEmail,
-    [string]$GitHubToken,
     [bool]$DryRun,
     [bool]$SeparateExamples
 )
@@ -18,7 +17,6 @@ $ErrorActionPreference = "Stop"
     -Branch $Branch `
     -GitHubUser $GitHubUser `
     -GitHubEmail $GitHubEmail `
-    -GitHubToken $GitHubToken `
     -SeparateExamples $SeparateExamples
 
 if ($SeparateExamples) {

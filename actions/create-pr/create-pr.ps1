@@ -1,8 +1,8 @@
 param (
-    [string]$Title = $env:title,
-    [string]$To = $env:to,
-    [switch]$Force = ($env:force -eq 'true'),
-    [switch]$AutoMerge = ($env:auto_merge -eq 'true')
+    [string]$Title = $env:_51DEGREES_TITLE,
+    [string]$To = $env:_51DEGREES_TO,
+    [switch]$Force = ($env:_51DEGREES_FORCE -eq 'true'),
+    [switch]$AutoMerge = ($env:_51DEGREES_AUTO_MERGE -eq 'true')
 )
 $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true

@@ -62,13 +62,13 @@ jobs:
       - name: Get Pull Requests
         id: get_pull_requests
         env:
-          PULL_REQUEST_IDS: ${{ inputs.prs }}
+          _51DEGREES_ACCESS_TOKEN: ${{ secrets._51DEGREES_ACCESS_TOKEN }}
+          _51DEGREES_PULL_REQUEST_IDS: ${{ inputs.prs }}
         run: |
           ./nightly-pull-requests.get-prs.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ inputs.branch != '' && inputs.branch || github.ref_name }} `
-          -GitHubToken ${{ secrets._51DEGREES_ACCESS_TOKEN }} `
           -GitHubOutput $Env:GITHUB_OUTPUT
     outputs:
       pull_request_ids: ${{ steps.get_pull_requests.outputs.pull_request_ids }}

@@ -66,7 +66,7 @@ AfterEach {
         Remove-Item -Recurse -Force $script:Repo
     }
     $script:Repo = $null
-    $env:ALLOW_EARLY_RELEASE = $null
+    $env:_51DEGREES_ALLOW_EARLY_RELEASE = $null
     $env:_51DEGREES_WEEKLY_RELEASES_FROM = $null
 }
 
@@ -144,16 +144,16 @@ Describe 'with the date of the last release given' {
         $result.Output | Should -Match 'dated after today'
     }
 
-    It 'allows an early release when ALLOW_EARLY_RELEASE is set' {
-        $env:ALLOW_EARLY_RELEASE = 'true'
+    It 'allows an early release when _51DEGREES_ALLOW_EARLY_RELEASE is set' {
+        $env:_51DEGREES_ALLOW_EARLY_RELEASE = 'true'
         $result = Invoke-Check @{
             LastRelease = '2026-11-04T09:00:00Z'; Now = '2026-11-06T09:00:00Z' }
         $result.ExitCode | Should -Be 0
         $result.Output | Should -Match 'Early release'
     }
 
-    It 'is not talked round by any other value of ALLOW_EARLY_RELEASE' {
-        $env:ALLOW_EARLY_RELEASE = 'yes'
+    It 'is not talked round by any other value of _51DEGREES_ALLOW_EARLY_RELEASE' {
+        $env:_51DEGREES_ALLOW_EARLY_RELEASE = 'yes'
         (Invoke-Check @{
             LastRelease = '2026-11-04T09:00:00Z'; Now = '2026-11-06T09:00:00Z' }
         ).ExitCode | Should -Be 1
@@ -336,8 +336,8 @@ Describe 'several packages, with -Plan' {
         $result.Output | Should -Match 'released less than a week ago: dd\.'
     }
 
-    It 'allows an early release of every package when ALLOW_EARLY_RELEASE is set' {
-        $env:ALLOW_EARLY_RELEASE = 'true'
+    It 'allows an early release of every package when _51DEGREES_ALLOW_EARLY_RELEASE is set' {
+        $env:_51DEGREES_ALLOW_EARLY_RELEASE = 'true'
         (Invoke-Check @{
             RepoName = $script:Repo; Now = '2026-11-08T12:00:00Z'; Plan = @(
                 [pscustomobject]@{ Name = 'dd'; Version = '4.5.181' }) }

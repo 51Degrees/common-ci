@@ -1,7 +1,6 @@
 param (
     [Parameter(Mandatory)][string]$RepoName,
     [Parameter(Mandatory)][string]$OrgName,
-    [Parameter(Mandatory)][string]$GitHubToken,
     [Parameter(Mandatory)][hashtable]$Options,
     [string]$Branch = "main",
     [string]$GitHubUser,
@@ -14,7 +13,7 @@ $ErrorActionPreference = "Stop"
 $Options += $PSBoundParameters # Add RepoName, DryRun etc.
 
 Write-Host "::group::Configure Git"
-./steps/configure-git.ps1 -GitHubToken $GitHubToken -GitHubUser $GitHubUser -GitHubEmail $GitHubEmail
+./steps/configure-git.ps1 -GitHubUser $GitHubUser -GitHubEmail $GitHubEmail
 Write-Host "::endgroup::"
 
 Write-Host "::group::Clone $RepoName"
@@ -38,6 +37,5 @@ if ($global:SkipUpdateTag) { # Using a global here so that it can be set by publ
   Write-Host "Tag update skipped"
 } else {
   ./steps/update-tag.ps1 -RepoName $RepoName -OrgName $OrgName -Tag $Options.Version -DryRun $DryRun
-  ./steps/upload-release-assets.ps1 -RepoName $RepoName -OrgName $OrgName -Tag $Options.Version -DryRun $DryRun
 }
 Write-Host "::endgroup::"

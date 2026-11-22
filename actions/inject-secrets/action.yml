@@ -12,13 +12,13 @@ runs:
     - id: inject
       shell: pwsh
       env:
-        files: ${{ inputs.files }}
-        secrets: ${{ inputs.secrets }}
+        _51DEGREES_FILES: ${{ inputs.files }}
+        _51DEGREES_SECRETS: ${{ inputs.secrets }}
       run: |
         $ErrorActionPreference = "Stop"
         Set-StrictMode -Version 3.0
-        $secrets = $env:secrets | ConvertFrom-Json -AsHashtable
-        Get-ChildItem $env:files.Split("`n", [StringSplitOptions]::RemoveEmptyEntries) | ForEach-Object {
+        $secrets = $env:_51DEGREES_SECRETS | ConvertFrom-Json -AsHashtable
+        Get-ChildItem $env:_51DEGREES_FILES.Split("`n", [StringSplitOptions]::RemoveEmptyEntries) | ForEach-Object {
             $src = $_
             $dest = $src -clike '*.tpl' ? $src -replace '.tpl$' : $src # strip suffix from templates
             Write-Host "Injecting secrets into $dest"

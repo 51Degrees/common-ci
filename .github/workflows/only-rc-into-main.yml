@@ -42,19 +42,19 @@ jobs:
       contents: read
       pull-requests: read
     env:
-      BASE: ${{ github.base_ref }}
-      HEAD: ${{ github.head_ref }}
-      DEFAULT: ${{ github.event.repository.default_branch }}
-      HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
-      REPOSITORY: ${{ github.repository }}
+      _51DEGREES_BASE: ${{ github.base_ref }}
+      _51DEGREES_HEAD: ${{ github.head_ref }}
+      _51DEGREES_DEFAULT: ${{ github.event.repository.default_branch }}
+      _51DEGREES_HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+      _51DEGREES_REPOSITORY: ${{ github.repository }}
     steps:
       - name: Refuse a pull request into the default branch from any branch but rc
         run: |
-          if [ "$BASE" = "$DEFAULT" ] && { [ "$HEAD" != "rc" ] || [ "$HEAD_REPOSITORY" != "$REPOSITORY" ]; }; then
-            echo "::error title=Only rc merges into $DEFAULT::This pull request merges $HEAD_REPOSITORY:$HEAD into $DEFAULT. Open it against rc instead, as only rc merges into $DEFAULT."
+          if [ "$_51DEGREES_BASE" = "$_51DEGREES_DEFAULT" ] && { [ "$_51DEGREES_HEAD" != "rc" ] || [ "$_51DEGREES_HEAD_REPOSITORY" != "$_51DEGREES_REPOSITORY" ]; }; then
+            echo "::error title=Only rc merges into $_51DEGREES_DEFAULT::This pull request merges $_51DEGREES_HEAD_REPOSITORY:$_51DEGREES_HEAD into $_51DEGREES_DEFAULT. Open it against rc instead, as only rc merges into $_51DEGREES_DEFAULT."
             exit 1
           fi
-          echo "$HEAD_REPOSITORY:$HEAD into $BASE is allowed."
+          echo "$_51DEGREES_HEAD_REPOSITORY:$_51DEGREES_HEAD into $_51DEGREES_BASE is allowed."
 
       # A repository that publishes packages, to a registry or as the
       # versions other packages are built from, says so with the
@@ -62,10 +62,10 @@ jobs:
       - name: Find whether this is a release of packages
         id: release
         env:
-          PUBLISHES_PACKAGES: ${{ inputs.publishes-packages }}
+          _51DEGREES_PUBLISHES_PACKAGES: ${{ inputs.publishes-packages }}
         run: |
           release=false
-          if [ "$BASE" = "$DEFAULT" ] && [ "$HEAD" = "rc" ] && [ "$HEAD_REPOSITORY" = "$REPOSITORY" ] && [ "$PUBLISHES_PACKAGES" = "true" ]; then
+          if [ "$_51DEGREES_BASE" = "$_51DEGREES_DEFAULT" ] && [ "$_51DEGREES_HEAD" = "rc" ] && [ "$_51DEGREES_HEAD_REPOSITORY" = "$_51DEGREES_REPOSITORY" ] && [ "$_51DEGREES_PUBLISHES_PACKAGES" = "true" ]; then
             release=true
           fi
           echo "release=$release" >> "$GITHUB_OUTPUT"
@@ -86,11 +86,11 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-          NUMBER: ${{ github.event.pull_request.number }}
+          _51DEGREES_NUMBER: ${{ github.event.pull_request.number }}
           # The calling repository's variable, or the organisation's.
           _51DEGREES_WEEKLY_RELEASES_FROM: ${{ vars._51DEGREES_WEEKLY_RELEASES_FROM }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          _51DEGREES_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           ./common-ci/steps/check-release-pull-request.ps1 `
-            -Repository $env:REPOSITORY -PullRequest $env:NUMBER `
-            -DefaultBranch $env:DEFAULT -RunUrl $env:RUN_URL
+            -Repository $env:_51DEGREES_REPOSITORY -PullRequest $env:_51DEGREES_NUMBER `
+            -DefaultBranch $env:_51DEGREES_DEFAULT -RunUrl $env:_51DEGREES_RUN_URL

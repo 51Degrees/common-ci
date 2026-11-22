@@ -25,7 +25,7 @@ This check guards against one directive in one commit moving every package a
 repository publishes to a new minor version in a single run, in every
 registry at once.
 
-To publish a bump deliberately, set ALLOW_VERSION_BUMP to 'true' in the
+To publish a bump deliberately, set _51DEGREES_ALLOW_VERSION_BUMP to 'true' in the
 workflow run. That is a decision someone makes with their name on it rather
 than something a commit message does quietly.
 
@@ -221,14 +221,14 @@ if ($null -eq $place) {
     exit 0
 }
 
-if ($env:ALLOW_VERSION_BUMP -eq 'true') {
-    Write-Output "Publishing $Version, against $released already released. That moves the $place place, allowed by ALLOW_VERSION_BUMP."
+if ($env:_51DEGREES_ALLOW_VERSION_BUMP -eq 'true') {
+    Write-Output "Publishing $Version, against $released already released. That moves the $place place, allowed by _51DEGREES_ALLOW_VERSION_BUMP."
     exit 0
 }
 
 Write-Output "::error title=Version bump refused::This publish would release $Version, against $released already released. That moves the $place place."
 Write-Output ""
-Write-Output "Nothing is published. To do this deliberately, run the workflow again with ALLOW_VERSION_BUMP set to 'true'."
+Write-Output "Nothing is published. To do this deliberately, run the workflow again with _51DEGREES_ALLOW_VERSION_BUMP set to 'true'."
 Write-Output ""
 Write-Output "Before you do, what a $place bump costs:"
 Write-Output "  * The 51Degrees documentation is versioned, so this means a new documentation version."

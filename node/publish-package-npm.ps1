@@ -12,19 +12,19 @@ $authTokenConfigKey = '//registry.npmjs.org/:_authToken'
 # npm answers an unauthorised publish with '404 Not Found' rather than 401/403, so that it
 # never discloses whether a package name exists. That reads like a missing package and sends
 # anyone debugging a failed nightly down the wrong path, so say what it actually means.
-$authTokenHint = "The _51DEGREES_NPM_AUTH_TOKEN secret is missing, expired, revoked, or has lost publish " +
+$authTokenHint = "The _51DEGREES_PUBLISH_NPM_AUTH_TOKEN secret is missing, expired, revoked, or has lost publish " +
     "rights on the fiftyone.* packages. Note that npm answers an unauthorised publish with " +
     "'404 Not Found' instead of 401/403, so a 404 here does not mean the package is absent."
 
-if ([string]::IsNullOrWhiteSpace($env:_51DEGREES_NPM_AUTH_TOKEN)) {
-    $message = "_51DEGREES_NPM_AUTH_TOKEN is not set, so publishing cannot succeed. $authTokenHint"
+if ([string]::IsNullOrWhiteSpace($env:_51DEGREES_PUBLISH_NPM_AUTH_TOKEN)) {
+    $message = "_51DEGREES_PUBLISH_NPM_AUTH_TOKEN is not set, so publishing cannot succeed. $authTokenHint"
     # A dry run never authenticates against the registry, so an absent token is not fatal there.
     if ($DryRun) { Write-Warning $message } else { throw $message }
 }
 
 # npm takes the registry credential from its config, set here from the
 # publishing secret the job exported.
-npm config set $authTokenConfigKey $env:_51DEGREES_NPM_AUTH_TOKEN
+npm config set $authTokenConfigKey $env:_51DEGREES_PUBLISH_NPM_AUTH_TOKEN
 
 # Fail fast on an unusable token, while the message can still name the real cause.
 try {

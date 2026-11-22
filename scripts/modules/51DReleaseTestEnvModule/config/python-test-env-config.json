@@ -1,0 +1,321 @@
+{
+	"name": "APIs Test Environment Configuration",
+	"repositories": {
+		"javascript": {},
+		"device-detection-data": {},
+		"common-ci": {
+			"tags": [
+				"4.3.1"
+			],
+			"definitions": [
+				{
+					"name": "common-ci-test",
+					"defaultBranch": "main",
+					"yamlFileName": "build-and-test.yml"
+				},
+				{
+					"name": "common-ci-tag-repository",
+					"defaultBranch": "main",
+					"yamlFileName": "create-tag.yml"
+				},
+				{
+					"name": "common-ci-trigger-release",
+					"defaultBranch": "main",
+					"yamlFileName": "trigger-release-apis.yml"
+				}
+			],
+			"policies": [
+				{
+					"definition": "common-ci-test",
+					"type": "Build",
+					"refName": "refs/heads/main",
+					"matchKind": "Exact"
+				}
+			],
+			"pullRequests": [
+				{
+					"source": "feature/complete-pr-dependencies",
+					"target": "hotfix/v4.3.2"
+				},
+				{
+					"source": "feature/common-ci-create-tag",
+					"target": "hotfix/v4.3.2"
+				},
+				{
+					"source": "feature/release-test-env-creation",
+					"target": "hotfix/v4.3.2"
+				}
+			]
+		},
+		"common-cxx": {
+			"definitions": [
+				{
+					"name": "common-cxx-test",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/build-and-test.yml"
+				},
+				{
+					"name": "common-cxx-tag-repository",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/create-tag.yml"
+				},
+				{
+					"name": "common-cxx-submodule-trigger",
+					"defaultBranch": "hotfix/v4.3.1",
+					"yamlFileName": "ci/submodule-trigger.yml",
+					"triggers": [
+						{
+							"definitionName": "common-ci-tag-repository",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/main"
+							],
+							"triggerType": "buildCompletion"
+						}
+					]
+				}
+			],
+			"policies": [
+				{
+					"definition": "common-cxx-test",
+					"type": "Build",
+					"refName": "refs/heads/master",
+					"matchKind": "Exact"
+				}
+			],
+			"pullRequests": [
+				{
+					"source": "feature/auto-release",
+					"target": "hotfix/v4.3.1"
+				}
+			],
+			"submodules": [
+				"common-ci"
+			]
+		},
+		"device-detection-cxx": {
+			"definitions": [
+				{
+					"name": "device-detection-cxx-test",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/build-and-test.yml"
+				},
+				{
+					"name": "device-detection-cxx-tag-repository",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/create-tag.yml"
+				},
+				{
+					"name": "device-detection-cxx-submodule-trigger",
+					"defaultBranch": "hotfix/v4.3.2",
+					"yamlFileName": "ci/submodule-trigger.yml",
+					"triggers": [
+						{
+							"definitionName": "common-ci-tag-repository",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/main"
+							],
+							"triggerType": "buildCompletion"
+						},
+						{
+							"definitionName": "common-cxx-tag-repository",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/master"
+							],
+							"triggerType": "buildCompletion"
+						}
+					]
+				}
+			],
+			"policies": [
+				{
+					"definition": "device-detection-cxx-test",
+					"type": "Build",
+					"refName": "refs/heads/master",
+					"matchKind": "Exact"
+				}
+			],
+			"pullRequests": [
+				{
+					"source": "feature/auto-release",
+					"target": "hotfix/v4.3.2"
+				}
+			],
+			"submodules": [
+				"common-ci",
+				"common-cxx",
+				"device-detection-data"
+			]
+		},
+		"pipeline-python": {
+			"definitions": [
+				{
+					"name": "pipeline-python-test",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/build-and-test.yml"
+				},
+				{
+					"name": "pipeline-python-create-packages",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/create-packages.yml"
+				},
+				{
+					"name": "pipeline-python-submodule-trigger",
+					"defaultBranch": "hotfix/v4.3.1",
+					"yamlFileName": "ci/submodule-trigger.yml",
+					"triggers": [
+						{
+							"definitionName": "common-ci-tag-repository",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/main"
+							],
+							"triggerType": "buildCompletion"
+						}
+					]
+				}
+			],
+			"policies": [
+				{
+					"definition": "pipeline-python-test",
+					"type": "Build",
+					"refName": "refs/heads/master",
+					"matchKind": "Exact"
+				}
+			],
+			"pullRequests": [
+				{
+					"source": "feature/auto-release",
+					"target": "hotfix/v4.3.1"
+				}
+			],
+			"submodules": [
+				"common-ci"
+			]
+		},
+		"device-detection-python": {
+			"definitions": [
+				{
+					"name": "device-detection-python-test",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/build-and-test.yml"
+				},
+				{
+					"name": "device-detection-python-create-packages",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/create-packages.yml"
+				},
+				{
+					"name": "device-detection-python-submodule-trigger",
+					"defaultBranch": "release/v4.3.0",
+					"yamlFileName": "ci/submodule-trigger.yml",
+					"triggers": [
+						{
+							"definitionName": "common-ci-tag-repository",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/main"
+							],
+							"triggerType": "buildCompletion"
+						},
+						{
+							"definitionName": "device-detection-cxx-tag-repository",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/master"
+							],
+							"triggerType": "buildCompletion"
+						},
+						{
+							"definitionName": "pipeline-python-create-packages",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/master"
+							],
+							"triggerType": "buildCompletion"
+						}
+					]
+				}
+			],
+			"policies": [
+				{
+					"definition": "device-detection-python-test",
+					"type": "Build",
+					"refName": "refs/heads/master",
+					"matchKind": "Exact"
+				}
+			],
+			"pullRequests": [
+				{
+					"source": "feature/auto-release",
+					"target": "release/v4.3.0"
+				}
+			],
+			"submodules": [
+				"common-ci",
+				"device-detection-cxx"
+			]
+		},
+		"location-python": {
+			"definitions": [
+				{
+					"name": "location-python-test",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/build-and-test.yml"
+				},
+				{
+					"name": "location-python-create-packages",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/create-packages.yml"
+				},
+				{
+					"name": "location-python-submodule-trigger",
+					"defaultBranch": "release/v4.3.0",
+					"yamlFileName": "ci/submodule-trigger.yml",
+					"triggers": [
+						{
+							"definitionName": "common-ci-tag-repository",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/main"
+							],
+							"triggerType": "buildCompletion"
+						},
+						{
+							"definitionName": "pipeline-python-create-packages",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/master"
+							],
+							"triggerType": "buildCompletion"
+						}
+					]
+				}
+			],
+			"policies": [
+				{
+					"definition": "location-python-test",
+					"type": "Build",
+					"refName": "refs/heads/master",
+					"matchKind": "Exact"
+				}
+			],
+			"pullRequests": [
+				{
+					"source": "feature/auto-release",
+					"target": "release/v4.3.0"
+				}
+			],
+			"submodules": [
+				"common-ci"
+			]
+		}
+	},
+	"policies": [
+        {
+            "type": "Required reviewers"
+        }
+    ]
+}

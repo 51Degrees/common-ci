@@ -1,7 +1,6 @@
 param (
     [Parameter(Mandatory)][string]$RepoName,
     [Parameter(Mandatory)][string]$OrgName,
-    [Parameter(Mandatory)][string]$GitHubToken,
     [Parameter(Mandatory)][string]$GitHubOutput,
     [Parameter(Mandatory)][hashtable[]]$Options,
     [string]$Branch = "main",
@@ -13,7 +12,7 @@ param (
 $ErrorActionPreference = "Stop"
 
 Write-Output "::group::Configure Git"
-./steps/configure-git.ps1 -GitHubToken $GitHubToken -GitHubUser $GitHubUser -GitHubEmail $GitHubEmail
+./steps/configure-git.ps1 -GitHubUser $GitHubUser -GitHubEmail $GitHubEmail
 Write-Output "::endgroup::"
 
 Write-Output "::group::Clone $RepoName"

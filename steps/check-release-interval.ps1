@@ -8,7 +8,7 @@ A package repository releases at most once a week, as CONTRIBUTING.md
 explains under "Releasing at most once a week". Days are whole calendar days
 in UTC.
 
-ALLOW_EARLY_RELEASE set to 'true' allows an early release. The rule applies
+_51DEGREES_ALLOW_EARLY_RELEASE set to 'true' allows an early release. The rule applies
 from the date in _51DEGREES_WEEKLY_RELEASES_FROM, such as 2026-11-03. Unset, or set to a
 date still ahead, the check reports what it would decide and passes.
 
@@ -63,7 +63,7 @@ param (
     [string]$RepoName,
     [string]$TagPrefix,
     [string]$Repository,
-    [string]$HowToAllow = "run this again with ALLOW_EARLY_RELEASE set to 'true'.",
+    [string]$HowToAllow = "run this again with _51DEGREES_ALLOW_EARLY_RELEASE set to 'true'.",
     [string]$Now,
     [object[]]$Plan
 )
@@ -224,8 +224,8 @@ if (-not $enforced) {
     exit 0
 }
 
-if ($env:ALLOW_EARLY_RELEASE -eq 'true') {
-    Write-Output "::warning title=Early release::$facts This one goes early, on $(Format-Day $today), allowed by ALLOW_EARLY_RELEASE."
+if ($env:_51DEGREES_ALLOW_EARLY_RELEASE -eq 'true') {
+    Write-Output "::warning title=Early release::$facts This one goes early, on $(Format-Day $today), allowed by _51DEGREES_ALLOW_EARLY_RELEASE."
     exit 0
 }
 

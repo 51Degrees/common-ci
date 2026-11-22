@@ -78,7 +78,7 @@ Takes the following additional parameters:
 Takes the following additional parameters:
 | Parameter | Mandatory | Description |
 | --------- | :-------: | ----------- |
-| Source | | NuGet source to publish to. By default this is `https://api.nuget.org/v3/index.json`. The key is read from `_51DEGREES_NUGET_API_KEY`. |
+| Source | | NuGet source to publish to. By default this is `https://api.nuget.org/v3/index.json`. The key is read from `_51DEGREES_PUBLISH_NUGET_API_KEY`. |
 | DryRun | | If true, list the packages and do not push them. |
 
 ## Publish Package GitHub

@@ -6,10 +6,10 @@ param (
 $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
 
-# Data files come from the Distributor with the data licence key, which the
+# Data files come from the Distributor with the data license key, which the
 # shared workflows export as _51DEGREES_LICENSE_KEY.
 if ([string]::IsNullOrWhiteSpace($env:_51DEGREES_LICENSE_KEY)) {
-    throw "'$FullFilePath' needs the data licence key, and _51DEGREES_LICENSE_KEY is not set. It is an organisation secret, which the calling workflow passes with 'secrets: inherit'."
+    throw "'$FullFilePath' needs the data license key, and _51DEGREES_LICENSE_KEY is not set. It is an organization secret, which the calling workflow passes with 'secrets: inherit'."
 }
 
 $Url = "https://distributor.51degrees.com/api/v2/download?LicenseKeys=$env:_51DEGREES_LICENSE_KEY&Type=$DataType&Download=True&Product=$Product"

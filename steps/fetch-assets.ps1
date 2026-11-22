@@ -4,14 +4,19 @@ param (
 )
 $ErrorActionPreference = "Stop"
 
-# The licensed files come from the Distributor and the bulk data service with
-# the data licence key, which the shared workflows export as
-# _51DEGREES_LICENSE_KEY. Without it, the step fails naming the variable,
-# rather than with the service's refusal.
+# An asset named <name>.json, in lower case letters, digits, and hyphens, is
+# the bulkdata data source <name>.
+$dataSourceAsset = '^[a-z0-9][a-z0-9-]*\.json$'
+
+# The licensed files and every data source come from the Distributor and the
+# bulk data service with the data license key, which the shared workflows
+# export as _51DEGREES_LICENSE_KEY. Without it, the step fails naming the
+# variable, rather than with the service's refusal.
 $licensed = @('TAC-HashV41.hash', '51Degrees-EnterpriseIpiV41.ipi', '51Degrees.csv',
-    '51Degrees-Tac.zip', 'chargify.json', 'entitlement.json')
+    '51Degrees-Tac.zip')
 function Test-Licensed ([string]$Asset) {
-    return ($Asset -cnotin $licensed) -or -not [string]::IsNullOrWhiteSpace($env:_51DEGREES_LICENSE_KEY)
+    if (($Asset -cnotin $licensed) -and ($Asset -cnotmatch $dataSourceAsset)) { return $true }
+    return -not [string]::IsNullOrWhiteSpace($env:_51DEGREES_LICENSE_KEY)
 }
 $PSNativeCommandUseErrorActionPreference = $true
 
@@ -124,7 +129,7 @@ foreach ($asset in $Assets) {
         continue
     }
     if (-not (Test-Licensed $asset)) {
-        throw "'$asset' needs the data licence key, and _51DEGREES_LICENSE_KEY is not set. It is an organisation secret, which the calling workflow passes with 'secrets: inherit'."
+        throw "'$asset' needs the data license key, and _51DEGREES_LICENSE_KEY is not set. It is an organization secret, which the calling workflow passes with 'secrets: inherit'."
     }
     Write-Host "Fetching '$asset'"
     try {
@@ -154,11 +159,10 @@ foreach ($asset in $Assets) {
             "51Degrees-Tac.zip" {  # same as the CSV above, without extracting
                 & $PSScriptRoot/download-data-file.ps1 -DataType 'CSV' -Product 'V4TAC' -FullFilePath "$cache/$_"
             }
-            "chargify.json" {
-                Get-FromBulkData -Data 'chargify' -Output $cache/$_
-            }
-            "entitlement.json" {
-                Get-FromBulkData -Data 'entitlement' -Output $cache/$_
+            # A data source is fetched newest day first, so a new one needs
+            # no change here.
+            { $_ -cmatch $dataSourceAsset } {
+                Get-FromBulkData -Data ($_ -creplace '\.json$', '') -Output $cache/$_
             }
             default { Write-Error "Unknown asset: $_" }
         }

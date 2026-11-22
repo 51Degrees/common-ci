@@ -8,17 +8,16 @@ param (
     [string]$GitHubUser,
     [Parameter(Mandatory=$true)]
     [string]$GitHubEmail,
-    [string]$GitHubToken,
     [bool]$DryRun
 )
 $ErrorActionPreference = "Stop"
 
 # This token is used by the gh command.
 Write-Output "Setting GITHUB_TOKEN"
-$env:GITHUB_TOKEN="$GitHubToken"
+$env:GITHUB_TOKEN = $env:_51DEGREES_ACCESS_TOKEN
 
 Write-Output "::group::Configure Git"
-./steps/configure-git.ps1 -GitHubToken $GitHubToken -GitHubUser $GitHubUser -GitHubEmail $GitHubEmail
+./steps/configure-git.ps1 -GitHubUser $GitHubUser -GitHubEmail $GitHubEmail
 Write-Output "::endgroup::"
 
 # The pull request targets rc where the repository takes changes through rc.

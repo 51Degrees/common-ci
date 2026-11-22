@@ -1,7 +1,6 @@
 param (
     [Parameter(Mandatory)][string]$RepoName,
     [Parameter(Mandatory)][string]$OrgName,
-    [Parameter(Mandatory)][string]$GitHubToken,
     [Parameter(Mandatory)][string]$GitHubOutput,
     [Parameter(Mandatory)][string]$PullRequestId,
     [Parameter(Mandatory)][hashtable]$Options,
@@ -16,7 +15,7 @@ $ErrorActionPreference = "Stop"
 $Options += $PSBoundParameters # Add RepoName, DryRun etc.
 
 Write-Host "::group::Configure Git"
-./steps/configure-git.ps1 -GitHubToken $GitHubToken -GitHubUser $GitHubUser -GitHubEmail $GitHubEmail
+./steps/configure-git.ps1 -GitHubUser $GitHubUser -GitHubEmail $GitHubEmail
 Write-Host "::endgroup::"
 
 # On Windows, map the workspace to a short drive letter to avoid MAX_PATH (260 char)

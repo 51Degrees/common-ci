@@ -1,0 +1,700 @@
+{
+	"name": "APIs Test Environment Configuration",
+	"repositories": {
+		"javascript": {},
+		"device-detection-data": {},
+		"common-ci": {
+			"tags": [
+				"4.3.1"
+			],
+			"definitions": [
+				{
+					"name": "common-ci-test",
+					"defaultBranch": "main",
+					"yamlFileName": "build-and-test.yml"
+				},
+				{
+					"name": "common-ci-tag-repository",
+					"defaultBranch": "main",
+					"yamlFileName": "create-tag.yml"
+				},
+				{
+					"name": "common-ci-trigger-release",
+					"defaultBranch": "main",
+					"yamlFileName": "trigger-release-apis.yml"
+				}
+			],
+			"policies": [
+				{
+					"definition": "common-ci-test",
+					"type": "Build",
+					"refName": "refs/heads/main",
+					"matchKind": "Exact"
+				}
+			],
+			"pullRequests": [
+				{
+					"source": "feature/complete-pr-dependencies",
+					"target": "hotfix/v4.3.2"
+				},
+				{
+					"source": "feature/common-ci-create-tag",
+					"target": "hotfix/v4.3.2"
+				},
+				{
+					"source": "feature/release-test-env-creation",
+					"target": "hotfix/v4.3.2"
+				}
+			]
+		},
+		"common-cxx": {
+			"definitions": [
+				{
+					"name": "common-cxx-test",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/build-and-test.yml"
+				},
+				{
+					"name": "common-cxx-tag-repository",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/create-tag.yml"
+				},
+				{
+					"name": "common-cxx-submodule-trigger",
+					"defaultBranch": "hotfix/v4.3.1",
+					"yamlFileName": "ci/submodule-trigger.yml",
+					"triggers": [
+						{
+							"definitionName": "common-ci-tag-repository",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/main"
+							],
+							"triggerType": "buildCompletion"
+						}
+					]
+				}
+			],
+			"policies": [
+				{
+					"definition": "common-cxx-test",
+					"type": "Build",
+					"refName": "refs/heads/master",
+					"matchKind": "Exact"
+				}
+			],
+			"pullRequests": [
+				{
+					"source": "feature/auto-release",
+					"target": "hotfix/v4.3.1"
+				}
+			],
+			"submodules": [
+				"common-ci"
+			]
+		},
+		"device-detection-cxx": {
+			"definitions": [
+				{
+					"name": "device-detection-cxx-test",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/build-and-test.yml"
+				},
+				{
+					"name": "device-detection-cxx-tag-repository",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/create-tag.yml"
+				},
+				{
+					"name": "device-detection-cxx-submodule-trigger",
+					"defaultBranch": "hotfix/v4.3.2",
+					"yamlFileName": "ci/submodule-trigger.yml",
+					"triggers": [
+						{
+							"definitionName": "common-ci-tag-repository",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/main"
+							],
+							"triggerType": "buildCompletion"
+						},
+						{
+							"definitionName": "common-cxx-tag-repository",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/master"
+							],
+							"triggerType": "buildCompletion"
+						}
+					]
+				}
+			],
+			"policies": [
+				{
+					"definition": "device-detection-cxx-test",
+					"type": "Build",
+					"refName": "refs/heads/master",
+					"matchKind": "Exact"
+				}
+			],
+			"pullRequests": [
+				{
+					"source": "feature/auto-release",
+					"target": "hotfix/v4.3.2"
+				}
+			],
+			"submodules": [
+				"common-ci",
+				"common-cxx",
+				"device-detection-data"
+			]
+		},
+		"common-dotnet": {
+			"tags": [
+				"4.3.0"
+			],
+			"definitions": [
+				{
+					"name": "common-dotnet-test",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/build-and-test.yml"
+				},
+				{
+					"name": "common-dotnet-create-packages",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/create-packages.yml"
+				},
+				{
+					"name": "common-dotnet-deploy-internal",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/deploy-internal.yml",
+					"triggers": [
+						{
+							"definitionName": "common-dotnet-create-packages",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/master"
+							],
+							"triggerType": "buildCompletion"
+						}
+					]
+				},
+				{
+					"name": "common-dotnet-deploy-external",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/deploy-external.yml",
+					"triggers": [
+						{
+							"definitionName": "common-dotnet-create-packages",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/master"
+							],
+							"triggerType": "buildCompletion"
+						}
+					]
+				},
+				{
+					"name": "common-dotnet-submodule-trigger",
+					"defaultBranch": "hotfix/v4.3.1",
+					"yamlFileName": "ci/submodule-trigger.yml",
+					"triggers": [
+						{
+							"definitionName": "common-ci-tag-repository",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/main"
+							],
+							"triggerType": "buildCompletion"
+						}
+					]
+				}
+			],
+			"policies": [
+				{
+					"definition": "common-dotnet-test",
+					"type": "Build",
+					"refName": "refs/heads/master",
+					"matchKind": "Exact"
+				}
+			],
+			"pullRequests": [
+				{
+					"source": "feature/auto-release",
+					"target": "hotfix/v4.3.1"
+				}
+			],
+			"submodules": [
+				"common-ci"
+			]
+		},
+		"caching-dotnet": {
+			"definitions": [
+				{
+					"name": "caching-dotnet-test",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/build-and-test.yml"
+				},
+				{
+					"name": "caching-dotnet-create-packages",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/create-packages.yml"
+				},
+				{
+					"name": "caching-dotnet-deploy-internal",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/deploy-internal.yml",
+					"triggers": [
+						{
+							"definitionName": "caching-dotnet-create-packages",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/master"
+							],
+							"triggerType": "buildCompletion"
+						}
+					]
+				},
+				{
+					"name": "caching-dotnet-deploy-external",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/deploy-external.yml",
+					"triggers": [
+						{
+							"definitionName": "caching-dotnet-create-packages",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/master"
+							],
+							"triggerType": "buildCompletion"
+						}
+					]
+				},
+				{
+					"name": "caching-dotnet-submodule-trigger",
+					"defaultBranch": "hotfix/v4.3.1",
+					"yamlFileName": "ci/submodule-trigger.yml",
+					"triggers": [
+						{
+							"definitionName": "common-ci-tag-repository",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/main"
+							],
+							"triggerType": "buildCompletion"
+						}
+					]
+				}
+			],
+			"policies": [
+				{
+					"definition": "caching-dotnet-test",
+					"type": "Build",
+					"refName": "refs/heads/master",
+					"matchKind": "Exact"
+				}
+			],
+			"pullRequests": [
+				{
+					"source": "feature/auto-release",
+					"target": "hotfix/v4.3.1"
+				}
+			],
+			"submodules": [
+				"common-ci"
+			]
+		},
+		"pipeline-dotnet": {
+			"definitions": [
+				{
+					"name": "pipeline-dotnet-test",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/build-and-test.yml"
+				},
+				{
+					"name": "pipeline-dotnet-create-packages",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/create-packages.yml"
+				},
+				{
+					"name": "pipeline-dotnet-deploy-internal",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/deploy-internal.yml",
+					"triggers": [
+						{
+							"definitionName": "pipeline-dotnet-create-packages",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/master"
+							],
+							"triggerType": "buildCompletion"
+						}
+					]
+				},
+				{
+					"name": "pipeline-dotnet-deploy-external",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/deploy-external.yml",
+					"triggers": [
+						{
+							"definitionName": "pipeline-dotnet-create-packages",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/master"
+							],
+							"triggerType": "buildCompletion"
+						}
+					]
+				},
+				{
+					"name": "pipeline-dotnet-submodule-trigger",
+					"defaultBranch": "hotfix/v4.3.1",
+					"yamlFileName": "ci/submodule-trigger.yml",
+					"triggers": [
+						{
+							"definitionName": "common-ci-tag-repository",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/main"
+							],
+							"triggerType": "buildCompletion"
+						},
+						{
+							"definitionName": "common-dotnet-deploy-internal",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/master"
+							],
+							"triggerType": "buildCompletion"
+						},
+						{
+							"definitionName": "caching-dotnet-deploy-internal",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/master"
+							],
+							"triggerType": "buildCompletion"
+						}
+					]
+				}
+			],
+			"policies": [
+				{
+					"definition": "pipeline-dotnet-test",
+					"type": "Build",
+					"refName": "refs/heads/master",
+					"matchKind": "Exact"
+				}
+			],
+			"pullRequests": [
+				{
+					"source": "feature/auto-release",
+					"target": "hotfix/v4.3.1"
+				}
+			],
+			"submodules": [
+				"common-ci"
+			]
+		},
+		"device-detection-dotnet": {
+			"definitions": [
+				{
+					"name": "device-detection-dotnet-test",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/build-and-test.yml"
+				},
+				{
+					"name": "device-detection-dotnet-create-packages",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/create-packages.yml"
+				},
+				{
+					"name": "device-detection-dotnet-deploy-internal",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/deploy-internal.yml",
+					"triggers": [
+						{
+							"definitionName": "device-detection-dotnet-create-packages",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/master"
+							],
+							"triggerType": "buildCompletion"
+						}
+					]
+				},
+				{
+					"name": "device-detection-dotnet-deploy-external",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/deploy-external.yml",
+					"triggers": [
+						{
+							"definitionName": "device-detection-dotnet-deploy-internal",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/master"
+							],
+							"triggerType": "buildCompletion"
+						}
+					]
+				},
+				{
+					"name": "device-detection-dotnet-submodule-trigger",
+					"defaultBranch": "hotfix/v4.3.1",
+					"yamlFileName": "ci/submodule-trigger.yml",
+					"triggers": [
+						{
+							"definitionName": "common-ci-tag-repository",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/main"
+							],
+							"triggerType": "buildCompletion"
+						},
+						{
+							"definitionName": "device-detection-cxx-tag-repository",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/master"
+							],
+							"triggerType": "buildCompletion"
+						},
+						{
+							"definitionName": "pipeline-dotnet-deploy-internal",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/master"
+							],
+							"triggerType": "buildCompletion"
+						},
+						{
+							"definitionName": "common-dotnet-deploy-internal",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/master"
+							],
+							"triggerType": "buildCompletion"
+						}
+					]
+				}
+			],
+			"policies": [
+				{
+					"definition": "device-detection-dotnet-test",
+					"type": "Build",
+					"refName": "refs/heads/master",
+					"matchKind": "Exact"
+				}
+			],
+			"pullRequests": [
+				{
+					"source": "feature/auto-release",
+					"target": "hotfix/v4.3.1"
+				}
+			],
+			"submodules": [
+				"common-ci",
+				"device-detection-cxx",
+				"javascript"
+			]
+		},
+		"location-dotnet": {
+			"definitions": [
+				{
+					"name": "location-dotnet-test",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/build-and-test.yml"
+				},
+				{
+					"name": "location-dotnet-create-packages",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/create-packages.yml"
+				},
+				{
+					"name": "location-dotnet-deploy-internal",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/deploy-internal.yml",
+					"triggers": [
+						{
+							"definitionName": "location-dotnet-create-packages",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/master"
+							],
+							"triggerType": "buildCompletion"
+						}
+					]
+				},
+				{
+					"name": "location-dotnet-deploy-external",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/deploy-external.yml",
+					"triggers": [
+						{
+							"definitionName": "location-dotnet-deploy-internal",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/master"
+							],
+							"triggerType": "buildCompletion"
+						}
+					]
+				},
+				{
+					"name": "location-dotnet-submodule-trigger",
+					"defaultBranch": "hotfix/v4.3.2",
+					"yamlFileName": "ci/submodule-trigger.yml",
+					"triggers": [
+						{
+							"definitionName": "common-ci-tag-repository",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/main"
+							],
+							"triggerType": "buildCompletion"
+						},
+						{
+							"definitionName": "pipeline-dotnet-deploy-internal",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/master"
+							],
+							"triggerType": "buildCompletion"
+						},
+						{
+							"definitionName": "device-detection-dotnet-deploy-internal",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/master"
+							],
+							"triggerType": "buildCompletion"
+						},
+						{
+							"definitionName": "common-dotnet-deploy-internal",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/master"
+							],
+							"triggerType": "buildCompletion"
+						}
+					]
+				}
+			],
+			"policies": [
+				{
+					"definition": "location-dotnet-test",
+					"type": "Build",
+					"refName": "refs/heads/master",
+					"matchKind": "Exact"
+				}
+			],
+			"pullRequests": [
+				{
+					"source": "feature/auto-release",
+					"target": "hotfix/v4.3.2"
+				}
+			],
+			"submodules": [
+				"common-ci"
+			]
+		},
+		"internal-engines-dotnet": {
+			"definitions": [
+				{
+					"name": "internal-engines-dotnet-test",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/build-and-test.yml"
+				},
+				{
+					"name": "internal-engines-dotnet-create-packages",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/create-packages.yml"
+				},
+				{
+					"name": "internal-engines-dotnet-deploy-internal",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/deploy-internal.yml",
+					"triggers": [
+						{
+							"definitionName": "internal-engines-dotnet-create-packages",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/master"
+							],
+							"triggerType": "buildCompletion"
+						}
+					]
+				},
+				{
+					"name": "internal-engines-dotnet-submodule-trigger",
+					"defaultBranch": "release/v4.3.0",
+					"yamlFileName": "ci/submodule-trigger.yml",
+					"triggers": [
+						{
+							"definitionName": "common-ci-tag-repository",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/main"
+							],
+							"triggerType": "buildCompletion"
+						},
+						{
+							"definitionName": "pipeline-dotnet-deploy-internal",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/master"
+							],
+							"triggerType": "buildCompletion"
+						},
+						{
+							"definitionName": "device-detection-dotnet-deploy-internal",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/master"
+							],
+							"triggerType": "buildCompletion"
+						},
+						{
+							"definitionName": "location-dotnet-deploy-internal",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/master"
+							],
+							"triggerType": "buildCompletion"
+						},
+						{
+							"definitionName": "common-dotnet-deploy-internal",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/master"
+							],
+							"triggerType": "buildCompletion"
+						}
+					]
+				}
+			],
+			"policies": [
+				{
+					"definition": "internal-engines-dotnet-test",
+					"type": "Build",
+					"refName": "refs/heads/master",
+					"matchKind": "Exact"
+				}
+			],
+			"pullRequests": [
+				{
+					"source": "feature/auto-release",
+					"target": "release/v4.3.0"
+				}
+			],
+			"submodules": [
+				"common-ci"
+			]
+		}
+	},
+	"policies": [
+        {
+            "type": "Required reviewers"
+        }
+    ]
+}

@@ -5,8 +5,6 @@ param (
     [string]$OrgName,
     [string]$Branch = "main",
     [Parameter(Mandatory=$true)]
-    [string]$GitHubToken,
-    [Parameter(Mandatory=$true)]
     [string]$GitHubOutput,
     # When no pull request is eligible, build the branch itself, as pull
     # request 0. A run started by hand can leave that to the nightly.
@@ -16,7 +14,7 @@ $ErrorActionPreference = "Stop"
 
 # This token is used by the gh command.
 Write-Output "Setting GITHUB_TOKEN"
-$env:GITHUB_TOKEN="$GitHubToken"
+$env:GITHUB_TOKEN = $env:_51DEGREES_ACCESS_TOKEN
 
 # Where the repository takes changes through rc, the pull requests built and
 # merged are the ones into rc, never the ones into the default branch.
@@ -26,9 +24,9 @@ Write-Output "Pull requests into '$Branch' are built and merged"
 
 # If the list of pull requests is provided as a CI parameter - output it and exit early.
 # An environment variable is used instead of a parameter to avoid arbitrary code injection.
-if ($env:PULL_REQUEST_IDS) {
-    Write-Output "Pull request ids are: $env:PULL_REQUEST_IDS"
-    "pull_request_ids=[$env:PULL_REQUEST_IDS]" | Out-File $GitHubOutput -Append
+if ($env:_51DEGREES_PULL_REQUEST_IDS) {
+    Write-Output "Pull request ids are: $env:_51DEGREES_PULL_REQUEST_IDS"
+    "pull_request_ids=[$env:_51DEGREES_PULL_REQUEST_IDS]" | Out-File $GitHubOutput -Append
     exit
 }
 

@@ -1,0 +1,290 @@
+{
+	"name": "APIs Test Environment Configuration",
+	"repositories": {
+		"javascript": {},
+		"device-detection-data": {},
+		"common-ci": {
+			"tags": [
+				"4.3.10"
+			],
+			"definitions": [
+				{
+					"name": "common-ci-test",
+					"defaultBranch": "main",
+					"yamlFileName": "build-and-test.yml"
+				},
+				{
+					"name": "common-ci-tag-repository",
+					"defaultBranch": "main",
+					"yamlFileName": "create-tag.yml"
+				},
+				{
+					"name": "common-ci-trigger-release",
+					"defaultBranch": "main",
+					"yamlFileName": "trigger-release-apis.yml"
+				}
+			],
+			"policies": [
+				{
+					"definition": "common-ci-test",
+					"type": "Build",
+					"refName": "refs/heads/main",
+					"matchKind": "Exact"
+				}
+			],
+			"pullRequests": [
+				{
+					"source": "feature/release-go",
+					"target": "hotfix/v4.3.11"
+				}
+			]
+		},
+		"common-cxx": {
+			"definitions": [
+				{
+					"name": "common-cxx-test",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/build-and-test.yml"
+				},
+				{
+					"name": "common-cxx-tag-repository",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/create-tag.yml"
+				},
+				{
+					"name": "common-cxx-submodule-trigger",
+					"defaultBranch": "hotfix/v4.3.5",
+					"yamlFileName": "ci/submodule-trigger.yml",
+					"triggers": [
+						{
+							"definitionName": "common-ci-tag-repository",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/main"
+							],
+							"triggerType": "buildCompletion"
+						}
+					]
+				}
+			],
+			"policies": [
+				{
+					"definition": "common-cxx-test",
+					"type": "Build",
+					"refName": "refs/heads/master",
+					"matchKind": "Exact"
+				}
+			],
+			"pullRequests": [
+				{
+					"source": "feature/go-support",
+					"target": "hotfix/v4.3.5"
+				}
+			],
+			"submodules": [
+				"common-ci"
+			]
+		},
+		"device-detection-cxx": {
+			"definitions": [
+				{
+					"name": "device-detection-cxx-test",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/build-and-test.yml"
+				},
+				{
+					"name": "device-detection-cxx-tag-repository",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/create-tag.yml"
+				},
+				{
+					"name": "device-detection-cxx-submodule-trigger",
+					"defaultBranch": "hotfix/v4.3.5",
+					"yamlFileName": "ci/submodule-trigger.yml",
+					"triggers": [
+						{
+							"definitionName": "common-ci-tag-repository",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/main"
+							],
+							"triggerType": "buildCompletion"
+						},
+						{
+							"definitionName": "common-cxx-tag-repository",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/master"
+							],
+							"triggerType": "buildCompletion"
+						}
+					]
+				}
+			],
+			"policies": [
+				{
+					"definition": "device-detection-cxx-test",
+					"type": "Build",
+					"refName": "refs/heads/master",
+					"matchKind": "Exact"
+				}
+			],
+			"pullRequests": [
+				{
+					"source": "feature/go-support",
+					"target": "hotfix/v4.3.5"
+				}
+			],
+			"submodules": [
+				"common-ci",
+				"common-cxx",
+				"device-detection-data"
+			]
+		},
+		"device-detection-go": {
+			"definitions": [
+				{
+					"name": "device-detection-go-test",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/build-and-test.yml"
+				},
+				{
+					"name": "device-detection-go-tag-repository",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/tag-repository.yml"
+				},
+				{
+					"name": "device-detection-go-deploy-external",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/deploy.yml",
+					"triggers": [
+						{
+							"definitionName": "device-detection-go-tag-repository",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/master"
+							],
+							"triggerType": "buildCompletion"
+						}
+					]
+				},
+				{
+					"name": "device-detection-go-submodule-trigger",
+					"defaultBranch": "release/v4.3.0",
+					"yamlFileName": "ci/submodule-trigger.yml",
+					"triggers": [
+						{
+							"definitionName": "common-ci-tag-repository",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/main"
+							],
+							"triggerType": "buildCompletion"
+						},
+						{
+							"definitionName": "device-detection-cxx-tag-repository",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/master"
+							],
+							"triggerType": "buildCompletion"
+						}
+					]
+				}
+			],
+			"policies": [
+				{
+					"definition": "device-detection-go-test",
+					"type": "Build",
+					"refName": "refs/heads/master",
+					"matchKind": "Exact"
+				}
+			],
+			"pullRequests": [
+				{
+					"source": "feature/init-interfaces",
+					"target": "release/v4.3.0"
+				}
+			],
+			"submodules": [
+				"common-ci",
+				"device-detection-cxx"
+			]
+		},
+		"device-detection-examples-go": {
+			"definitions": [
+				{
+					"name": "device-detection-examples-go-test",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/build-and-test.yml"
+				},
+				{
+					"name": "device-detection-examples-go-tag-repository",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/tag-repository.yml"
+				},
+				{
+					"name": "device-detection-examples-go-deploy-external",
+					"defaultBranch": "master",
+					"yamlFileName": "ci/deploy.yml",
+					"triggers": [
+						{
+							"definitionName": "device-detection-examples-go-tag-repository",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/master"
+							],
+							"triggerType": "buildCompletion"
+						}
+					]
+				},
+				{
+					"name": "device-detection-examples-go-submodule-trigger",
+					"defaultBranch": "release/v4.3.0",
+					"yamlFileName": "ci/submodule-trigger.yml",
+					"triggers": [
+						{
+							"definitionName": "common-ci-tag-repository",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/main"
+							],
+							"triggerType": "buildCompletion"
+						},
+						{
+							"definitionName": "device-detection-examples-go-tag-repository",
+							"requiresSuccessfulBuild": true,
+							"branchFilters": [
+								"+refs/heads/master"
+							],
+							"triggerType": "buildCompletion"
+						}
+					]
+				}
+			],
+			"policies": [
+				{
+					"definition": "device-detection-examples-go-test",
+					"type": "Build",
+					"refName": "refs/heads/master",
+					"matchKind": "Exact"
+				}
+			],
+			"pullRequests": [
+				{
+					"source": "feature/initial-examples",
+					"target": "release/v4.3.0"
+				}
+			],
+			"submodules": [
+				"common-ci",
+				"device-detection-go"
+			]
+		}
+	},
+	"policies": [
+        {
+            "type": "Required reviewers"
+        }
+    ]
+}

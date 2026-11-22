@@ -7,9 +7,7 @@ param (
     [Parameter(Mandatory=$true)]
     $RunId,
     [Parameter(Mandatory=$true)]
-    [string]$ArtifactName,
-    [Parameter(Mandatory=$true)]
-    [string]$GitHubToken
+    [string]$ArtifactName
 )
 
 $Response = gh api /repos/$OrgName/$RepoName/actions/runs/$RunId/artifacts
@@ -21,7 +19,7 @@ foreach ($Artifact in $Artifacts) {
     if ($Artifact.name -eq $ArtifactName) {
         Write-Output "Downloading '$ArtifactName'"
 
-        Invoke-WebRequest -Uri $Artifact.archive_download_url -Headers @{"Authorization" = "Bearer $GitHubToken"} -Outfile "$ArtifactName.zip"
+        Invoke-WebRequest -Uri $Artifact.archive_download_url -Headers @{"Authorization" = "Bearer $env:_51DEGREES_ACCESS_TOKEN"} -Outfile "$ArtifactName.zip"
         exit 0
     }
 }

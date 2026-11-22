@@ -79,22 +79,17 @@ jobs:
           ref: ${{ inputs.common-ci-ref }}
 
       - name: Install GitVersion
-        run: |
-          if (Get-Command dotnet-gitversion -ErrorAction SilentlyContinue) {
-            Write-Host "GitVersion already installed."
-          } else {
-            Write-Host "Installing GitVersion..."
-            dotnet tool install --global GitVersion.Tool --version '6.1'
-          }
+        run: ./steps/install-gitversion.ps1
 
       - name: Configure
         id: configure
+        env:
+          _51DEGREES_ACCESS_TOKEN: ${{ secrets._51DEGREES_ACCESS_TOKEN }}
         run: |
           ./nightly-publish.configure.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ github.ref_name }} `
-          -GitHubToken ${{ secrets._51DEGREES_ACCESS_TOKEN }} `
           -GitHubOutput $Env:GITHUB_OUTPUT `
           -GitHubUser ${{ inputs.user }} `
           -GitHubEmail ${{ inputs.email }} `
@@ -110,7 +105,7 @@ jobs:
       - name: Refuse a version bump nobody asked for
         shell: pwsh
         env:
-          ALLOW_VERSION_BUMP: ${{ inputs.allow-version-bump }}
+          _51DEGREES_ALLOW_VERSION_BUMP: ${{ inputs.allow-version-bump }}
         run: |
           if (Test-Path ./${{ inputs.repo-name }}/ci/check-version-bump.ps1) {
             ./${{ inputs.repo-name }}/ci/check-version-bump.ps1 -RepoName '${{ inputs.repo-name }}' -Version '${{ steps.configure.outputs.version }}'
@@ -126,18 +121,18 @@ jobs:
         continue-on-error: ${{ inputs.dryrun }}
         shell: pwsh
         env:
-          ALLOW_EARLY_RELEASE: ${{ inputs.allow-early-release }}
+          _51DEGREES_ALLOW_EARLY_RELEASE: ${{ inputs.allow-early-release }}
           GH_TOKEN: ${{ secrets._51DEGREES_ACCESS_TOKEN }}
-          REPO_NAME: ${{ inputs.repo-name }}
-          REPOSITORY: ${{ inputs.org-name }}/${{ inputs.repo-name }}
+          _51DEGREES_REPO_NAME: ${{ inputs.repo-name }}
+          _51DEGREES_REPOSITORY: ${{ inputs.org-name }}/${{ inputs.repo-name }}
           # The calling repository's variable, or the organisation's.
           _51DEGREES_WEEKLY_RELEASES_FROM: ${{ vars._51DEGREES_WEEKLY_RELEASES_FROM }}
         run: |
           $HowToAllow = "run this repository's Publish workflow with allow-early-release set."
-          if (Test-Path "./$env:REPO_NAME/ci/check-release-interval.ps1") {
-            & "./$env:REPO_NAME/ci/check-release-interval.ps1" -RepoName $env:REPO_NAME -Repository $env:REPOSITORY -HowToAllow $HowToAllow
+          if (Test-Path "./$env:_51DEGREES_REPO_NAME/ci/check-release-interval.ps1") {
+            & "./$env:_51DEGREES_REPO_NAME/ci/check-release-interval.ps1" -RepoName $env:_51DEGREES_REPO_NAME -Repository $env:_51DEGREES_REPOSITORY -HowToAllow $HowToAllow
           } else {
-            ./steps/check-release-interval.ps1 -RepoName $env:REPO_NAME -Repository $env:REPOSITORY -HowToAllow $HowToAllow
+            ./steps/check-release-interval.ps1 -RepoName $env:_51DEGREES_REPO_NAME -Repository $env:_51DEGREES_REPOSITORY -HowToAllow $HowToAllow
           }
 
       - name: Prefetch assets
@@ -176,9 +171,9 @@ jobs:
       - name: Export secrets and variables
         if: ${{ matrix.options.packagerequirement }}
         env:
-          SECRETS: ${{ toJSON(secrets) }}
-          VARS: ${{ toJSON(vars) }}
-        run: ./steps/set-resource-keys.ps1 -Secrets $env:SECRETS -Vars $env:VARS
+          _51DEGREES_SECRETS: ${{ toJSON(secrets) }}
+          _51DEGREES_VARS: ${{ toJSON(vars) }}
+        run: ./steps/export-secrets.ps1 -Secrets $env:_51DEGREES_SECRETS -Vars $env:_51DEGREES_VARS
 
       - name: PreBuild
         if: ${{ matrix.options.packagerequirement }}
@@ -189,7 +184,6 @@ jobs:
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ github.ref_name }} `
-          -GitHubToken ${{ secrets._51DEGREES_ACCESS_TOKEN }} `
           -Options $Options `
           -GitHubUser ${{ inputs.user }} `
           -GitHubEmail ${{ inputs.email }} `
@@ -224,11 +218,12 @@ jobs:
 
       # The _51DEGREES_ secrets and variables, each under its own name, for the
       # steps that follow. The secrets context is read here alone.
+      # This job signs the packages it builds, so it takes the signing names.
       - name: Export secrets and variables
         env:
-          SECRETS: ${{ toJSON(secrets) }}
-          VARS: ${{ toJSON(vars) }}
-        run: ./steps/set-resource-keys.ps1 -Secrets $env:SECRETS -Vars $env:VARS
+          _51DEGREES_SECRETS: ${{ toJSON(secrets) }}
+          _51DEGREES_VARS: ${{ toJSON(vars) }}
+        run: ./steps/export-secrets.ps1 -Secrets $env:_51DEGREES_SECRETS -Vars $env:_51DEGREES_VARS -Sign
 
       - name: Build
         run: |
@@ -239,7 +234,6 @@ jobs:
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ github.ref_name }} `
-          -GitHubToken ${{ secrets._51DEGREES_ACCESS_TOKEN }} `
           -Options $Options `
           -GitHubUser ${{ inputs.user }} `
           -GitHubEmail ${{ inputs.email }} `
@@ -301,9 +295,9 @@ jobs:
       - name: Export secrets and variables
         if: ${{ success() && matrix.options.packagerequirement }}
         env:
-          SECRETS: ${{ toJSON(secrets) }}
-          VARS: ${{ toJSON(vars) }}
-        run: ./steps/set-resource-keys.ps1 -Secrets $env:SECRETS -Vars $env:VARS
+          _51DEGREES_SECRETS: ${{ toJSON(secrets) }}
+          _51DEGREES_VARS: ${{ toJSON(vars) }}
+        run: ./steps/export-secrets.ps1 -Secrets $env:_51DEGREES_SECRETS -Vars $env:_51DEGREES_VARS
 
       - name: Test
         if: ${{ success() && matrix.options.packagerequirement }}
@@ -311,22 +305,21 @@ jobs:
 
           # Through env rather than inline, so the branch name is never
           # parsed as PowerShell.
-          EXAMPLES_BRANCH: ${{ inputs.examples-branch }}
+          _51DEGREES_EXAMPLES_BRANCH: ${{ inputs.examples-branch }}
         run: |
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
           $Options = $(ConvertFrom-Json -AsHashtable '${{ toJSON(matrix.options) }}')
           # Overrides every matrix entry. run-script.ps1 only hands it to
           # scripts declaring an ExamplesBranch parameter, so repos without
           # one are unaffected.
-          if ([string]::IsNullOrEmpty($env:EXAMPLES_BRANCH) -eq $false)
+          if ([string]::IsNullOrEmpty($env:_51DEGREES_EXAMPLES_BRANCH) -eq $false)
           {
-            $Options["ExamplesBranch"] = $env:EXAMPLES_BRANCH
+            $Options["ExamplesBranch"] = $env:_51DEGREES_EXAMPLES_BRANCH
           }
           ./nightly-publish.test.ps1 `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ github.ref_name }} `
-          -GitHubToken ${{ secrets._51DEGREES_ACCESS_TOKEN }} `
           -Options $Options `
           -GitHubUser ${{ inputs.user }} `
           -GitHubEmail ${{ inputs.email }} `
@@ -372,12 +365,13 @@ jobs:
       - name: Compare Performance
         id: compare
         continue-on-error: true
+        env:
+          _51DEGREES_ACCESS_TOKEN: ${{ secrets._51DEGREES_ACCESS_TOKEN }}
         run: |
           ./nightly-publish.compare-performance.ps1 `
           -RepoName '${{ inputs.repo-name }}' `
           -OrgName '${{ inputs.org-name }}' `
           -Branch '${{ github.ref_name }}' `
-          -GitHubToken '${{ secrets._51DEGREES_ACCESS_TOKEN }}' `
           -GitHubOutput $Env:GITHUB_OUTPUT `
           -Options (ConvertFrom-Json -AsHashtable '${{ needs.Configure.outputs.options }}') `
           -RunId '${{ github.run_id }}' `
@@ -433,12 +427,13 @@ jobs:
 
       # The _51DEGREES_ secrets and variables, each under its own name, for the
       # steps that follow. The secrets context is read here alone.
+      # This job publishes the packages, so it takes the publishing names.
       - name: Export secrets and variables
         if: ${{ success() }}
         env:
-          SECRETS: ${{ toJSON(secrets) }}
-          VARS: ${{ toJSON(vars) }}
-        run: ./steps/set-resource-keys.ps1 -Secrets $env:SECRETS -Vars $env:VARS
+          _51DEGREES_SECRETS: ${{ toJSON(secrets) }}
+          _51DEGREES_VARS: ${{ toJSON(vars) }}
+        run: ./steps/export-secrets.ps1 -Secrets $env:_51DEGREES_SECRETS -Vars $env:_51DEGREES_VARS -Publish
 
       - name: Package
         if: ${{ success() }}
@@ -450,7 +445,6 @@ jobs:
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ github.ref_name }} `
-          -GitHubToken ${{ secrets._51DEGREES_ACCESS_TOKEN }} `
           -Options $Options `
           -GitHubUser ${{ inputs.user }} `
           -GitHubEmail ${{ inputs.email }} `

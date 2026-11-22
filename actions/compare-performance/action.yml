@@ -11,8 +11,8 @@ runs:
   steps:
     - shell: pwsh
       env:
-        metrics: ${{ inputs.metrics }}
-        save: ${{ inputs.save }}
-        branch: ${{ inputs.branch }}
+        _51DEGREES_METRICS: ${{ inputs.metrics }}
+        _51DEGREES_SAVE: ${{ inputs.save }}
+        _51DEGREES_BRANCH: ${{ inputs.branch }}
       run: . '${{ github.action_path }}/compare-performance.ps1'
 
