@@ -651,8 +651,8 @@
     },
     {
       "name": "CHROMEWEBDRIVER",
-      "holds": "The folder that holds chromedriver, or chromedriver itself, for the browser tests, which use it in place of downloading a driver.",
-      "setBy": "GitHub's Ubuntu and Windows runner images, or whoever runs the browser tests elsewhere",
+      "holds": "The folder that holds chromedriver, or chromedriver itself, which the shared browser test suite in 51Degrees/selenium-api-tests uses in place of downloading a driver. A repository that runs the suite leaves finding the driver to it.",
+      "setBy": "GitHub's Ubuntu, Windows and macOS runner images, or whoever runs the shared browser test suite elsewhere",
       "languages": [
         "dotnet",
         "java",
@@ -664,8 +664,8 @@
     },
     {
       "name": "CHROME_BIN",
-      "holds": "The Chrome or Chromium program the browser tests drive.",
-      "setBy": "Whoever runs the browser tests, where the browser is not on the path",
+      "holds": "The Chrome or Chromium program the shared browser test suite in 51Degrees/selenium-api-tests drives.",
+      "setBy": "Whoever runs the shared browser test suite, where the browser is not on the path",
       "languages": [
         "dotnet",
         "java",
@@ -678,7 +678,7 @@
     {
       "name": "CLOUD_ROOT_URL",
       "holds": "The address of the cloud service the browser test suite checks the examples against.",
-      "setBy": "The shared browser test suite in 51Degrees/selenium-api-tests, which every language's CI starts",
+      "setBy": "Each language's CI that runs the shared browser test suite in 51Degrees/selenium-api-tests, or whoever runs the suite elsewhere",
       "languages": [
         "dotnet",
         "java",
@@ -739,8 +739,8 @@
     },
     {
       "name": "EDGEWEBDRIVER",
-      "holds": "The folder that holds msedgedriver, or msedgedriver itself, for the browser tests, which use it in place of downloading a driver.",
-      "setBy": "GitHub's Ubuntu and Windows runner images, or whoever runs the browser tests elsewhere",
+      "holds": "The folder that holds msedgedriver, or msedgedriver itself, which the shared browser test suite in 51Degrees/selenium-api-tests uses in place of downloading a driver. A repository that runs the suite leaves finding the driver to it.",
+      "setBy": "GitHub's Ubuntu, Windows and macOS runner images, or whoever runs the shared browser test suite elsewhere",
       "languages": [
         "dotnet",
         "java",
@@ -752,8 +752,8 @@
     },
     {
       "name": "EDGE_BIN",
-      "holds": "The Edge program the browser tests drive.",
-      "setBy": "Whoever runs the browser tests, where the browser is not on the path",
+      "holds": "The Edge program the shared browser test suite in 51Degrees/selenium-api-tests drives.",
+      "setBy": "Whoever runs the shared browser test suite, where the browser is not on the path",
       "languages": [
         "dotnet",
         "java",
@@ -774,7 +774,7 @@
     {
       "name": "EXAMPLE_LANG",
       "holds": "The language of the example under test, for the browser test suite.",
-      "setBy": "The shared browser test suite in 51Degrees/selenium-api-tests, which every language's CI starts",
+      "setBy": "Each language's CI that runs the shared browser test suite in 51Degrees/selenium-api-tests, or whoever runs the suite elsewhere",
       "languages": [
         "dotnet",
         "java",
@@ -787,7 +787,7 @@
     {
       "name": "EXAMPLE_URL",
       "holds": "The address of the running example the browser test suite opens.",
-      "setBy": "The shared browser test suite in 51Degrees/selenium-api-tests, which every language's CI starts",
+      "setBy": "Each language's CI that runs the shared browser test suite in 51Degrees/selenium-api-tests, or whoever runs the suite elsewhere",
       "languages": [
         "dotnet",
         "java",
@@ -815,8 +815,8 @@
     },
     {
       "name": "FIREFOX_BIN",
-      "holds": "The Firefox program the browser tests drive.",
-      "setBy": "Whoever runs the browser tests, where the browser is not on the path",
+      "holds": "The Firefox program the shared browser test suite in 51Degrees/selenium-api-tests drives.",
+      "setBy": "Whoever runs the shared browser test suite, where the browser is not on the path",
       "languages": [
         "dotnet",
         "java",
@@ -836,8 +836,8 @@
     },
     {
       "name": "GECKOWEBDRIVER",
-      "holds": "The folder that holds geckodriver, or geckodriver itself, for the browser tests, which use it in place of downloading a driver.",
-      "setBy": "GitHub's Ubuntu and Windows runner images, or whoever runs the browser tests elsewhere",
+      "holds": "The folder that holds geckodriver, or geckodriver itself, which the shared browser test suite in 51Degrees/selenium-api-tests uses in place of downloading a driver. A repository that runs the suite leaves finding the driver to it.",
+      "setBy": "GitHub's Ubuntu, Windows and macOS runner images, or whoever runs the shared browser test suite elsewhere",
       "languages": [
         "dotnet",
         "java",
@@ -890,7 +890,7 @@
     {
       "name": "PAID_RESOURCE_KEY",
       "holds": "A resource key on a paid data tier, for the browser test suite.",
-      "setBy": "The shared browser test suite in 51Degrees/selenium-api-tests, which every language's CI starts",
+      "setBy": "Each language's CI that runs the shared browser test suite in 51Degrees/selenium-api-tests, or whoever runs the suite elsewhere",
       "languages": [
         "dotnet",
         "java",
@@ -955,8 +955,8 @@
     },
     {
       "name": "SELENIUM_URL",
-      "holds": "The address of a Selenium grid or container where the browser tests drive the browser, in place of one on the machine.",
-      "setBy": "Whoever runs the browser tests against a Selenium grid or container",
+      "holds": "The address of a Selenium grid or container where the shared browser test suite in 51Degrees/selenium-api-tests drives the browser, in place of one on the machine.",
+      "setBy": "Whoever runs the shared browser test suite against a Selenium grid or container",
       "languages": [
         "dotnet",
         "java",
