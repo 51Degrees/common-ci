@@ -6,8 +6,6 @@ param (
     [string]$Branch = "main",
     [string]$GitHubUser,
     [string]$GitHubEmail,
-    [string]$DataKey,
-    [string]$DataUrl,
     [string]$DataType = "HashV41",
     [string]$Product = "V4TAC",
     [string]$FileName = "TAC-HashV41.hash.gz",

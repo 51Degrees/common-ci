@@ -51,9 +51,12 @@ on:
         default: ''
     secrets:
       token:
-        required: true
+        required: false
+      # Not used: the job reads no data file. Kept so that a caller still
+      # passing it runs.
       data-key:
-        required: true
+        required: false
+      # Not used, as data-key.
       data-url:
         required: false
         
@@ -78,12 +81,10 @@ jobs:
         run: |
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
           . ${{ github.workspace }}/common/nightly-data-file-change.ps1 `
-          -GitHubToken ${{ secrets.token }} `
+          -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ github.ref_name }} `
-          -DataKey ${{ secrets.data-key }} `
-          -DataUrl "${{ secrets.data-url }}" `
           -GitHubUser ${{ inputs.user }} `
           -GitHubEmail ${{ inputs.email }} `
           -DataType ${{ inputs.data-type }} `
