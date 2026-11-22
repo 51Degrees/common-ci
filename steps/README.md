@@ -86,7 +86,9 @@ This will also copy the generated classes to the directory specified.
 ## Get PRs
 **Script: `get-pull-requests.ps1`**
 
-Gets the open PRs into the branch given, and sets the ids of valid PRs as an array under a variable name provided.
+Gets the open PRs into the branch given, or the PR numbers given with `-Ids`, and sets the valid PRs as an array under a variable name provided. Each entry is the PR's `id` and `sha`, the head commit it was selected at. Configure, build and test check out that commit and stop if the head is a different commit, and the merge names it. With no valid PR from the open ones, the entry is PR `0` with no commit, which is the branch itself.
+
+Only PRs from branches in this repository are selected, whatever their approvals, and a PR that gh doesn't describe this way is not selected. This also applies to PR numbers given with `-Ids`. A contributor's change is built once someone in the organization pushes that exact commit to a branch in the repository and opens a PR from it.
 
 A PR is considered valid if it was created by one of the following roles:
 - `OWNER`

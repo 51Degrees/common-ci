@@ -4,6 +4,9 @@ param (
     [Parameter(Mandatory)][string]$GitHubToken,
     [Parameter(Mandatory)][string]$GitHubOutput,
     [Parameter(Mandatory)][string]$PullRequestId,
+    # The head commit the pull request was selected at. Empty for the branch
+    # itself, which is pull request 0.
+    [string]$HeadSha = "",
     [Parameter(Mandatory)][hashtable]$Options,
     [string]$Branch = "main",
     [string]$GitHubUser,
@@ -12,6 +15,11 @@ param (
     [bool]$SkipLiteTests
 )
 $ErrorActionPreference = "Stop"
+
+# A pull request is built only at the head commit it was selected at.
+if ([int]$PullRequestId -ne 0 -and -not $HeadSha) {
+    throw "PR #$PullRequestId has no head commit from when it was selected, so it is not built"
+}
 
 $Options += $PSBoundParameters # Add RepoName, DryRun etc.
 if ($Options.Keys) {
@@ -38,7 +46,7 @@ Write-Host "::group::Clone $RepoName"
 Write-Host "::endgroup::"
 
 Write-Host "::group::Checkout PR"
-./steps/checkout-pr.ps1 -RepoName $RepoName -Branch $Branch -PullRequestId $PullRequestId -SetVariable PullRequestSha
+./steps/checkout-pr.ps1 -RepoName $RepoName -Branch $Branch -PullRequestId $PullRequestId -HeadSha $HeadSha -SetVariable PullRequestSha
 "pr-sha=$PullRequestSha" | Out-File $GitHubOutput -Append
 Write-Host "::endgroup::"
 

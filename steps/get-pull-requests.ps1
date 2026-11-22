@@ -2,16 +2,34 @@ param (
     [Parameter(Mandatory)][string]$RepoName,
     [Parameter(Mandatory)][string]$OrgName,
     [string]$Branch = "main",
-    [string]$SetVariable = "PullRequestIds"
+    # Pull request numbers given by hand, comma separated. When given, only
+    # these are checked, rather than the open pull requests into the branch.
+    [string]$Ids = "",
+    [string]$SetVariable = "PullRequests"
 )
-$ErrorActionPreference = "Stop"
-$PSNativeCommandUseErrorActionPreference = $true
-
-$Collaborators = gh api /repos/$OrgName/$RepoName/collaborators | ConvertFrom-Json
 
 function Test-WriteAccess ([Parameter(Mandatory,Position=0)][string]$User) {
-    $permissions = ($Collaborators | Where-Object login -EQ $User).permissions
+    $permissions = ($script:Collaborators | Where-Object login -EQ $User).permissions
     return $permissions.admin -or $permissions.maintain -or $permissions.push
+}
+
+# Only pull requests from branches in this repository are selected. A
+# contributor's change is built once someone in the organization pushes that
+# exact commit to a branch in the repository and opens a pull request from it.
+function Test-SameRepository ([Parameter(Mandatory,Position=0)]$Pr) {
+    if ($null -eq $Pr.PSObject.Properties['isCrossRepository']) {
+        Write-Host "Skipping PR $($Pr.number): gh did not say whether its head is a branch in this repository"
+        return $false
+    }
+    if ($Pr.isCrossRepository -ne $false) {
+        Write-Host "Skipping PR $($Pr.number): its head is not a branch in this repository"
+        return $false
+    }
+    if (-not $Pr.headRefOid) {
+        Write-Host "Skipping PR $($Pr.number): gh gave no head commit"
+        return $false
+    }
+    return $true
 }
 
 function Test-Pr ([Parameter(Mandatory,Position=0)][string]$Id) {
@@ -62,28 +80,60 @@ function Test-VersionDirective ([Parameter(Mandatory,Position=0)][string]$Id) {
     return $true
 }
 
-$Ids = gh pr list -R $OrgName/$RepoName -B $Branch --json number,isDraft --jq '.[]|select(.isDraft|not).number'
-if ($Ids) {
-    $ValidIds = @()
+# The pull requests to build, each with the head commit it was selected at,
+# which the build and the merge use. Pull request 0, with no commit, is the
+# branch itself.
+function Get-PullRequests ([string]$Ids = "") {
+    $Selected = @()
 
-    foreach ($Id in $Ids) {
-        # Only select PRs which are eligeble for automation.
-        Write-Output "Checking PR #$Id"
-        if ((Test-Pr $Id) -and (Test-VersionDirective $Id)) {
-            $ValidIds += $Id
+    if ($Ids) {
+        # Numbers given by hand skip the approval rules, and are likewise built
+        # only from branches in this repository.
+        foreach ($Text in ($Ids -split ',')) {
+            $Text = $Text.Trim()
+            if ($Text -notmatch '^[0-9]+$') {
+                throw "'$Text' is not a pull request number"
+            }
+            if ([int]$Text -eq 0) {
+                $Selected += [ordered]@{ id = 0; sha = '' }
+                continue
+            }
+            $Pr = gh pr view -R $OrgName/$RepoName $Text --json number,isCrossRepository,headRefOid | ConvertFrom-Json
+            if (Test-SameRepository $Pr) {
+                $Selected += [ordered]@{ id = [int]$Pr.number; sha = [string]$Pr.headRefOid }
+            }
+        }
+    } else {
+        $Open = @(gh pr list -R $OrgName/$RepoName -B $Branch --json number,isDraft,isCrossRepository,headRefOid | ConvertFrom-Json |
+            Where-Object { -not $_.isDraft })
+        foreach ($Pr in $Open) {
+            # Only select PRs which are eligible for automation.
+            Write-Host "Checking PR #$($Pr.number)"
+            if ((Test-SameRepository $Pr) -and (Test-Pr $Pr.number) -and (Test-VersionDirective $Pr.number)) {
+                $Selected += [ordered]@{ id = [int]$Pr.number; sha = [string]$Pr.headRefOid }
+            }
         }
     }
 
-    if ($ValidIds.Count -gt 0) {
-        Write-Output "Pull request ids are: $([string]::Join(",", $ValidIds))"
-        Set-Variable -Scope 1 -Name $SetVariable -Value $ValidIds
+    # With nothing selected from the open pull requests, the branch itself is
+    # built. Numbers given by hand that are all refused build nothing.
+    if ($Selected.Count -eq 0 -and -not $Ids) {
+        Write-Host "No pull requests to be checked."
+        $Selected = @([ordered]@{ id = 0; sha = '' })
     }
-    else {
-        Write-Output "No pull requests to be checked."
-        Set-Variable -Scope 1 -Name $SetVariable -Value @(0)
-    }
-
-} else {
-    Write-Output "No pull requests to be checked."
-    Set-Variable -Scope 1 -Name $SetVariable -Value @(0)
+    return $Selected
 }
+
+# Dot-sourcing, as the tests do, only defines the functions.
+if ($MyInvocation.InvocationName -eq '.') {
+    return
+}
+
+$ErrorActionPreference = "Stop"
+$PSNativeCommandUseErrorActionPreference = $true
+
+$script:Collaborators = gh api /repos/$OrgName/$RepoName/collaborators | ConvertFrom-Json
+
+$PullRequests = @(Get-PullRequests -Ids $Ids)
+Write-Output "Pull requests are: $(($PullRequests | ForEach-Object { "#$($_.id) $($_.sha)" }) -join ', ')"
+Set-Variable -Scope 1 -Name $SetVariable -Value $PullRequests

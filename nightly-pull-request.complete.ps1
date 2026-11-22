@@ -9,6 +9,9 @@ param (
     [string]$PullRequestId,
     # The branch the nightly merges into, passed on to merge-pr.ps1.
     [string]$Branch,
+    # The head commit the pull request was selected and built at, passed on to
+    # merge-pr.ps1.
+    [string]$HeadSha = "",
     [bool]$DryRun
 )
 $ErrorActionPreference = "Stop"
@@ -17,4 +20,4 @@ $ErrorActionPreference = "Stop"
 Write-Output "Setting GITHUB_TOKEN"
 $env:GITHUB_TOKEN="$GitHubToken"
 
-./steps/merge-pr.ps1 -RepoName $RepoName -OrgName $OrgName -PullRequestId $PullRequestId -Branch $Branch -DryRun $DryRun
+./steps/merge-pr.ps1 -RepoName $RepoName -OrgName $OrgName -PullRequestId $PullRequestId -Branch $Branch -HeadSha $HeadSha -DryRun $DryRun

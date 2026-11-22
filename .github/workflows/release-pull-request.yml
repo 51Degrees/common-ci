@@ -96,6 +96,7 @@ jobs:
       repo-name: ${{ inputs.repo-name }}
       org-name: ${{ inputs.org-name }}
       pull-request-id: ${{ github.event.pull_request.number }}
+      head-sha: ${{ github.event.pull_request.head.sha }}
       dryrun: 'true'
       full-matrix: true
       fail-fast: false

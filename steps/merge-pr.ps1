@@ -9,6 +9,9 @@ param (
     # is refused, so the nightly never merges into the default branch of a
     # repository that takes changes through rc, even for an id given by hand.
     [string]$Branch,
+    # The head commit the pull request was selected and built at. The merge
+    # names it, so GitHub merges that commit only.
+    [string]$HeadSha,
     [bool]$DryRun
 )
 $ErrorActionPreference = "Stop"
@@ -25,10 +28,13 @@ $PrTitle = "#$($Pr.number) $($Pr.headRefName)->$($Pr.baseRefName): $($Pr.title)"
 
 if ($DryRun) {
     Write-Output "Dry run - not merging"
+} elseif (-not $HeadSha) {
+    Write-Output "::error title=Not merged::PR $PrTitle has no head commit from when it was selected, so it is not merged"
+    exit 1
 } elseif ($Branch -and $Pr.baseRefName -cne $Branch) {
     Write-Output "::error title=Not merged::PR $PrTitle merges into '$($Pr.baseRefName)', and the nightly merges only into '$Branch'"
     exit 1
 } else {
     Write-Output "Merging PR $PrTitle"
-    gh api /repos/$OrgName/$RepoName/pulls/$PullRequestId/merge -X PUT -f "commit_title=Merged Pull Request '$PrTitle'" -f "merge_method=squash"
+    gh api /repos/$OrgName/$RepoName/pulls/$PullRequestId/merge -X PUT -f "commit_title=Merged Pull Request '$PrTitle'" -f "merge_method=squash" -f "sha=$HeadSha"
 }

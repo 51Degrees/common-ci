@@ -9,6 +9,10 @@ on:
       pull-request-id:
         required: true
         type: number
+      head-sha:
+        description: 'The head commit the pull request was selected at. Only that commit is built and merged. Empty for the branch itself, which is pull request 0.'
+        type: string
+        default: ''
       org-name:
         type: string
         default: 51degrees
@@ -110,6 +114,8 @@ jobs:
 
       - name: Configure
         id: configure
+        env:
+          _51DEGREES_HEAD_SHA: ${{ inputs.head-sha }}
         run: |
           $FullMatrix = [bool]::Parse("${{ inputs.full-matrix }}")
           ./nightly-pull-request.configure-pr.ps1 `
@@ -119,6 +125,7 @@ jobs:
           -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
           -GitHubOutput $Env:GITHUB_OUTPUT `
           -PullRequestId ${{ inputs.pull-request-id }} `
+          -HeadSha "$env:_51DEGREES_HEAD_SHA" `
           -GitHubUser ${{ inputs.user }} `
           -GitHubEmail ${{ inputs.email }} `
           -FullMatrix $FullMatrix
@@ -171,6 +178,7 @@ jobs:
           # Through env rather than inline, so the branch name is never
           # parsed as PowerShell.
           EXAMPLES_BRANCH: ${{ inputs.examples-branch }}
+          _51DEGREES_HEAD_SHA: ${{ inputs.head-sha }}
         run: |
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
           $Options = $(ConvertFrom-Json -AsHashtable '${{ toJSON(matrix.options) }}')
@@ -190,6 +198,7 @@ jobs:
           -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
           -GitHubOutput $Env:GITHUB_OUTPUT `
           -PullRequestId ${{ inputs.pull-request-id }} `
+          -HeadSha "$env:_51DEGREES_HEAD_SHA" `
           -Options $Options `
           -GitHubUser ${{ inputs.user }} `
           -GitHubEmail ${{ inputs.email }} `
@@ -295,6 +304,8 @@ jobs:
           ref: ${{ inputs.common-ci-ref }}
 
       - name: Complete
+        env:
+          _51DEGREES_HEAD_SHA: ${{ inputs.head-sha }}
         run: |
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
           ./nightly-pull-request.complete.ps1 `
@@ -303,4 +314,5 @@ jobs:
           -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
           -PullRequestId ${{ inputs.pull-request-id }} `
           -Branch ${{ inputs.branch != '' && inputs.branch || github.ref_name }} `
+          -HeadSha "$env:_51DEGREES_HEAD_SHA" `
           -DryRun $DryRun
