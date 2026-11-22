@@ -182,11 +182,24 @@ Chooses the entries of a repository's `options.json` that a pull request is buil
 ## Set Resource Keys
 **Script: `set-resource-keys.ps1`**
 
-Exports the 51Degrees resource key secrets as environment variables for the steps and tests that follow.
+Exports the 51Degrees resource and license key secrets as environment variables for the steps and tests that follow.
 
-Takes the secrets available to the job as a hashtable (in the framework this is `$Options.Keys`) and exports every key whose name follows the resource-key convention (any name beginning with `_51DEGREES_RESOURCE_KEY`, for example `_51DEGREES_RESOURCE_KEY_FREE` and `_51DEGREES_RESOURCE_KEY_PAID`). Each is set in the process environment and, under GitHub Actions, appended to `$GITHUB_ENV`.
+Takes the secrets available to the job as a hashtable (in the framework this is `$Options.Keys`). It exports:
 
-This is the single, central place that knows the resource-key convention. To make a new resource key available to every repository, add the secret at the organisation level using the `_51DEGREES_RESOURCE_KEY_*` convention; it is picked up automatically with no change to any repository's CI. Secret values are never written to the log.
+- every secret whose name follows the resource-key convention, any name beginning with `_51DEGREES_RESOURCE_KEY`, such as `_51DEGREES_RESOURCE_KEY_FREE` and `_51DEGREES_RESOURCE_KEY_PAID`.
+- every secret whose name is a current name in [`environment-variables.json`](/environment-variables.json), such as `_51DEGREES_LICENSE_KEY_BESPOKE`.
+- each current name whose `ciSecret` is another name, when it has no secret of its own, from the `_51DEGREES_` secret that entry names. An old name never fills anything.
+
+Each is set in the process environment and, under GitHub Actions, appended to `$GITHUB_ENV`. A value the job already set is never replaced, and each key still empty is named in the log. Nothing fails for want of a key.
+
+`_51DEGREES_RESOURCE_KEY_BASIC` comes only from the secret of its own name, its `ciSecret`. It is never filled from another secret, so without that secret it stays empty.
+
+Two keys are for the Cloud 51Did tests only.
+
+- `_51DEGREES_RESOURCE_KEY_51DID` comes only from the secret of its own name. It is never filled from another secret, so without that secret it stays empty.
+- `_51DEGREES_LICENSE_KEY_51DID` is never exported to jobs. It reads only results made with the 51Did resource key, so each repository's own Cloud 51Did workflow sets it from its secret, beside `_51DEGREES_RESOURCE_KEY_51DID`.
+
+To make a new resource key available to every repository, add the secret at the organization level using the `_51DEGREES_RESOURCE_KEY_*` convention. It is picked up automatically with no change to any repository's CI. Secret values are never written to the log, only names.
 
 ## Update Sub-Modules
 **Script: `update-sub-modules.ps1`**
