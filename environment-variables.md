@@ -8,62 +8,56 @@ Names that the operating system, GitHub Actions or a build tool defines, such as
 
 ## Current names
 
-Every current name starts `_51DEGREES_`. "Packages" means a published package reads the name. "Tests, examples and CI" means only those do.
+Every current name starts `_51DEGREES_`, and every language reads every current name in the same way. "Packages" means a published package reads the name. "Tests, examples and CI" means only those do. "Used in" names the test and the example that read it, as every language names them. "CI secret" is the organization secret the shared workflows set it from, and is empty when they set it from none.
 
-| Name | What it holds | Read by | Languages | Deprecated names |
-| --- | --- | --- | --- | --- |
-| `_51DEGREES_CLOUD_ENDPOINT` | The address of the 51Degrees cloud service to send requests to, in place of the public service. | Packages | .NET, Go, Java, Node.js, PHP, Python, Rust | `FOD_CLOUD_API_URL` (.NET, Go, Java, Node.js, PHP, Python, Rust), `51DEGREES_CLOUD_ENDPOINT` (.NET, Rust), `cloud_endpoint` (PHP, Python), `CLOUD_ENDPOINT` (Python), `FIFTYONE_CLOUD_ENDPOINT` (.NET), `51D_CLOUD_ENDPOINT` (.NET) |
-| `_51DEGREES_CLOUD_REQUEST_ORIGIN` | The Origin header the cloud examples send, for a resource key that only accepts requests from listed origins. | Tests, examples and CI | Python | `cloud_request_origin` (Python) |
-| `_51DEGREES_CXX_DIR` | The folder of a 51degrees-cxx source tree for the Rust -sys crates to build from, in place of the copy in the crate. | Packages | Rust | `FIFTYONE_CXX_DIR` (Rust) |
-| `_51DEGREES_DD_PATH` | The path of a Device Detection data file (.hash) for tests and examples to use. | Tests, examples and CI | .NET, Go, Java, Node.js, PHP, Python, Rust | `51DEGREES_DD_PATH` (.NET, Java, Node.js, PHP, Python, Rust), `DEVICEDETECTIONDATAFILE` (.NET), `FIFTYONE_DATA_FILE` (PHP), `DATA_FILE` (Go), `DD_DATA_FILE` (Go) |
-| `_51DEGREES_DEPRECATED_NAMES_CHILD_EXPECTS` | Set by a Rust test for the child process it starts, saying what the child should find. Nobody else needs to set it. | Tests, examples and CI | Rust |  |
-| `_51DEGREES_DERIVED_PROPERTIES_COMMIT` | The commit of the derived-properties repository the Rust crate was built from. Its build script sets it, so nobody else needs to. | Packages | Rust |  |
-| `_51DEGREES_EVIDENCE_YAML` | The path of a YAML file of evidence for the examples to process. | Tests, examples and CI | Go | `EVIDENCE_YAML` (Go) |
-| `_51DEGREES_EXAMPLE_HTTPS_PORTS` | The HTTPS ports the .NET web examples listen on. | Tests, examples and CI | .NET |  |
-| `_51DEGREES_EXAMPLE_HTTP_PORTS` | The HTTP ports the .NET web examples listen on. | Tests, examples and CI | .NET |  |
-| `_51DEGREES_IPI_DATA_FILE_URL` | The address the IP Intelligence examples download a data file from when they update it. | Tests, examples and CI | Go | `IPI_DATA_FILE_URL` (Go) |
-| `_51DEGREES_IPI_ENTERPRISE_SHARE` | A folder of dated IP Intelligence Enterprise data files, from which tests and examples take the newest. | Tests, examples and CI | Rust | `51DEGREES_IPI_ENTERPRISE_SHARE` (Rust) |
-| `_51DEGREES_IPI_MEMORY_PROFILES` | The performance profiles the IP Intelligence memory test measures, separated by commas. Every profile is measured when it is not set. | Tests, examples and CI | Rust |  |
-| `_51DEGREES_IPI_PATH` | The path of an IP Intelligence data file (.ipi) for tests and examples to use. The PHP IP Intelligence package also looks beside it for the Translations folder. | Packages | C and C++, .NET, Go, Java, Node.js, PHP, Python, Rust | `51DEGREES_IPI_PATH` (C and C++, .NET, Java, Node.js, Rust), `IPINTELLIGENCEDATAFILE` (.NET, PHP, Python), `DATA_FILE` (Go) |
-| `_51DEGREES_LICENSE_KEY` | A licence key, for data file updates and for 51Did requests that need one. | Tests, examples and CI | .NET, Go, Java, Node.js, PHP, Python, Rust | `LICENSE_KEY` (.NET, Go, Java, Node.js, PHP, Python), `license_key` (Python), `DEVICE_DETECTION_KEY` (Go), `IPI_KEY` (Go), `51DEGREES_LICENSE_KEY` (Rust), `LicenseKey` (Node.js), `LICENSEKEY` (Node.js) |
-| `_51DEGREES_LICENSE_KEY_51DID` | A licence key for the 51Did live tests. | Tests, examples and CI | .NET, Node.js, Rust |  |
-| `_51DEGREES_LICENSE_KEY_BESPOKE` | A licence key that carries the CloudV5Bespoke product, for live cloud tests. | Tests, examples and CI | Java, Rust |  |
-| `_51DEGREES_LICENSE_KEY_CLOUDV5BESPOKE` | A licence key that carries the CloudV5Bespoke product, for live cloud tests. Java reads it after _51DEGREES_LICENSE_KEY_BESPOKE. | Tests, examples and CI | Java |  |
-| `_51DEGREES_REQUIRE_ENTERPRISE` | When set, tests that need an IP Intelligence Enterprise data file fail rather than skip without one. | Tests, examples and CI | Rust |  |
-| `_51DEGREES_REQUIRE_LOCATION` | When set, tests that need location properties fail rather than skip when the IP Intelligence data file has none. | Tests, examples and CI | Rust |  |
-| `_51DEGREES_REQUIRE_TAC` | When set, tests that need the TAC and NativeModel properties fail rather than skip when the Device Detection data file lacks them. | Tests, examples and CI | Rust |  |
-| `_51DEGREES_RESOURCE_KEY` | A resource key for the 51Degrees cloud service, for tests and examples. When it is unset, the .NET examples take the first variable, in name order, whose name starts _51DEGREES_RESOURCE_KEY, such as one for each data tier. | Tests, examples and CI | .NET, Go, Java, Node.js, PHP, Python, Rust | `RESOURCE_KEY` (.NET, Java, Node.js, PHP, Python), `resource_key` (PHP, Python), `51DEGREES_RESOURCE_KEY` (.NET, Java, Node.js, Rust), `SUPER_RESOURCE_KEY` (.NET, Java), `51D_RESOURCE_KEY` (.NET) |
-| `_51DEGREES_RESOURCE_KEY_51DID` | A resource key for the 51Did live tests and examples. | Tests, examples and CI | .NET, Rust |  |
-| `_51DEGREES_RESOURCE_KEY_ACCEPTCH_BROWSER` | A resource key for the Accept-CH tests, whose properties need the browser client hints. | Tests, examples and CI | PHP | `AcceptChBrowserKey` (PHP) |
-| `_51DEGREES_RESOURCE_KEY_ACCEPTCH_HARDWARE` | A resource key for the Accept-CH tests, whose properties need the hardware client hints. | Tests, examples and CI | PHP | `AcceptChHardwareKey` (PHP) |
-| `_51DEGREES_RESOURCE_KEY_ACCEPTCH_NONE` | A resource key for the Accept-CH tests, whose properties need no client hints. | Tests, examples and CI | PHP | `AcceptChNoneKey` (PHP) |
-| `_51DEGREES_RESOURCE_KEY_ACCEPTCH_PLATFORM` | A resource key for the Accept-CH tests, whose properties need the platform client hints. | Tests, examples and CI | PHP | `AcceptChPlatformKey` (PHP) |
-| `_51DEGREES_RESOURCE_KEY_BASIC` | A resource key on the basic data tier, for tests of what that tier can and cannot read. | Tests, examples and CI | .NET, Rust |  |
-| `_51DEGREES_RESOURCE_KEY_BESPOKE` | A resource key that carries the CloudV5Bespoke product, for live cloud tests. | Tests, examples and CI | .NET, Java, Node.js, Python, Rust |  |
-| `_51DEGREES_RESOURCE_KEY_BROWSER` | A resource key for the Accept-CH tests, whose properties need the browser client hints. | Tests, examples and CI | Node.js | `TEST_BROWSER_RESOURCE_KEY` (Node.js) |
-| `_51DEGREES_RESOURCE_KEY_HARDWARE` | A resource key for the Accept-CH tests, whose properties need the hardware client hints. | Tests, examples and CI | Node.js | `TEST_HARDWARE_RESOURCE_KEY` (Node.js) |
-| `_51DEGREES_RESOURCE_KEY_NO_SETHEADER` | A resource key for the Accept-CH tests, whose properties need no client hints. | Tests, examples and CI | Node.js | `TEST_NO_SETHEADER_RESOURCE_KEY` (Node.js) |
-| `_51DEGREES_RESOURCE_KEY_PLATFORM` | A resource key for the Accept-CH tests, whose properties need the platform client hints. | Tests, examples and CI | Node.js | `TEST_PLATFORM_RESOURCE_KEY` (Node.js) |
-| `_51DEGREES_RESOURCE_KEY_SUPER` | A resource key that carries every property, for tests. | Tests, examples and CI | Node.js | `TEST_SUPER_RESOURCE_KEY` (Node.js) |
-| `_51DEGREES_RUN_PERFORMANCE_TESTS` | When set, the Python example tests also run the performance examples. | Tests, examples and CI | Python | `run_performance_tests` (Python) |
-| `_51DEGREES_RUSTC_VERSION` | The version of the Rust compiler, which usage sharing reports as the language version. The crate's build script sets it, so nobody else needs to. | Packages | Rust |  |
-| `_51DEGREES_TEST_BOTH` | A name the PHP environment variable tests set and read back to test the reader. Nobody else needs to set it. | Tests, examples and CI | PHP |  |
-| `_51DEGREES_TEST_EMPTY` | A name the PHP environment variable tests set and read back to test the reader. Nobody else needs to set it. | Tests, examples and CI | PHP |  |
-| `_51DEGREES_TEST_FILTER` | A filter that limits which .NET tests the CI scripts run. | Tests, examples and CI | .NET | `FIFTYONE_TEST_FILTER` (.NET) |
-| `_51DEGREES_TEST_NAMED_KEY` | A name the test of the Python shared key helper sets and reads back. Nobody else needs to set it. | Tests, examples and CI | Python |  |
-| `_51DEGREES_TEST_NEITHER` | A name the PHP environment variable tests set and read back to test the reader. Nobody else needs to set it. | Tests, examples and CI | PHP |  |
-| `_51DEGREES_TEST_ONCE` | A name the PHP environment variable tests set and read back to test the reader. Nobody else needs to set it. | Tests, examples and CI | PHP |  |
-| `_51DEGREES_TEST_PLACEHOLDER` | A name the PHP environment variable tests set and read back to test the reader. Nobody else needs to set it. | Tests, examples and CI | PHP |  |
-| `_51DEGREES_TEST_UNSET` | A name the PHP environment variable tests set and read back to test the reader. Nobody else needs to set it. | Tests, examples and CI | PHP |  |
-| `_51DEGREES_TRANSLATIONS_DIR` | The folder of IP Intelligence translation files the Rust crate builds in. Its build script sets it, so nobody else needs to. | Packages | Rust |  |
-| `_51DEGREES_UA_CSV` | The path of a CSV file of User-Agents for the PHP fork safety test. | Tests, examples and CI | PHP | `FIFTYONE_UA_CSV` (PHP) |
-| `_51DEGREES_WEB_ETAG_CHILD` | Set by a web test for the child process it starts, so the child knows its part. Nobody else needs to set it. | Tests, examples and CI | Go, Rust |  |
+| Name | What it holds | Read by | Used in | CI secret | Deprecated names |
+| --- | --- | --- | --- | --- | --- |
+| `_51DEGREES_CLOUD_ENDPOINT` | The address of the 51Degrees cloud service to send requests to, in place of the public service. | Packages | The cloud request engine tests, the 51Did client tests, and every cloud example. |  | `FOD_CLOUD_API_URL` (.NET, Go, Java, Node.js, PHP, Python, Rust), `51DEGREES_CLOUD_ENDPOINT` (.NET, Rust), `cloud_endpoint` (PHP, Python), `CLOUD_ENDPOINT` (Python), `FIFTYONE_CLOUD_ENDPOINT` (.NET), `51D_CLOUD_ENDPOINT` (.NET) |
+| `_51DEGREES_CLOUD_REQUEST_ORIGIN` | The Origin header the cloud examples send, for a resource key that only accepts requests from listed origins. | Tests, examples and CI | The cloud getting started examples, console and web. |  | `cloud_request_origin` (Python) |
+| `_51DEGREES_CXX_DIR` | The folder of a 51degrees-cxx source tree for the native library build to use, in place of the copy in the package. | Packages | The native library build and its source folder test. |  | `FIFTYONE_CXX_DIR` (Rust) |
+| `_51DEGREES_DD_PATH` | The path of a Device Detection data file (.hash) for tests and examples to use. | Tests, examples and CI | The Device Detection on-premise tests and every Device Detection on-premise example. |  | `51DEGREES_DD_PATH` (.NET, Java, Node.js, PHP, Python, Rust), `DEVICEDETECTIONDATAFILE` (.NET), `FIFTYONE_DATA_FILE` (PHP), `DATA_FILE` (Go), `DD_DATA_FILE` (Go) |
+| `_51DEGREES_DEPRECATED_NAMES_CHILD_EXPECTS` | Set by a test for the child process it starts, saying what the child should find. Nobody else needs to set it. | Tests, examples and CI | The deprecated names test. |  |  |
+| `_51DEGREES_DERIVED_PROPERTIES_COMMIT` | The commit of the derived-properties repository the package was built from. Its build sets it, so nobody else needs to. | Packages | The derived properties build and its build logging test. |  |  |
+| `_51DEGREES_EVIDENCE_YAML` | The path of a YAML file of evidence for the examples to process. | Tests, examples and CI | The offline processing examples and their tests. |  | `EVIDENCE_YAML` (Go) |
+| `_51DEGREES_EXAMPLE_HTTPS_PORTS` | The HTTPS ports the web examples listen on. | Tests, examples and CI | The web examples. |  |  |
+| `_51DEGREES_EXAMPLE_HTTP_PORTS` | The HTTP ports the web examples listen on. | Tests, examples and CI | The web examples. |  |  |
+| `_51DEGREES_IPI_ENTERPRISE_SHARE` | A folder of dated IP Intelligence Enterprise data files, from which tests and examples take the newest. | Tests, examples and CI | The IP Intelligence on-premise detection test and the IP Intelligence on-premise examples. |  | `51DEGREES_IPI_ENTERPRISE_SHARE` (Rust) |
+| `_51DEGREES_IPI_MEMORY_PROFILES` | The performance profiles the IP Intelligence memory test measures, separated by commas. Every profile is measured when it is not set. | Tests, examples and CI | The IP Intelligence memory test. |  |  |
+| `_51DEGREES_IPI_PATH` | The path of an IP Intelligence data file (.ipi) for tests and examples to use. The IP Intelligence package also looks beside it for the Translations folder. | Packages | The IP Intelligence on-premise tests and every IP Intelligence on-premise example. |  | `51DEGREES_IPI_PATH` (C and C++, .NET, Java, Node.js, Rust), `IPINTELLIGENCEDATAFILE` (.NET, PHP, Python), `DATA_FILE` (Go) |
+| `_51DEGREES_LICENSE_KEY` | A license key, for data file updates and for 51Did requests that need one. | Tests, examples and CI | The data file update examples and their tests, the 51Did client live test, and the 51Did creator context example. | `_51DEGREES_LICENSE_KEY` | `LICENSE_KEY` (.NET, Go, Java, Node.js, PHP, Python), `license_key` (Python), `DEVICE_DETECTION_KEY` (Go), `IPI_KEY` (Go), `51DEGREES_LICENSE_KEY` (Rust), `LicenseKey` (Node.js), `LICENSEKEY` (Node.js) |
+| `_51DEGREES_LICENSE_KEY_51DID` | A license key for the 51Did live tests. | Tests, examples and CI | The Cloud 51Did test and the 51Did creator context example. | `_51DEGREES_LICENSE_KEY_51DID` |  |
+| `_51DEGREES_LICENSE_KEY_BESPOKE` | A license key that carries the CloudV5Bespoke product, for live cloud tests. | Tests, examples and CI | The live cloud request engine test and the 51Did client live test. | `_51DEGREES_LICENSE_KEY_BESPOKE` |  |
+| `_51DEGREES_REQUIRE_ENTERPRISE` | When set, tests that need an IP Intelligence Enterprise data file fail rather than skip without one. | Tests, examples and CI | The IP Intelligence on-premise detection, metadata and memory tests. |  |  |
+| `_51DEGREES_REQUIRE_LOCATION` | When set, tests that need location properties fail rather than skip when the IP Intelligence data file has none. | Tests, examples and CI | The IP Intelligence on-premise decimal places test. |  |  |
+| `_51DEGREES_REQUIRE_TAC` | When set, tests that need the TAC and NativeModel properties fail rather than skip when the Device Detection data file lacks them. | Tests, examples and CI | The Device Detection data file and value profile tests. |  |  |
+| `_51DEGREES_RESOURCE_KEY` | A resource key for the 51Degrees cloud service, for tests and examples. When it is unset, the examples take the first variable, in name order, whose name starts _51DEGREES_RESOURCE_KEY, such as one for each data tier. CI sets it from _51DEGREES_RESOURCE_KEY_BESPOKE, which carries every property. | Tests, examples and CI | The cloud tests and every cloud example. | `_51DEGREES_RESOURCE_KEY_BESPOKE` | `RESOURCE_KEY` (.NET, Java, Node.js, PHP, Python), `resource_key` (PHP, Python), `51DEGREES_RESOURCE_KEY` (.NET, Java, Node.js, Rust), `SUPER_RESOURCE_KEY` (.NET, Java), `51D_RESOURCE_KEY` (.NET) |
+| `_51DEGREES_RESOURCE_KEY_51DID` | A resource key for the 51Did live tests and examples. | Tests, examples and CI | The Cloud 51Did test and the 51Did example. | `_51DEGREES_RESOURCE_KEY_51DID` |  |
+| `_51DEGREES_RESOURCE_KEY_BASIC` | A resource key on the basic data tier, for tests of what that tier can and cannot read. | Tests, examples and CI | The data tier tests, which check what the basic tier can and cannot read, and the 51Did creator context example. | `_51DEGREES_RESOURCE_KEY_BASIC` |  |
+| `_51DEGREES_RESOURCE_KEY_BESPOKE` | A resource key that carries the CloudV5Bespoke product, for live cloud tests. | Tests, examples and CI | The live cloud tests and the cloud engine example. | `_51DEGREES_RESOURCE_KEY_BESPOKE` |  |
+| `_51DEGREES_RESOURCE_KEY_SUPER` | A resource key that carries every property, for tests. CI sets it from _51DEGREES_RESOURCE_KEY_BESPOKE, which carries every property. | Tests, examples and CI | The Device Detection and IP Intelligence cloud tests. | `_51DEGREES_RESOURCE_KEY_BESPOKE` | `TEST_SUPER_RESOURCE_KEY` (Node.js) |
+| `_51DEGREES_RUN_PERFORMANCE_TESTS` | When set, the example tests also run the performance examples. | Tests, examples and CI | The on-premise example tests, which then also run the performance examples. |  | `run_performance_tests` (Python) |
+| `_51DEGREES_RUSTC_VERSION` | The version of the compiler, which usage sharing reports as the language version. The package's build sets it, so nobody else needs to. | Packages | The usage sharing element and its tests. |  |  |
+| `_51DEGREES_TEST_BOTH` | A name the environment variable reader tests set and read back to test the reader. Nobody else needs to set it. | Tests, examples and CI | The environment variable reader tests. |  |  |
+| `_51DEGREES_TEST_EMPTY` | A name the environment variable reader tests set and read back to test the reader. Nobody else needs to set it. | Tests, examples and CI | The environment variable reader tests. |  |  |
+| `_51DEGREES_TEST_FILTER` | A filter that limits which tests the CI scripts run. | Tests, examples and CI | The CI test run. |  | `FIFTYONE_TEST_FILTER` (.NET) |
+| `_51DEGREES_TEST_NAMED_KEY` | A name the test of the shared key helper sets and reads back. Nobody else needs to set it. | Tests, examples and CI | The shared key helper test. |  |  |
+| `_51DEGREES_TEST_NEITHER` | A name the environment variable reader tests set and read back to test the reader. Nobody else needs to set it. | Tests, examples and CI | The environment variable reader tests. |  |  |
+| `_51DEGREES_TEST_ONCE` | A name the environment variable reader tests set and read back to test the reader. Nobody else needs to set it. | Tests, examples and CI | The environment variable reader tests. |  |  |
+| `_51DEGREES_TEST_PLACEHOLDER` | A name the environment variable reader tests set and read back to test the reader. Nobody else needs to set it. | Tests, examples and CI | The environment variable reader tests. |  |  |
+| `_51DEGREES_TEST_UNSET` | A name the environment variable reader tests set and read back to test the reader. Nobody else needs to set it. | Tests, examples and CI | The environment variable reader tests. |  |  |
+| `_51DEGREES_TRANSLATIONS_DIR` | The folder of IP Intelligence translation files the package builds in. Its build sets it, so nobody else needs to. | Packages | The IP Intelligence translation build. |  |  |
+| `_51DEGREES_UA_CSV` | The path of a CSV file of User-Agents for the fork safety test. | Tests, examples and CI | The fork safety test. |  | `FIFTYONE_UA_CSV` (PHP) |
+| `_51DEGREES_WEB_ETAG_CHILD` | Set by a web test for the child process it starts, so the child knows its part. Nobody else needs to set it. | Tests, examples and CI | The web ETag cache test. |  |  |
 
 ## Deprecated names
 
 Each deprecated name is shown with the languages that read it in place of the current name. A release is shown where it has been decided which release stops reading the name.
 
-The list holds 42 deprecated names, and no release has been decided yet for any of them to stop being read.
+The list holds 33 deprecated names, and no release has been decided yet for any of them to stop being read.
+
+## Set in CI
+
+In the shared workflows, [`steps/set-resource-keys.ps1`](steps/set-resource-keys.ps1) sets each current name that has a CI secret from that organization secret, when the job has not set it, except `_51DEGREES_LICENSE_KEY_51DID`, which only the Cloud 51Did workflows set. A name that does not start `_51DEGREES_` never sets anything.
 
 ## Other names
 
@@ -81,8 +75,8 @@ These names do not start `_51DEGREES_`, and 51Degrees files read them. Each is a
 | `CLOUD_ROOT_URL` | The address of the cloud service the browser test suite checks the examples against. | The shared browser test suite in 51Degrees/selenium-api-tests, which every language's CI starts | .NET, Java, Node.js, PHP, Python, Rust |
 | `COMMON_CI` | The folder of a common-ci checkout that is not beside the repository, for the CI scripts that use its steps, and their tests. | Whoever runs those scripts outside the shared workflows | .NET, Python |
 | `DATA_FILES` | The names of the data files a Rust workflow step fetches, one to a line. | The workflow step that reads it, from its own env block | Rust |
-| `DEVICEDETECTIONLICENSEKEY_DOTNET` | A licence key for the .NET Device Detection data file update tests. | The .NET CI scripts | .NET |
-| `DEVICE_DETECTION_KEY` | A licence key the Rust examples workflow reads to download the Device Detection data file. | The workflow step that reads it, from its own env block | Rust |
+| `DEVICEDETECTIONLICENSEKEY_DOTNET` | A license key for the .NET Device Detection data file update tests. | The .NET CI scripts | .NET |
+| `DEVICE_DETECTION_KEY` | A license key the Rust examples workflow reads to download the Device Detection data file. | The workflow step that reads it, from its own env block | Rust |
 | `DEVICE_DETECTION_URL` | The address the Rust examples workflow downloads the Device Detection data file from. | The workflow step that reads it, from its own env block | Rust |
 | `directory` | The folder the Node.js examples and tests find their files from. The example tests set it to the example's own folder, and each reader uses its own folder when it is unset. | The Node.js example tests, or whoever runs an example | Node.js |
 | `EDGEWEBDRIVER` | The folder that holds msedgedriver, or msedgedriver itself, for the browser tests, which use it in place of downloading a driver. | GitHub's Ubuntu and Windows runner images, or whoever runs the browser tests elsewhere | .NET, Java, Node.js, PHP, Python, Rust |
@@ -96,9 +90,9 @@ These names do not start `_51DEGREES_`, and 51Degrees files read them. Each is a
 | `FROM_FORK` | Whether the pull request comes from a fork, for the Rust examples workflow. | The workflow step that reads it, from its own env block | Rust |
 | `GECKOWEBDRIVER` | The folder that holds geckodriver, or geckodriver itself, for the browser tests, which use it in place of downloading a driver. | GitHub's Ubuntu and Windows runner images, or whoever runs the browser tests elsewhere | .NET, Java, Node.js, PHP, Python, Rust |
 | `GEOIPEVIDENCEFILE` | The path of the file of addresses with known locations the .NET IP Intelligence on-premise example tests give the comparison examples, in place of the one they find by name. | Whoever runs those tests | .NET |
-| `IPINTELLIGENCELICENSEKEY_DOTNET` | A licence key for the .NET IP Intelligence data file update tests. | The .NET CI scripts | .NET |
-| `LicenseKey` | A licence key for the Java data file update examples, read as LicenseKey and then as LICENSEKEY. Node.js reads both names only as deprecated names of _51DEGREES_LICENSE_KEY. | Whoever runs those examples | Java |
-| `LICENSEKEY` | A licence key for the Java data file update examples, read when LicenseKey is unset. | Whoever runs those examples | Java |
+| `IPINTELLIGENCELICENSEKEY_DOTNET` | A license key for the .NET IP Intelligence data file update tests. | The .NET CI scripts | .NET |
+| `LicenseKey` | A license key for the Java data file update examples, read as LicenseKey and then as LICENSEKEY. Node.js reads both names only as deprecated names of _51DEGREES_LICENSE_KEY. | Whoever runs those examples | Java |
+| `LICENSEKEY` | A license key for the Java data file update examples, read when LicenseKey is unset. | Whoever runs those examples | Java |
 | `MODE` | Whether a Rust examples workflow job runs the on-premise or the cloud examples. | The workflow step that reads it, from its own env block | Rust |
 | `PAID_RESOURCE_KEY` | A resource key on a paid data tier, for the browser test suite. | The shared browser test suite in 51Degrees/selenium-api-tests, which every language's CI starts | .NET, Java, Node.js, PHP, Python, Rust |
 | `PATHS` | The data file paths the Rust restore-data-files action restores, one to a line. | The workflow step that reads it, from its own env block | Rust |
@@ -120,7 +114,7 @@ These names do not start `_51DEGREES_`, and 51Degrees files read them. Each is a
 | `TESTDATAFILE` | A Device Detection data file for the Java on-premise examples, read when TestDataFile is unset. | Whoever runs those examples or their tests | Java |
 | `TestDeviceDetectionDataFile` | A Device Detection data file that the Java IP Intelligence mixed examples' options files name, read as TestDeviceDetectionDataFile, then TESTDEVICEDETECTIONDATAFILE, then as a system property. | Whoever runs those examples | Java |
 | `TESTDEVICEDETECTIONDATAFILE` | A Device Detection data file for the Java IP Intelligence mixed examples, read when TestDeviceDetectionDataFile is unset. | Whoever runs those examples | Java |
-| `TestLicenseKey` | A licence key for the Java live cloud tests, read after the _51DEGREES_ names. | Whoever runs the Java tests | Java |
+| `TestLicenseKey` | A license key for the Java live cloud tests, read after the _51DEGREES_ names. | Whoever runs the Java tests | Java |
 | `TestResourceKey` | A resource key for the Java cloud tests and examples, read as an environment variable or a system property, and by the examples and their options files under its upper case name as well. | Whoever runs the Java tests or examples | Java |
 | `TESTRESOURCEKEY` | A resource key for the Java cloud tests and examples, read when TestResourceKey is unset. | Whoever runs the Java tests or examples | Java |
 | `VERSION` | The version the Rust publish workflow is releasing. | The workflow step that reads it, from its own env block | Rust |
