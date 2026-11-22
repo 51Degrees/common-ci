@@ -28,6 +28,7 @@ The reader should be familiar with:
 - [Making a Pull Request](#making-a-pull-request)
   - [Merging Policy](#merging-policy)
   - [Pull Request Message](#pull-request-message)
+  - [Testing a change from a fork](#testing-a-change-from-a-fork)
 - [Build Process](#build-process)
 
 # Issues
@@ -148,6 +149,21 @@ PRs created by external users will need approval from a 51Degrees user before th
 ## Pull Request Message
 
 If the PR aims to resolve an open issue, the issue should be linked and closed using the standard GitHub keywords e.g. `Closes #1`. For more, see [Linking Issues](https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue#linking-a-pull-request-to-an-issue-using-a-keyword).
+
+## Testing a change from a fork
+
+A pull request from a fork runs without 51Degrees secrets or paid data, because code from a fork never runs with them. Tests that need a key, or a data file that only a license key can download, can't run there. The free data files need no key, so the tests that use them still run.
+
+To run every test before you open your pull request, use your own keys in your own fork:
+
+1. In your fork, turn on GitHub Actions from the **Actions** tab.
+2. Add each key as a repository secret in your fork, under **Settings**, then **Secrets and variables**, then **Actions**. Give it the `_51DEGREES_` name that the repository's workflows in `.github/workflows` read.
+3. Push your branch to your fork, and open a pull request from it into your fork's `rc` branch.
+4. Run the repository's **Pull Requests** workflow from the **Actions** tab in your fork. It builds and tests that pull request with your keys.
+
+A resource key for the cloud services is free from the [Configurator](https://configure.51degrees.com). A license key for the paid data files comes with a [paid plan](https://51degrees.com/pricing).
+
+Then open your pull request into the 51Degrees repository. To test it with 51Degrees keys and paid data, a 51Degrees member pushes that exact commit to a branch in the 51Degrees repository.
 
 # Build Process
 
