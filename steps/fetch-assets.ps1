@@ -1,55 +1,13 @@
 param (
     [Parameter(Mandatory)][string[]]$Assets,
-    # The licence key for the data files, which come from the Distributor.
-    # The shared workflows export it as _51DEGREES_LICENSE_KEY before this
-    # runs.
-    [string]$LicenseKey = $env:_51DEGREES_LICENSE_KEY,
-    [switch]$FullCsv,
-    # The old keys and addresses, which a calling repository's main still
-    # passes by name until it passes 'secrets: inherit'. Each is read only
-    # when _51DEGREES_LICENSE_KEY has no value, and then as it was before that
-    # name, so a caller not yet moved keeps working. When
-    # _51DEGREES_LICENSE_KEY is set, none of them is read.
     [string]$DeviceDetection,
     [string]$DeviceDetectionUrl,
     [string]$IpIntelligence,
     [string]$IpIntelligenceUrl,
-    [string]$CsvUrl
+    [string]$CsvUrl,
+    [switch]$FullCsv
 )
 $ErrorActionPreference = "Stop"
-
-function Test-Given ([string]$Value) {
-    return -not [string]::IsNullOrWhiteSpace($Value)
-}
-
-# With _51DEGREES_LICENSE_KEY, every licensed file comes from the Distributor
-# with that key, and the old keys and addresses are not read. Without it, the
-# old ones are used as they were before, for a caller not yet moved.
-if (Test-Given $LicenseKey) {
-    $DeviceDetection = $LicenseKey
-    $DeviceDetectionUrl = ''
-    $IpIntelligence = $LicenseKey
-    $IpIntelligenceUrl = ''
-    $CsvUrl = ''
-}
-elseif (@($DeviceDetection, $DeviceDetectionUrl, $IpIntelligence, $IpIntelligenceUrl, $CsvUrl).Where({ Test-Given $_ })) {
-    Write-Host "_51DEGREES_LICENSE_KEY is not set, so the old keys and addresses passed are used, as before that name. They go when the calling workflow passes 'secrets: inherit'."
-}
-
-# Whether an asset that needs a licence has one: _51DEGREES_LICENSE_KEY, or
-# for a caller not yet moved the old key or address for it. Without one, the
-# step fails naming the variable, rather than with the Distributor's refusal.
-function Test-Licensed ([string]$Asset) {
-    switch -Exact -CaseSensitive ($Asset) {
-        'TAC-HashV41.hash' { return (Test-Given $DeviceDetection) -or (Test-Given $DeviceDetectionUrl) }
-        '51Degrees-EnterpriseIpiV41.ipi' { return (Test-Given $IpIntelligence) -or (Test-Given $IpIntelligenceUrl) }
-        '51Degrees.csv' { return (Test-Given $DeviceDetection) -or (Test-Given $CsvUrl) }
-        '51Degrees-Tac.zip' { return (Test-Given $DeviceDetection) -or (Test-Given $CsvUrl) }
-        'chargify.json' { return Test-Given $DeviceDetection }
-        'entitlement.json' { return Test-Given $DeviceDetection }
-        default { return $true }
-    }
-}
 $PSNativeCommandUseErrorActionPreference = $true
 
 $cache = New-Item -ItemType Directory -Path assets -Force
@@ -161,9 +119,6 @@ foreach ($asset in $Assets) {
         Write-Host "Asset '$asset' already present in cache, skipping download"
         continue
     }
-    if (-not (Test-Licensed $asset)) {
-        throw "'$asset' needs the data licence key, and _51DEGREES_LICENSE_KEY is not set. It is an organisation secret, which the calling workflow passes with 'secrets: inherit'."
-    }
     Write-Host "Fetching '$asset'"
     try {
         if ($dataFiles.ContainsKey($asset)) {
@@ -180,16 +135,9 @@ foreach ($asset in $Assets) {
                 Move-Item -Path $_ -Destination $cache
             }
             "51Degrees-EnterpriseIpiV41-AllProperties.ipi" {
-                # This file came only from an address in a secret. Data files
-                # now come from the Distributor with _51DEGREES_LICENSE_KEY,
-                # and no Distributor product for it is known yet, so it comes
-                # only from the old address of a caller not yet moved.
-                if (Test-Given $IpIntelligenceUrl) {
-                    & $PSScriptRoot/fetch-hash-assets.ps1 -RepoName . -ArchiveName "$_.gz" -Url $IpIntelligenceUrl
-                    Move-Item -Path $_ -Destination $cache
-                } else {
-                    Write-Host "No Distributor product is known for '$_': skipping it. Tests that need it should skip and say so."
-                }
+                # Only uses URL
+                & $PSScriptRoot/fetch-hash-assets.ps1 -RepoName . -ArchiveName "$_.gz" -Url $IpIntelligenceUrl
+                Move-Item -Path $_ -Destination $cache
             }
             "51Degrees.csv" {
                 & $PSScriptRoot/download-data-file.ps1 -LicenseKey:$DeviceDetection -DataType 'CSV' -Product 'V4TAC' -Url:$CsvUrl -FullFilePath "$_.zip"

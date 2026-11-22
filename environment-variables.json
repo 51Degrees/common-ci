@@ -39,8 +39,15 @@
       "name": "_51DEGREES_CLOUD_ENDPOINT",
       "holds": "The address of the 51Degrees cloud service to send requests to, in place of the public service.",
       "readByPackages": true,
-      "usedIn": "The cloud request engine tests, the 51Did client tests, and every cloud example.",
-      "ciSecret": "",
+      "languages": [
+        "dotnet",
+        "go",
+        "java",
+        "node",
+        "php",
+        "python",
+        "rust"
+      ],
       "deprecated": [
         {
           "name": "FOD_CLOUD_API_URL",
@@ -98,8 +105,9 @@
       "name": "_51DEGREES_CLOUD_REQUEST_ORIGIN",
       "holds": "The Origin header the cloud examples send, for a resource key that only accepts requests from listed origins.",
       "readByPackages": false,
-      "usedIn": "The cloud getting started examples, console and web.",
-      "ciSecret": "",
+      "languages": [
+        "python"
+      ],
       "deprecated": [
         {
           "name": "cloud_request_origin",
@@ -112,10 +120,11 @@
     },
     {
       "name": "_51DEGREES_CXX_DIR",
-      "holds": "The folder of a 51degrees-cxx source tree for the native library build to use, in place of the copy in the package.",
+      "holds": "The folder of a 51degrees-cxx source tree for the Rust -sys crates to build from, in place of the copy in the crate.",
       "readByPackages": true,
-      "usedIn": "The native library build and its source folder test.",
-      "ciSecret": "",
+      "languages": [
+        "rust"
+      ],
       "deprecated": [
         {
           "name": "FIFTYONE_CXX_DIR",
@@ -130,8 +139,15 @@
       "name": "_51DEGREES_DD_PATH",
       "holds": "The path of a Device Detection data file (.hash) for tests and examples to use.",
       "readByPackages": false,
-      "usedIn": "The Device Detection on-premise tests and every Device Detection on-premise example.",
-      "ciSecret": "",
+      "languages": [
+        "dotnet",
+        "go",
+        "java",
+        "node",
+        "php",
+        "python",
+        "rust"
+      ],
       "deprecated": [
         {
           "name": "51DEGREES_DD_PATH",
@@ -177,26 +193,29 @@
     },
     {
       "name": "_51DEGREES_DEPRECATED_NAMES_CHILD_EXPECTS",
-      "holds": "Set by a test for the child process it starts, saying what the child should find. Nobody else needs to set it.",
+      "holds": "Set by a Rust test for the child process it starts, saying what the child should find. Nobody else needs to set it.",
       "readByPackages": false,
-      "usedIn": "The deprecated names test.",
-      "ciSecret": "",
+      "languages": [
+        "rust"
+      ],
       "deprecated": []
     },
     {
       "name": "_51DEGREES_DERIVED_PROPERTIES_COMMIT",
-      "holds": "The commit of the derived-properties repository the package was built from. Its build sets it, so nobody else needs to.",
+      "holds": "The commit of the derived-properties repository the Rust crate was built from. Its build script sets it, so nobody else needs to.",
       "readByPackages": true,
-      "usedIn": "The derived properties build and its build logging test.",
-      "ciSecret": "",
+      "languages": [
+        "rust"
+      ],
       "deprecated": []
     },
     {
       "name": "_51DEGREES_EVIDENCE_YAML",
       "holds": "The path of a YAML file of evidence for the examples to process.",
       "readByPackages": false,
-      "usedIn": "The offline processing examples and their tests.",
-      "ciSecret": "",
+      "languages": [
+        "go"
+      ],
       "deprecated": [
         {
           "name": "EVIDENCE_YAML",
@@ -209,26 +228,46 @@
     },
     {
       "name": "_51DEGREES_EXAMPLE_HTTPS_PORTS",
-      "holds": "The HTTPS ports the web examples listen on.",
+      "holds": "The HTTPS ports the .NET web examples listen on.",
       "readByPackages": false,
-      "usedIn": "The web examples.",
-      "ciSecret": "",
+      "languages": [
+        "dotnet"
+      ],
       "deprecated": []
     },
     {
       "name": "_51DEGREES_EXAMPLE_HTTP_PORTS",
-      "holds": "The HTTP ports the web examples listen on.",
+      "holds": "The HTTP ports the .NET web examples listen on.",
       "readByPackages": false,
-      "usedIn": "The web examples.",
-      "ciSecret": "",
+      "languages": [
+        "dotnet"
+      ],
       "deprecated": []
+    },
+    {
+      "name": "_51DEGREES_IPI_DATA_FILE_URL",
+      "holds": "The address the IP Intelligence examples download a data file from when they update it.",
+      "readByPackages": false,
+      "languages": [
+        "go"
+      ],
+      "deprecated": [
+        {
+          "name": "IPI_DATA_FILE_URL",
+          "languages": [
+            "go"
+          ],
+          "stopsBeingReadIn": ""
+        }
+      ]
     },
     {
       "name": "_51DEGREES_IPI_ENTERPRISE_SHARE",
       "holds": "A folder of dated IP Intelligence Enterprise data files, from which tests and examples take the newest.",
       "readByPackages": false,
-      "usedIn": "The IP Intelligence on-premise detection test and the IP Intelligence on-premise examples.",
-      "ciSecret": "",
+      "languages": [
+        "rust"
+      ],
       "deprecated": [
         {
           "name": "51DEGREES_IPI_ENTERPRISE_SHARE",
@@ -243,16 +282,25 @@
       "name": "_51DEGREES_IPI_MEMORY_PROFILES",
       "holds": "The performance profiles the IP Intelligence memory test measures, separated by commas. Every profile is measured when it is not set.",
       "readByPackages": false,
-      "usedIn": "The IP Intelligence memory test.",
-      "ciSecret": "",
+      "languages": [
+        "rust"
+      ],
       "deprecated": []
     },
     {
       "name": "_51DEGREES_IPI_PATH",
-      "holds": "The path of an IP Intelligence data file (.ipi) for tests and examples to use. The IP Intelligence package also looks beside it for the Translations folder.",
+      "holds": "The path of an IP Intelligence data file (.ipi) for tests and examples to use. The PHP IP Intelligence package also looks beside it for the Translations folder.",
       "readByPackages": true,
-      "usedIn": "The IP Intelligence on-premise tests and every IP Intelligence on-premise example.",
-      "ciSecret": "",
+      "languages": [
+        "cxx",
+        "dotnet",
+        "go",
+        "java",
+        "node",
+        "php",
+        "python",
+        "rust"
+      ],
       "deprecated": [
         {
           "name": "51DEGREES_IPI_PATH",
@@ -285,10 +333,17 @@
     },
     {
       "name": "_51DEGREES_LICENSE_KEY",
-      "holds": "A license key, for data file updates and for 51Did requests that need one.",
+      "holds": "A licence key, for data file updates and for 51Did requests that need one.",
       "readByPackages": false,
-      "usedIn": "The data file update examples and their tests, the 51Did client live test, and the 51Did creator context example.",
-      "ciSecret": "_51DEGREES_LICENSE_KEY",
+      "languages": [
+        "dotnet",
+        "go",
+        "java",
+        "node",
+        "php",
+        "python",
+        "rust"
+      ],
       "deprecated": [
         {
           "name": "LICENSE_KEY",
@@ -348,50 +403,74 @@
     },
     {
       "name": "_51DEGREES_LICENSE_KEY_51DID",
-      "holds": "A license key for the 51Did live tests.",
+      "holds": "A licence key for the 51Did live tests.",
       "readByPackages": false,
-      "usedIn": "The Cloud 51Did test and the 51Did creator context example.",
-      "ciSecret": "_51DEGREES_LICENSE_KEY_51DID",
+      "languages": [
+        "dotnet",
+        "node",
+        "rust"
+      ],
       "deprecated": []
     },
     {
       "name": "_51DEGREES_LICENSE_KEY_BESPOKE",
-      "holds": "A license key that carries the CloudV5Bespoke product, for live cloud tests.",
+      "holds": "A licence key that carries the CloudV5Bespoke product, for live cloud tests.",
       "readByPackages": false,
-      "usedIn": "The live cloud request engine test and the 51Did client live test.",
-      "ciSecret": "_51DEGREES_LICENSE_KEY_BESPOKE",
+      "languages": [
+        "java",
+        "rust"
+      ],
+      "deprecated": []
+    },
+    {
+      "name": "_51DEGREES_LICENSE_KEY_CLOUDV5BESPOKE",
+      "holds": "A licence key that carries the CloudV5Bespoke product, for live cloud tests. Java reads it after _51DEGREES_LICENSE_KEY_BESPOKE.",
+      "readByPackages": false,
+      "languages": [
+        "java"
+      ],
       "deprecated": []
     },
     {
       "name": "_51DEGREES_REQUIRE_ENTERPRISE",
       "holds": "When set, tests that need an IP Intelligence Enterprise data file fail rather than skip without one.",
       "readByPackages": false,
-      "usedIn": "The IP Intelligence on-premise detection, metadata and memory tests.",
-      "ciSecret": "",
+      "languages": [
+        "rust"
+      ],
       "deprecated": []
     },
     {
       "name": "_51DEGREES_REQUIRE_LOCATION",
       "holds": "When set, tests that need location properties fail rather than skip when the IP Intelligence data file has none.",
       "readByPackages": false,
-      "usedIn": "The IP Intelligence on-premise decimal places test.",
-      "ciSecret": "",
+      "languages": [
+        "rust"
+      ],
       "deprecated": []
     },
     {
       "name": "_51DEGREES_REQUIRE_TAC",
       "holds": "When set, tests that need the TAC and NativeModel properties fail rather than skip when the Device Detection data file lacks them.",
       "readByPackages": false,
-      "usedIn": "The Device Detection data file and value profile tests.",
-      "ciSecret": "",
+      "languages": [
+        "rust"
+      ],
       "deprecated": []
     },
     {
       "name": "_51DEGREES_RESOURCE_KEY",
-      "holds": "A resource key for the 51Degrees cloud service, for tests and examples. When it is unset, the examples take the first variable, in name order, whose name starts _51DEGREES_RESOURCE_KEY, such as one for each data tier. CI sets it from _51DEGREES_RESOURCE_KEY_BESPOKE, which carries every property.",
+      "holds": "A resource key for the 51Degrees cloud service, for tests and examples. When it is unset, the .NET examples take the first variable, in name order, whose name starts _51DEGREES_RESOURCE_KEY, such as one for each data tier.",
       "readByPackages": false,
-      "usedIn": "The cloud tests and every cloud example.",
-      "ciSecret": "_51DEGREES_RESOURCE_KEY_BESPOKE",
+      "languages": [
+        "dotnet",
+        "go",
+        "java",
+        "node",
+        "php",
+        "python",
+        "rust"
+      ],
       "deprecated": [
         {
           "name": "RESOURCE_KEY",
@@ -443,32 +522,178 @@
       "name": "_51DEGREES_RESOURCE_KEY_51DID",
       "holds": "A resource key for the 51Did live tests and examples.",
       "readByPackages": false,
-      "usedIn": "The Cloud 51Did test and the 51Did example.",
-      "ciSecret": "_51DEGREES_RESOURCE_KEY_51DID",
+      "languages": [
+        "dotnet",
+        "rust"
+      ],
       "deprecated": []
+    },
+    {
+      "name": "_51DEGREES_RESOURCE_KEY_ACCEPTCH_BROWSER",
+      "holds": "A resource key for the Accept-CH tests, whose properties need the browser client hints.",
+      "readByPackages": false,
+      "languages": [
+        "php"
+      ],
+      "deprecated": [
+        {
+          "name": "AcceptChBrowserKey",
+          "languages": [
+            "php"
+          ],
+          "stopsBeingReadIn": ""
+        }
+      ]
+    },
+    {
+      "name": "_51DEGREES_RESOURCE_KEY_ACCEPTCH_HARDWARE",
+      "holds": "A resource key for the Accept-CH tests, whose properties need the hardware client hints.",
+      "readByPackages": false,
+      "languages": [
+        "php"
+      ],
+      "deprecated": [
+        {
+          "name": "AcceptChHardwareKey",
+          "languages": [
+            "php"
+          ],
+          "stopsBeingReadIn": ""
+        }
+      ]
+    },
+    {
+      "name": "_51DEGREES_RESOURCE_KEY_ACCEPTCH_NONE",
+      "holds": "A resource key for the Accept-CH tests, whose properties need no client hints.",
+      "readByPackages": false,
+      "languages": [
+        "php"
+      ],
+      "deprecated": [
+        {
+          "name": "AcceptChNoneKey",
+          "languages": [
+            "php"
+          ],
+          "stopsBeingReadIn": ""
+        }
+      ]
+    },
+    {
+      "name": "_51DEGREES_RESOURCE_KEY_ACCEPTCH_PLATFORM",
+      "holds": "A resource key for the Accept-CH tests, whose properties need the platform client hints.",
+      "readByPackages": false,
+      "languages": [
+        "php"
+      ],
+      "deprecated": [
+        {
+          "name": "AcceptChPlatformKey",
+          "languages": [
+            "php"
+          ],
+          "stopsBeingReadIn": ""
+        }
+      ]
     },
     {
       "name": "_51DEGREES_RESOURCE_KEY_BASIC",
       "holds": "A resource key on the basic data tier, for tests of what that tier can and cannot read.",
       "readByPackages": false,
-      "usedIn": "The data tier tests, which check what the basic tier can and cannot read, and the 51Did creator context example.",
-      "ciSecret": "_51DEGREES_RESOURCE_KEY_BASIC",
+      "languages": [
+        "dotnet",
+        "rust"
+      ],
       "deprecated": []
     },
     {
       "name": "_51DEGREES_RESOURCE_KEY_BESPOKE",
       "holds": "A resource key that carries the CloudV5Bespoke product, for live cloud tests.",
       "readByPackages": false,
-      "usedIn": "The live cloud tests and the cloud engine example.",
-      "ciSecret": "_51DEGREES_RESOURCE_KEY_BESPOKE",
+      "languages": [
+        "dotnet",
+        "java",
+        "node",
+        "python",
+        "rust"
+      ],
       "deprecated": []
     },
     {
-      "name": "_51DEGREES_RESOURCE_KEY_SUPER",
-      "holds": "A resource key that carries every property, for tests. CI sets it from _51DEGREES_RESOURCE_KEY_BESPOKE, which carries every property.",
+      "name": "_51DEGREES_RESOURCE_KEY_BROWSER",
+      "holds": "A resource key for the Accept-CH tests, whose properties need the browser client hints.",
       "readByPackages": false,
-      "usedIn": "The Device Detection and IP Intelligence cloud tests.",
-      "ciSecret": "_51DEGREES_RESOURCE_KEY_BESPOKE",
+      "languages": [
+        "node"
+      ],
+      "deprecated": [
+        {
+          "name": "TEST_BROWSER_RESOURCE_KEY",
+          "languages": [
+            "node"
+          ],
+          "stopsBeingReadIn": ""
+        }
+      ]
+    },
+    {
+      "name": "_51DEGREES_RESOURCE_KEY_HARDWARE",
+      "holds": "A resource key for the Accept-CH tests, whose properties need the hardware client hints.",
+      "readByPackages": false,
+      "languages": [
+        "node"
+      ],
+      "deprecated": [
+        {
+          "name": "TEST_HARDWARE_RESOURCE_KEY",
+          "languages": [
+            "node"
+          ],
+          "stopsBeingReadIn": ""
+        }
+      ]
+    },
+    {
+      "name": "_51DEGREES_RESOURCE_KEY_NO_SETHEADER",
+      "holds": "A resource key for the Accept-CH tests, whose properties need no client hints.",
+      "readByPackages": false,
+      "languages": [
+        "node"
+      ],
+      "deprecated": [
+        {
+          "name": "TEST_NO_SETHEADER_RESOURCE_KEY",
+          "languages": [
+            "node"
+          ],
+          "stopsBeingReadIn": ""
+        }
+      ]
+    },
+    {
+      "name": "_51DEGREES_RESOURCE_KEY_PLATFORM",
+      "holds": "A resource key for the Accept-CH tests, whose properties need the platform client hints.",
+      "readByPackages": false,
+      "languages": [
+        "node"
+      ],
+      "deprecated": [
+        {
+          "name": "TEST_PLATFORM_RESOURCE_KEY",
+          "languages": [
+            "node"
+          ],
+          "stopsBeingReadIn": ""
+        }
+      ]
+    },
+    {
+      "name": "_51DEGREES_RESOURCE_KEY_SUPER",
+      "holds": "A resource key that carries every property, for tests.",
+      "readByPackages": false,
+      "languages": [
+        "node"
+      ],
       "deprecated": [
         {
           "name": "TEST_SUPER_RESOURCE_KEY",
@@ -481,10 +706,11 @@
     },
     {
       "name": "_51DEGREES_RUN_PERFORMANCE_TESTS",
-      "holds": "When set, the example tests also run the performance examples.",
+      "holds": "When set, the Python example tests also run the performance examples.",
       "readByPackages": false,
-      "usedIn": "The on-premise example tests, which then also run the performance examples.",
-      "ciSecret": "",
+      "languages": [
+        "python"
+      ],
       "deprecated": [
         {
           "name": "run_performance_tests",
@@ -497,34 +723,38 @@
     },
     {
       "name": "_51DEGREES_RUSTC_VERSION",
-      "holds": "The version of the compiler, which usage sharing reports as the language version. The package's build sets it, so nobody else needs to.",
+      "holds": "The version of the Rust compiler, which usage sharing reports as the language version. The crate's build script sets it, so nobody else needs to.",
       "readByPackages": true,
-      "usedIn": "The usage sharing element and its tests.",
-      "ciSecret": "",
+      "languages": [
+        "rust"
+      ],
       "deprecated": []
     },
     {
       "name": "_51DEGREES_TEST_BOTH",
-      "holds": "A name the environment variable reader tests set and read back to test the reader. Nobody else needs to set it.",
+      "holds": "A name the PHP environment variable tests set and read back to test the reader. Nobody else needs to set it.",
       "readByPackages": false,
-      "usedIn": "The environment variable reader tests.",
-      "ciSecret": "",
+      "languages": [
+        "php"
+      ],
       "deprecated": []
     },
     {
       "name": "_51DEGREES_TEST_EMPTY",
-      "holds": "A name the environment variable reader tests set and read back to test the reader. Nobody else needs to set it.",
+      "holds": "A name the PHP environment variable tests set and read back to test the reader. Nobody else needs to set it.",
       "readByPackages": false,
-      "usedIn": "The environment variable reader tests.",
-      "ciSecret": "",
+      "languages": [
+        "php"
+      ],
       "deprecated": []
     },
     {
       "name": "_51DEGREES_TEST_FILTER",
-      "holds": "A filter that limits which tests the CI scripts run.",
+      "holds": "A filter that limits which .NET tests the CI scripts run.",
       "readByPackages": false,
-      "usedIn": "The CI test run.",
-      "ciSecret": "",
+      "languages": [
+        "dotnet"
+      ],
       "deprecated": [
         {
           "name": "FIFTYONE_TEST_FILTER",
@@ -537,58 +767,65 @@
     },
     {
       "name": "_51DEGREES_TEST_NAMED_KEY",
-      "holds": "A name the test of the shared key helper sets and reads back. Nobody else needs to set it.",
+      "holds": "A name the test of the Python shared key helper sets and reads back. Nobody else needs to set it.",
       "readByPackages": false,
-      "usedIn": "The shared key helper test.",
-      "ciSecret": "",
+      "languages": [
+        "python"
+      ],
       "deprecated": []
     },
     {
       "name": "_51DEGREES_TEST_NEITHER",
-      "holds": "A name the environment variable reader tests set and read back to test the reader. Nobody else needs to set it.",
+      "holds": "A name the PHP environment variable tests set and read back to test the reader. Nobody else needs to set it.",
       "readByPackages": false,
-      "usedIn": "The environment variable reader tests.",
-      "ciSecret": "",
+      "languages": [
+        "php"
+      ],
       "deprecated": []
     },
     {
       "name": "_51DEGREES_TEST_ONCE",
-      "holds": "A name the environment variable reader tests set and read back to test the reader. Nobody else needs to set it.",
+      "holds": "A name the PHP environment variable tests set and read back to test the reader. Nobody else needs to set it.",
       "readByPackages": false,
-      "usedIn": "The environment variable reader tests.",
-      "ciSecret": "",
+      "languages": [
+        "php"
+      ],
       "deprecated": []
     },
     {
       "name": "_51DEGREES_TEST_PLACEHOLDER",
-      "holds": "A name the environment variable reader tests set and read back to test the reader. Nobody else needs to set it.",
+      "holds": "A name the PHP environment variable tests set and read back to test the reader. Nobody else needs to set it.",
       "readByPackages": false,
-      "usedIn": "The environment variable reader tests.",
-      "ciSecret": "",
+      "languages": [
+        "php"
+      ],
       "deprecated": []
     },
     {
       "name": "_51DEGREES_TEST_UNSET",
-      "holds": "A name the environment variable reader tests set and read back to test the reader. Nobody else needs to set it.",
+      "holds": "A name the PHP environment variable tests set and read back to test the reader. Nobody else needs to set it.",
       "readByPackages": false,
-      "usedIn": "The environment variable reader tests.",
-      "ciSecret": "",
+      "languages": [
+        "php"
+      ],
       "deprecated": []
     },
     {
       "name": "_51DEGREES_TRANSLATIONS_DIR",
-      "holds": "The folder of IP Intelligence translation files the package builds in. Its build sets it, so nobody else needs to.",
+      "holds": "The folder of IP Intelligence translation files the Rust crate builds in. Its build script sets it, so nobody else needs to.",
       "readByPackages": true,
-      "usedIn": "The IP Intelligence translation build.",
-      "ciSecret": "",
+      "languages": [
+        "rust"
+      ],
       "deprecated": []
     },
     {
       "name": "_51DEGREES_UA_CSV",
-      "holds": "The path of a CSV file of User-Agents for the fork safety test.",
+      "holds": "The path of a CSV file of User-Agents for the PHP fork safety test.",
       "readByPackages": false,
-      "usedIn": "The fork safety test.",
-      "ciSecret": "",
+      "languages": [
+        "php"
+      ],
       "deprecated": [
         {
           "name": "FIFTYONE_UA_CSV",
@@ -603,8 +840,10 @@
       "name": "_51DEGREES_WEB_ETAG_CHILD",
       "holds": "Set by a web test for the child process it starts, so the child knows its part. Nobody else needs to set it.",
       "readByPackages": false,
-      "usedIn": "The web ETag cache test.",
-      "ciSecret": "",
+      "languages": [
+        "go",
+        "rust"
+      ],
       "deprecated": []
     }
   ],
@@ -707,7 +946,7 @@
     },
     {
       "name": "DEVICEDETECTIONLICENSEKEY_DOTNET",
-      "holds": "A license key for the .NET Device Detection data file update tests.",
+      "holds": "A licence key for the .NET Device Detection data file update tests.",
       "setBy": "The .NET CI scripts",
       "languages": [
         "dotnet"
@@ -715,7 +954,7 @@
     },
     {
       "name": "DEVICE_DETECTION_KEY",
-      "holds": "A license key the Rust examples workflow reads to download the Device Detection data file.",
+      "holds": "A licence key the Rust examples workflow reads to download the Device Detection data file.",
       "setBy": "The workflow step that reads it, from its own env block",
       "languages": [
         "rust"
@@ -857,7 +1096,7 @@
     },
     {
       "name": "IPINTELLIGENCELICENSEKEY_DOTNET",
-      "holds": "A license key for the .NET IP Intelligence data file update tests.",
+      "holds": "A licence key for the .NET IP Intelligence data file update tests.",
       "setBy": "The .NET CI scripts",
       "languages": [
         "dotnet"
@@ -865,7 +1104,7 @@
     },
     {
       "name": "LicenseKey",
-      "holds": "A license key for the Java data file update examples, read as LicenseKey and then as LICENSEKEY. Node.js reads both names only as deprecated names of _51DEGREES_LICENSE_KEY.",
+      "holds": "A licence key for the Java data file update examples, read as LicenseKey and then as LICENSEKEY. Node.js reads both names only as deprecated names of _51DEGREES_LICENSE_KEY.",
       "setBy": "Whoever runs those examples",
       "languages": [
         "java"
@@ -873,7 +1112,7 @@
     },
     {
       "name": "LICENSEKEY",
-      "holds": "A license key for the Java data file update examples, read when LicenseKey is unset.",
+      "holds": "A licence key for the Java data file update examples, read when LicenseKey is unset.",
       "setBy": "Whoever runs those examples",
       "languages": [
         "java"
@@ -1064,7 +1303,7 @@
     },
     {
       "name": "TestLicenseKey",
-      "holds": "A license key for the Java live cloud tests, read after the _51DEGREES_ names.",
+      "holds": "A licence key for the Java live cloud tests, read after the _51DEGREES_ names.",
       "setBy": "Whoever runs the Java tests",
       "languages": [
         "java"

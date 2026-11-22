@@ -62,7 +62,7 @@ on:
     secrets:
       # PAT that we use to authenticate on behalf of GitHub Actions.
       token:
-        required: false
+        required: true
       AcceptCHBrowserKey:
       AcceptCHHardwareKey:
       AcceptCHNoneKey:
@@ -171,7 +171,7 @@ jobs:
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ github.ref_name }} `
-          -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
+          -GitHubToken ${{ secrets.token }} `
           -GitHubOutput $Env:GITHUB_OUTPUT `
           -GitHubUser ${{ inputs.user }} `
           -GitHubEmail ${{ inputs.email }} `
@@ -202,7 +202,7 @@ jobs:
         shell: pwsh
         env:
           ALLOW_EARLY_RELEASE: ${{ inputs.allow-early-release }}
-          GH_TOKEN: ${{ secrets.ACCESS_TOKEN || secrets.token }}
+          GH_TOKEN: ${{ secrets.token }}
           REPO_NAME: ${{ inputs.repo-name }}
           REPOSITORY: ${{ inputs.org-name }}/${{ inputs.repo-name }}
           # The calling repository's variable, or the organisation's.
@@ -258,7 +258,7 @@ jobs:
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ github.ref_name }} `
-          -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
+          -GitHubToken ${{ secrets.token }} `
           -Options $Options `
           -GitHubUser ${{ inputs.user }} `
           -GitHubEmail ${{ inputs.email }} `
@@ -303,7 +303,7 @@ jobs:
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ github.ref_name }} `
-          -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
+          -GitHubToken ${{ secrets.token }} `
           -Options $Options `
           -GitHubUser ${{ inputs.user }} `
           -GitHubEmail ${{ inputs.email }} `
@@ -383,7 +383,7 @@ jobs:
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ github.ref_name }} `
-          -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
+          -GitHubToken ${{ secrets.token }} `
           -Options $Options `
           -GitHubUser ${{ inputs.user }} `
           -GitHubEmail ${{ inputs.email }} `
@@ -434,7 +434,7 @@ jobs:
           -RepoName '${{ inputs.repo-name }}' `
           -OrgName '${{ inputs.org-name }}' `
           -Branch '${{ github.ref_name }}' `
-          -GitHubToken '${{ secrets.ACCESS_TOKEN || secrets.token }}' `
+          -GitHubToken '${{ secrets.token }}' `
           -GitHubOutput $Env:GITHUB_OUTPUT `
           -Options (ConvertFrom-Json -AsHashtable '${{ needs.Configure.outputs.options }}') `
           -RunId '${{ github.run_id }}' `
@@ -501,7 +501,7 @@ jobs:
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ github.ref_name }} `
-          -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
+          -GitHubToken ${{ secrets.token }} `
           -Options $Options `
           -GitHubUser ${{ inputs.user }} `
           -GitHubEmail ${{ inputs.email }} `

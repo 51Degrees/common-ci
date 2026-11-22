@@ -55,7 +55,7 @@ on:
         default: true
     secrets:
       token:
-        required: false
+        required: true
       AcceptCHBrowserKey:
       AcceptCHHardwareKey:
       AcceptCHNoneKey:
@@ -118,7 +118,7 @@ jobs:
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ inputs.branch != '' && inputs.branch || github.ref_name }} `
-          -GitHubToken ${{ secrets.ACCESS_TOKEN || secrets.token }} `
+          -GitHubToken ${{ secrets.token }} `
           -GitHubOutput $Env:GITHUB_OUTPUT `
           -BuildWithoutPullRequests $BuildWithoutPullRequests
     outputs:

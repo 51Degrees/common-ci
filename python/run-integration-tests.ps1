@@ -7,6 +7,9 @@ param (
     [hashtable]$Keys
 )
 
+$env:resource_key = $Keys.TestResourceKey
+$env:license_key = $Keys.DeviceDetection
+
 $commonTestResults = New-Item -ItemType directory -Path $RepoName/test-results/integration -Force
 $repoPath = Get-Item -Path $RepoName
 $testsFailed = $false

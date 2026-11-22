@@ -49,7 +49,7 @@ on:
         default: false
     secrets:
       token:
-        required: false
+        required: true
       AcceptCHBrowserKey:
       AcceptCHHardwareKey:
       AcceptCHNoneKey:

@@ -53,10 +53,6 @@ runs:
           secrets:  ${{ inputs.secrets }}
         run: |
           $ErrorActionPreference = 'Stop'
-          # The keys go into the environment under their agreed _51DEGREES_
-          # names first, as in the build jobs, so the repository's
-          # fetch-assets.ps1 reads _51DEGREES_LICENSE_KEY from there.
-          & "${{ github.action_path }}/../../../steps/set-resource-keys.ps1" -Keys ($env:secrets | ConvertFrom-Json -AsHashtable)
           $accepted = (Get-Command "$env:repo/ci/fetch-assets.ps1").Parameters
           $params = @{}
           ($env:secrets | ConvertFrom-Json -AsHashtable).GetEnumerator().Where({$accepted.ContainsKey($_.Key)}).ForEach({$params[$_.Key]=$_.Value})

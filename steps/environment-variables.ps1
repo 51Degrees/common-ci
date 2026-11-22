@@ -20,13 +20,6 @@ rules.
   language, so each name means one thing in each language.
 - Every entry has its fields, and every language it names is in the list's
   languages.
-- A current name names no languages, because every language reads every
-  current name. Its usedIn says which test and which example use it, named
-  the way every language names them.
-- A current name's ciSecret is the organization secret CI sets it from, as
-  one name that starts _51DEGREES_, or empty when CI sets it from no secret.
-  steps/set-resource-keys.ps1 sets the current name from that secret when it
-  has no value of its own.
 
 .PARAMETER ListPath
 The list to read. The default is environment-variables.json at the root of
@@ -109,20 +102,7 @@ function Get-ListProblems ($List) {
         if ($variable.readByPackages -isnot [bool]) {
             "The current name '$name' needs readByPackages as true or false."
         }
-        if (-not (Test-Text $variable.usedIn)) {
-            "The current name '$name' does not say which test and example use it."
-        }
-        $secret = $variable.ciSecret
-        if (-not $variable.PSObject.Properties['ciSecret'] -or $secret -isnot [string]) {
-            "The current name '$name' needs ciSecret as one name, or empty when CI sets it from no secret."
-        }
-        elseif ($secret.Length -gt 0 -and
-            -not $secret.StartsWith($CurrentPrefix, [StringComparison]::Ordinal)) {
-            "The current name '$name' is set in CI from '$secret', which does not start $CurrentPrefix."
-        }
-        if ($variable.PSObject.Properties['languages']) {
-            "The current name '$name' names languages, but every language reads every current name."
-        }
+        Get-LanguageProblems "The current name '$name'" $variable $known
     }
     foreach ($other in @($List.otherNames)) {
         $name = $other.name
@@ -197,10 +177,10 @@ function ConvertTo-Page ($List) {
     & $add ''
     & $add '## Current names'
     & $add ''
-    & $add 'Every current name starts `_51DEGREES_`, and every language reads every current name in the same way. "Packages" means a published package reads the name. "Tests, examples and CI" means only those do. "Used in" names the test and the example that read it, as every language names them. "CI secret" is the organization secret the shared workflows set it from, and is empty when they set it from none.'
+    & $add 'Every current name starts `_51DEGREES_`. "Packages" means a published package reads the name. "Tests, examples and CI" means only those do.'
     & $add ''
-    & $add '| Name | What it holds | Read by | Used in | CI secret | Deprecated names |'
-    & $add '| --- | --- | --- | --- | --- | --- |'
+    & $add '| Name | What it holds | Read by | Languages | Deprecated names |'
+    & $add '| --- | --- | --- | --- | --- |'
     $deprecatedNames = New-NameSet
     $decidedNames = New-NameSet
     foreach ($variable in @($List.variables)) {
@@ -214,10 +194,9 @@ function ConvertTo-Page ($List) {
             }
             $text + ')'
         }
-        $secret = if ($variable.ciSecret) { '`' + $variable.ciSecret + '`' } else { '' }
         & $add ('| `' + $variable.name + '` | ' + (Format-Cell $variable.holds) +
-            ' | ' + $readBy + ' | ' + (Format-Cell $variable.usedIn) +
-            ' | ' + $secret + ' | ' + (Format-Cell ((@($olds)) -join ', ')) + ' |')
+            ' | ' + $readBy + ' | ' + (Format-Languages $List $variable.languages) +
+            ' | ' + (Format-Cell ((@($olds)) -join ', ')) + ' |')
     }
     & $add ''
     & $add '## Deprecated names'
@@ -230,10 +209,6 @@ function ConvertTo-Page ($List) {
     else {
         & $add "The list holds $($deprecatedNames.Count) deprecated names, and a release has been decided for $($decidedNames.Count) of them."
     }
-    & $add ''
-    & $add '## Set in CI'
-    & $add ''
-    & $add 'In the shared workflows, [`steps/set-resource-keys.ps1`](steps/set-resource-keys.ps1) sets each current name that has a CI secret from that organization secret, when the job has not set it, except `_51DEGREES_LICENSE_KEY_51DID`, which only the Cloud 51Did workflows set. A name that does not start `_51DEGREES_` never sets anything.'
     & $add ''
     & $add '## Other names'
     & $add ''
