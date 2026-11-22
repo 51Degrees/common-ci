@@ -364,7 +364,7 @@ This flow modifies the old one, where the JSON string was passed in by the calle
 
 # Package distribution
 
-[PACKAGE_DISTRIBUTION.md](PACKAGE_DISTRIBUTION.md) says where each 51Degrees package is listed publicly, being the package registries, SourceForge, Context7 and the Vinyl Cache VMOD list, and what each package release must update. Every package release updates every place the package is listed.
+[PACKAGE_DISTRIBUTION.md](PACKAGE_DISTRIBUTION.md) says the kinds of place a 51Degrees package is listed publicly, being the package registries, SourceForge, Context7 and lists kept by other projects, and what each package release must update. Every package release updates every place the package is listed.
 
 # Reusable actions
 
