@@ -6,12 +6,9 @@ param (
     [string]$Branch = "main",
     [string]$GitHubUser,
     [string]$GitHubEmail,
-    [string]$DataKey,
-    [string]$DataUrl,
     [string]$DataType = "HashV41",
     [string]$Product = "V4TAC",
     [string]$FileName = "TAC-HashV41.hash.gz",
-    [string]$GitHubToken,
     [string]$MetadataBranch = "main", # unused, kept for compatibility
     [string]$ToolsBranch = "main",
     [bool]$DryRun = $False,
@@ -23,7 +20,7 @@ $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
 
 Write-Output "::group::Configure Git"
-./steps/configure-git.ps1 -GitHubToken $GitHubToken -GitHubUser $GitHubUser -GitHubEmail $GitHubEmail
+./steps/configure-git.ps1 -GitHubUser $GitHubUser -GitHubEmail $GitHubEmail
 Write-Output "::endgroup::"
 
 # The pull request targets rc where the repository takes changes through rc.
@@ -41,7 +38,7 @@ Write-Output "::group::Clone Tools"
 Write-Output "::endgroup::"
 
 Write-Output "::group::Setup Environment"
-./tools/ci/setup-environment.ps1 -NugetUser $GitHubUser -NugetPassword $GitHubToken
+./tools/ci/setup-environment.ps1 -NugetUser $GitHubUser -NugetPassword $env:_51DEGREES_ACCESS_TOKEN
 Write-Output "::endgroup::"
 
 Write-Output "::group::Generate Accessors"

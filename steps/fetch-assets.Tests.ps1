@@ -96,3 +96,193 @@ Describe 'fetch-assets.ps1 with the data repository' {
         $global:FetchAssetsTest.Calls | Should -Be 0
     }
 }
+
+Describe 'fetch-assets.ps1 and the license key' {
+    # The step runs from a copy beside stand-ins for the two download scripts,
+    # which record what they were asked for and write a small file, so no
+    # test reaches the Distributor. The key reaches the step as the
+    # _51DEGREES_LICENSE_KEY environment variable, as the shared workflows
+    # export it.
+    BeforeAll {
+        $script:Folder = Join-Path ([IO.Path]::GetTempPath()) "fetch-assets-key-$(New-Guid)"
+        New-Item -ItemType Directory -Path $script:Folder | Out-Null
+        Copy-Item -LiteralPath $script:Step -Destination $script:Folder
+        Set-Content -Path (Join-Path $script:Folder 'fetch-hash-assets.ps1') -Value @'
+param([string]$RepoName, [string]$DataType = 'HashV41', [string]$Product = 'V4TAC',
+    [string]$ArchiveName = 'TAC-HashV41.hash.gz')
+$global:FetchAssetsKeyTest.Calls.Add("hash $DataType $Product key=$env:_51DEGREES_LICENSE_KEY")
+Set-Content -Path ($ArchiveName -replace '\.gz$', '') -Value 'downloaded'
+'@
+        Set-Content -Path (Join-Path $script:Folder 'download-data-file.ps1') -Value @'
+param([string]$FullFilePath, [string]$DataType, [string]$Product)
+$global:FetchAssetsKeyTest.Calls.Add("file $DataType $Product key=$env:_51DEGREES_LICENSE_KEY")
+Set-Content -Path $FullFilePath -Value 'downloaded'
+'@
+        $script:KeyStep = Join-Path $script:Folder 'fetch-assets.ps1'
+
+        function Invoke-KeyStep ([string]$Asset) {
+            $global:FetchAssetsKeyTest = @{ Calls = [Collections.Generic.List[string]]::new() }
+            $script:Work = Join-Path ([IO.Path]::GetTempPath()) "fetch-assets-key-work-$(New-Guid)"
+            New-Item -ItemType Directory -Path $script:Work | Out-Null
+            Push-Location $script:Work
+            try {
+                return (& $script:KeyStep -Assets $Asset 6>&1 | Out-String)
+            } finally {
+                Pop-Location
+            }
+        }
+    }
+
+    BeforeEach {
+        $script:SavedKey = $env:_51DEGREES_LICENSE_KEY
+        $env:_51DEGREES_LICENSE_KEY = $null
+    }
+
+    AfterEach {
+        $env:_51DEGREES_LICENSE_KEY = $script:SavedKey
+        Remove-Item -Recurse -Force $script:Work -ErrorAction SilentlyContinue
+    }
+
+    AfterAll {
+        Remove-Item -Recurse -Force $script:Folder -ErrorAction SilentlyContinue
+        Remove-Variable -Name FetchAssetsKeyTest -Scope Global -ErrorAction SilentlyContinue
+    }
+
+    It 'downloads the device detection data file with _51DEGREES_LICENSE_KEY' {
+        $env:_51DEGREES_LICENSE_KEY = 'license'
+        Invoke-KeyStep 'TAC-HashV41.hash' | Out-Null
+        $global:FetchAssetsKeyTest.Calls | Should -Be 'hash HashV41 V4TAC key=license'
+        "$script:Work/assets/TAC-HashV41.hash" | Should -Exist
+    }
+
+    It 'downloads the IP Intelligence data file from the Distributor, as IPIV41 and IPIV4Enterprise' {
+        $env:_51DEGREES_LICENSE_KEY = 'license'
+        Invoke-KeyStep '51Degrees-EnterpriseIpiV41.ipi' | Out-Null
+        $global:FetchAssetsKeyTest.Calls | Should -Be 'hash IPIV41 IPIV4Enterprise key=license'
+    }
+
+    It 'downloads the CSV file with _51DEGREES_LICENSE_KEY' {
+        $env:_51DEGREES_LICENSE_KEY = 'license'
+        Invoke-KeyStep '51Degrees-Tac.zip' | Out-Null
+        $global:FetchAssetsKeyTest.Calls | Should -Be 'file CSV V4TAC key=license'
+    }
+
+    It 'fails for each asset that needs a license when there is none, naming the variable' {
+        foreach ($asset in 'TAC-HashV41.hash', '51Degrees-EnterpriseIpiV41.ipi',
+            '51Degrees.csv', '51Degrees-Tac.zip', 'chargify.json', 'entitlement.json',
+            'example-source.json') {
+            { Invoke-KeyStep $asset } |
+                Should -Throw "*'$asset' needs the data license key, and _51DEGREES_LICENSE_KEY is not set*"
+            $global:FetchAssetsKeyTest.Calls | Should -BeNullOrEmpty
+            "$script:Work/assets/$asset" | Should -Not -Exist
+            Remove-Item -Recurse -Force $script:Work
+        }
+    }
+
+    It 'takes no key or address as a parameter' {
+        $parameters = (Get-Command $script:Step).Parameters.Keys
+        $parameters | Should -Not -Contain 'LicenseKey'
+        foreach ($name in $parameters) {
+            $name | Should -Not -Match 'Key|Url|Detection|Intelligence' -Because 'the license comes only from _51DEGREES_LICENSE_KEY'
+        }
+    }
+
+    It 'knows no CSV evidence file and no file that came only from an address' {
+        $env:_51DEGREES_LICENSE_KEY = 'license'
+        foreach ($asset in 'evidence.csv', '51Degrees-EnterpriseIpiV41-AllProperties.ipi') {
+            { Invoke-KeyStep $asset } | Should -Throw "*Unknown asset: $asset*"
+            Remove-Item -Recurse -Force $script:Work
+        }
+    }
+}
+
+Describe 'actions/fetch-assets' {
+    BeforeAll {
+        $script:Action = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '..' 'actions' 'fetch-assets' 'action.yml')
+    }
+
+    It 'takes no key or address as an input' {
+        $script:Action | Should -Not -Match '-(key|url):' -Because 'the license comes from the job environment as _51DEGREES_LICENSE_KEY'
+    }
+
+    It 'passes the step only the assets' {
+        $script:Action | Should -Match 'fetch-assets\.ps1" -Assets \(\$env:_51DEGREES_ASSETS\.Trim\(\) -split "`n"\)\r?\n'
+    }
+}
+
+Describe 'fetch-assets.ps1 with bulkdata' {
+
+    # Bulkdata is replaced by stand-ins: the Available index lists two days,
+    # and a download writes a JSON object naming the URL it was given, or
+    # an empty file for the newest day when told to.
+    BeforeEach {
+        $global:FetchAssetsTest.Urls = [Collections.Generic.List[string]]::new()
+        $global:FetchAssetsTest.EmptyNewest = $false
+        function global:Invoke-WebRequest ([string]$Uri) {
+            $global:FetchAssetsTest.Urls.Add($Uri)
+            '{"2026/11/10":"2026-11-10T06:00:00.000","2026/11/11":"2026-11-11T06:00:00.000"}'
+        }
+        function global:curl {
+            $url = $args[-1]
+            $output = $args[$args.IndexOf('-fLo') + 1]
+            $global:FetchAssetsTest.Urls.Add($url)
+            if ($global:FetchAssetsTest.EmptyNewest -and $url.EndsWith('2026-11-11')) {
+                Set-Content -Path $output -Value ''
+            } else {
+                Set-Content -Path $output -Value (@{ url = $url } | ConvertTo-Json -Compress)
+            }
+        }
+        $global:FetchAssetsTest.Work = Join-Path ([IO.Path]::GetTempPath()) "fetch-assets-work-$(New-Guid)"
+        New-Item -ItemType Directory -Path $global:FetchAssetsTest.Work | Out-Null
+    }
+
+    AfterEach {
+        Remove-Item -Path Function:\Invoke-WebRequest, Function:\curl -ErrorAction SilentlyContinue
+        Remove-Item -Recurse -Force $global:FetchAssetsTest.Work -ErrorAction SilentlyContinue
+    }
+
+    BeforeAll {
+        # Runs the step for $Asset in the stand-in work folder, with the
+        # license key in the environment as the shared workflows export it.
+        function Invoke-BulkStep ([string]$Asset) {
+            $before = $env:_51DEGREES_LICENSE_KEY
+            $env:_51DEGREES_LICENSE_KEY = 'KEY'
+            Push-Location $global:FetchAssetsTest.Work
+            try {
+                & $script:Step -Assets $Asset 3>$null
+            } finally {
+                Pop-Location
+                $env:_51DEGREES_LICENSE_KEY = $before
+            }
+        }
+    }
+
+    It 'gets <Asset> as the <Source> data source, newest day first' -ForEach @(
+        @{ Asset = 'example-source.json'; Source = 'example-source' }
+        @{ Asset = 'chargify.json'; Source = 'chargify' }
+        @{ Asset = 'entitlement.json'; Source = 'entitlement' }
+        @{ Asset = 'source-2.json'; Source = 'source-2' }
+    ) {
+        Invoke-BulkStep $Asset
+        $file = Get-Content -Raw "$($global:FetchAssetsTest.Work)/assets/$Asset" | ConvertFrom-Json
+        $file.url | Should -Be "https://bulkdata.51degrees.com/api/v4/Download/Production/$Source/KEY/2026-11-11"
+        $global:FetchAssetsTest.Urls[0] | Should -BeLike "https://bulkdata.51degrees.com/api/v4/Available/Production/$Source/KEY/*"
+    }
+
+    It 'falls back to the day before when the newest file is empty' {
+        $global:FetchAssetsTest.EmptyNewest = $true
+        Invoke-BulkStep 'example-source.json'
+        $file = Get-Content -Raw "$($global:FetchAssetsTest.Work)/assets/example-source.json" | ConvertFrom-Json
+        $file.url | Should -BeLike '*/example-source/KEY/2026-11-10'
+    }
+
+    It 'refuses <Asset>, which is no data source name' -ForEach @(
+        @{ Asset = 'unknown.bin' }
+        @{ Asset = 'Upper.json' }
+        @{ Asset = '../escape.json' }
+        @{ Asset = 'two words.json' }
+    ) {
+        { Invoke-BulkStep $Asset } | Should -Throw -ExpectedMessage "*Unknown asset: $Asset*"
+        $global:FetchAssetsTest.Urls.Count | Should -Be 0
+    }
+}

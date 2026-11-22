@@ -49,14 +49,7 @@ on:
       pr-branch:
         type: string
         default: ''
-    secrets:
-      token:
-        required: true
-      data-key:
-        required: true
-      data-url:
-        required: false
-        
+
 jobs:
   nightly-data-file-change:
     runs-on: ubuntu-latest
@@ -75,15 +68,14 @@ jobs:
       - name: Generate Accessors
         shell: pwsh
         working-directory: ${{ github.workspace }}/common/
+        env:
+          _51DEGREES_ACCESS_TOKEN: ${{ secrets._51DEGREES_ACCESS_TOKEN }}
         run: |
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
           . ${{ github.workspace }}/common/nightly-data-file-change.ps1 `
-          -GitHubToken ${{ secrets.token }} `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `
           -Branch ${{ github.ref_name }} `
-          -DataKey ${{ secrets.data-key }} `
-          -DataUrl "${{ secrets.data-url }}" `
           -GitHubUser ${{ inputs.user }} `
           -GitHubEmail ${{ inputs.email }} `
           -DataType ${{ inputs.data-type }} `

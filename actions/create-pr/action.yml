@@ -16,9 +16,9 @@ runs:
     - shell: pwsh
       env:
         GH_TOKEN: ${{ inputs.token }}
-        title: ${{ inputs.title }}
-        to: ${{ inputs.to }}
-        force: ${{ inputs.force }}
-        auto_merge: ${{ inputs.auto-merge }}
+        _51DEGREES_TITLE: ${{ inputs.title }}
+        _51DEGREES_TO: ${{ inputs.to }}
+        _51DEGREES_FORCE: ${{ inputs.force }}
+        _51DEGREES_AUTO_MERGE: ${{ inputs.auto-merge }}
       run: . '${{ github.action_path }}/create-pr.ps1'
 

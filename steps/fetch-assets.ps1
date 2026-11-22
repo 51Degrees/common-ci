@@ -1,13 +1,23 @@
 param (
     [Parameter(Mandatory)][string[]]$Assets,
-    [string]$DeviceDetection,
-    [string]$DeviceDetectionUrl,
-    [string]$IpIntelligence,
-    [string]$IpIntelligenceUrl,
-    [string]$CsvUrl,
     [switch]$FullCsv
 )
 $ErrorActionPreference = "Stop"
+
+# An asset named <name>.json, in lower case letters, digits, and hyphens, is
+# the bulkdata data source <name>.
+$dataSourceAsset = '^[a-z0-9][a-z0-9-]*\.json$'
+
+# The licensed files and every data source come from the Distributor and the
+# bulk data service with the data license key, which the shared workflows
+# export as _51DEGREES_LICENSE_KEY. Without it, the step fails naming the
+# variable, rather than with the service's refusal.
+$licensed = @('TAC-HashV41.hash', '51Degrees-EnterpriseIpiV41.ipi', '51Degrees.csv',
+    '51Degrees-Tac.zip')
+function Test-Licensed ([string]$Asset) {
+    if (($Asset -cnotin $licensed) -and ($Asset -cnotmatch $dataSourceAsset)) { return $true }
+    return -not [string]::IsNullOrWhiteSpace($env:_51DEGREES_LICENSE_KEY)
+}
 $PSNativeCommandUseErrorActionPreference = $true
 
 $cache = New-Item -ItemType Directory -Path assets -Force
@@ -36,7 +46,6 @@ $curlFlags = @(
 $dataFiles = @{
     '51Degrees-LiteV4.1.hash' = 'device-detection/51Degrees-LiteV4.1.hash'
     '20000 Evidence Records.yml' = 'device-detection/20000 Evidence Records.yml'
-    '20000 User Agents.csv' = 'device-detection/20000 User Agents.csv'
     '51Degrees-LiteIpiV41.ipi' = 'ip-intelligence/51Degrees-LiteV41.ipi'
     '51Degrees-IPIV4AsnIpiV41.ipi' = 'ip-intelligence/51Degrees-IPIV4AsnIpiV41.ipi'
     'ip-intelligence-evidence.yml' = 'ip-intelligence/evidence.yml'
@@ -76,10 +85,10 @@ function Get-FromData {
 
 function Get-FromBulkData {
     param (
-        [Parameter(Mandatory)][string]$License,
         [Parameter(Mandatory)][string]$Data,
         [Parameter(Mandatory)][string]$Output
     )
+    $License = $env:_51DEGREES_LICENSE_KEY
     $monthAgo = [DateTime]::Now.AddDays(-30).ToString('yyyy-MM-dd')
     $tomorrow = [DateTime]::Now.AddDays(1).ToString('yyyy-MM-dd')
     Write-Host "Retrieving the latest $Data version..."
@@ -119,6 +128,9 @@ foreach ($asset in $Assets) {
         Write-Host "Asset '$asset' already present in cache, skipping download"
         continue
     }
+    if (-not (Test-Licensed $asset)) {
+        throw "'$asset' needs the data license key, and _51DEGREES_LICENSE_KEY is not set. It is an organization secret, which the calling workflow passes with 'secrets: inherit'."
+    }
     Write-Host "Fetching '$asset'"
     try {
         if ($dataFiles.ContainsKey($asset)) {
@@ -127,20 +139,15 @@ foreach ($asset in $Assets) {
         }
         switch -Exact -CaseSensitive ($asset) {
             "TAC-HashV41.hash" {
-                & $PSScriptRoot/fetch-hash-assets.ps1 -RepoName . -LicenseKey $DeviceDetection -Url $DeviceDetectionUrl
+                & $PSScriptRoot/fetch-hash-assets.ps1 -RepoName .
                 Move-Item -Path $_ -Destination $cache
             }
             "51Degrees-EnterpriseIpiV41.ipi" {
-                & $PSScriptRoot/fetch-hash-assets.ps1 -RepoName . -ArchiveName "$_.gz" -LicenseKey $IpIntelligence -DataType IPIV41 -Product IPIV4Enterprise -Url $IpIntelligenceUrl
-                Move-Item -Path $_ -Destination $cache
-            }
-            "51Degrees-EnterpriseIpiV41-AllProperties.ipi" {
-                # Only uses URL
-                & $PSScriptRoot/fetch-hash-assets.ps1 -RepoName . -ArchiveName "$_.gz" -Url $IpIntelligenceUrl
+                & $PSScriptRoot/fetch-hash-assets.ps1 -RepoName . -ArchiveName "$_.gz" -DataType IPIV41 -Product IPIV4Enterprise
                 Move-Item -Path $_ -Destination $cache
             }
             "51Degrees.csv" {
-                & $PSScriptRoot/download-data-file.ps1 -LicenseKey:$DeviceDetection -DataType 'CSV' -Product 'V4TAC' -Url:$CsvUrl -FullFilePath "$_.zip"
+                & $PSScriptRoot/download-data-file.ps1 -DataType 'CSV' -Product 'V4TAC' -FullFilePath "$_.zip"
                 Expand-Archive -DestinationPath . "$_.zip"
                 if ($FullCsv) {
                     Move-Item -Path '51Degrees-Tac-All.csv' -Destination $cache/$_
@@ -150,13 +157,12 @@ foreach ($asset in $Assets) {
                 Remove-Item -Force "$_.zip", '51Degrees-Tac-All.csv'
             }
             "51Degrees-Tac.zip" {  # same as the CSV above, without extracting
-                & $PSScriptRoot/download-data-file.ps1 -LicenseKey:$DeviceDetection -DataType 'CSV' -Product 'V4TAC' -Url:$CsvUrl -FullFilePath "$cache/$_"
+                & $PSScriptRoot/download-data-file.ps1 -DataType 'CSV' -Product 'V4TAC' -FullFilePath "$cache/$_"
             }
-            "chargify.json" {
-                Get-FromBulkData -License:$DeviceDetection -Data 'chargify' -Output $cache/$_
-            }
-            "entitlement.json" {
-                Get-FromBulkData -License:$DeviceDetection -Data 'entitlement' -Output $cache/$_
+            # A data source is fetched newest day first, so a new one needs
+            # no change here.
+            { $_ -cmatch $dataSourceAsset } {
+                Get-FromBulkData -Data ($_ -creplace '\.json$', '') -Output $cache/$_
             }
             default { Write-Error "Unknown asset: $_" }
         }

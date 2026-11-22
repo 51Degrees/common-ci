@@ -20,8 +20,7 @@ name: Release Pull Request
 #       uses: 51Degrees/common-ci/.github/workflows/release-pull-request.yml@main
 #       with:
 #         repo-name: ${{ github.event.repository.name }}
-#       secrets:
-#         token: ${{ secrets.ACCESS_TOKEN }}
+#       secrets: inherit
 
 on:
   workflow_call:
@@ -47,39 +46,6 @@ on:
       skip-lite-tests:
         type: boolean
         default: false
-    secrets:
-      token:
-        required: true
-      AcceptCHBrowserKey:
-      AcceptCHHardwareKey:
-      AcceptCHNoneKey:
-      AcceptCHPlatformKey:
-      ApiKey:
-      CsvUrl:
-      DeviceDetection:
-      DeviceDetectionUrl:
-      IpIntelligence:
-      IpIntelligenceUrl:
-      JavaGpgKeyPassphrase:
-      JavaPGP:
-      MavenSettings:
-      NPMAuthToken:
-      NginxCert:
-      NginxKey:
-      NginxJwtToken:
-      PypiToken:
-      ResourceKeyCloudV5Bespoke:
-      StrongNameKeyBase64:
-      TestBrowserResourceKey:
-      TestHardwareResourceKey:
-      TestLicenseKey:
-      TestNoSetHeaderResourceKey:
-      TestPlatformResourceKey:
-      TestPypiToken:
-      TestResourceKey:
-      TestSuperResourceKey:
-      UsePublishTests:
-      PearlLicense:
 
 jobs:
   # Only the release itself, being this repository's rc into its default

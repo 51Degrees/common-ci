@@ -5,8 +5,8 @@ Lints 51degrees.com links against the UTM tagging convention.
 .DESCRIPTION
 Checks every tracked text file in a repository for links to
 51degrees.com and configure.51degrees.com, and fails when a link does
-not follow the convention documented in UTM-LINK-TAGGING.md
-(internal-common-ci):
+not follow the tagging convention, which is exactly these five
+parameters in this order:
 
   ?utm_source=<source>&utm_medium=<medium>&utm_campaign=<repo>
   &utm_content=<file-slug>&utm_term=<location>

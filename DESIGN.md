@@ -60,7 +60,6 @@ Scripts should be written to support PowerShell 7.
 | `compare-performance.ps1` |
 | `configure-git.ps1` |
 | `download-data-file.ps1` |
-| `fetch-csv-assets.ps1` |
 | `fetch-hash-assets.ps1` |
 | `get-next-package-version.ps1` |
 | `gunzip-file.ps1` |
@@ -262,7 +261,7 @@ The basic format of this is along the lines of:
 
 ```pwsh
 Write-Output "::group::Configure Git"
-./steps/configure-git.ps1 -GitHubToken $GitHubToken
+./steps/configure-git.ps1
 Write-Output "::endgroup::"
 
 if ($LASTEXITCODE -ne 0) {
@@ -298,9 +297,10 @@ steps:
   - name: Some PowerShell Workflow
     shell: pwsh
     working-directory: ${{ github.workspace }}/common/
+    env:
+      _51DEGREES_ACCESS_TOKEN: ${{ secrets._51DEGREES_ACCESS_TOKEN }}
     run: |
       . ${{ github.workspace }}/common/some-powershell-workflow.ps1 `
-      -GitHubToken ${{ secrets.token }} `
       -RepoName ${{ inputs.repo-name }}
 ```
 
@@ -341,9 +341,10 @@ jobs:
       - name: Some Test Workflow
         shell: pwsh
         working-directory: ${{ github.workspace }}/common/
+        env:
+          _51DEGREES_ACCESS_TOKEN: ${{ secrets._51DEGREES_ACCESS_TOKEN }}
         run: |
           . ${{ github.workspace }}/common/some-powershell-workflow.ps1 `
-          -GitHubToken ${{ secrets.token }} `
           -RepoName ${{ inputs.repo-name }} `
           -Options $(ConvertFrom-Json -AsHashtable '${{ toJSON(matrix.options) }}')
 ```

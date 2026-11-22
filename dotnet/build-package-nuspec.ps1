@@ -6,17 +6,17 @@ param(
     [string]$Configuration = "Release",
     [string]$Version,
     [Parameter(Mandatory=$true)]
-    [string]$NuspecPath,
-    [string]$CodeSigningKeyVaultUrl,
-    [Parameter(Mandatory=$true)]
-    [string]$CodeSigningKeyVaultClientId,
-    [Parameter(Mandatory=$true)]
-    [string]$CodeSigningKeyVaultTenantId,
-    [Parameter(Mandatory=$true)]
-    [string]$CodeSigningKeyVaultClientSecret,
-    [Parameter(Mandatory=$true)]
-    [string]$CodeSigningKeyVaultCertificateName
+    [string]$NuspecPath
 )
+# The packages are signed with the signing secrets, which the job that signs
+# exports under these names. Each is read at the point of use below.
+foreach ($name in '_51DEGREES_SIGN_KEY_VAULT_URL', '_51DEGREES_SIGN_KEY_VAULT_CLIENT_ID',
+    '_51DEGREES_SIGN_KEY_VAULT_TENANT_ID', '_51DEGREES_SIGN_KEY_VAULT_CLIENT_SECRET',
+    '_51DEGREES_SIGN_KEY_VAULT_CERTIFICATE_NAME') {
+    if ([string]::IsNullOrWhiteSpace((Get-Item -Path "Env:$name" -ErrorAction SilentlyContinue).Value)) {
+        throw "$name is not set, so the packages cannot be signed."
+    }
+}
 
 $RepoPath = [IO.Path]::Combine($pwd, $RepoName)
 $PackagesFolder = [IO.Path]::Combine($pwd, "package")
@@ -38,11 +38,11 @@ try {
         --file-digest sha256 `
         --timestamp-digest sha256 `
         --timestamp-rfc3161 http://rfc3161timestamp.globalsign.com/advanced `
-        --azure-key-vault-url $CodeSigningKeyVaultUrl `
-        --azure-key-vault-client-id $CodeSigningKeyVaultClientId `
-        --azure-key-vault-tenant-id $CodeSigningKeyVaultTenantId `
-        --azure-key-vault-client-secret $CodeSigningKeyVaultClientSecret `
-        --azure-key-vault-certificate $CodeSigningKeyVaultCertificateName || $(throw "package signing failed")
+        --azure-key-vault-url $env:_51DEGREES_SIGN_KEY_VAULT_URL `
+        --azure-key-vault-client-id $env:_51DEGREES_SIGN_KEY_VAULT_CLIENT_ID `
+        --azure-key-vault-tenant-id $env:_51DEGREES_SIGN_KEY_VAULT_TENANT_ID `
+        --azure-key-vault-client-secret $env:_51DEGREES_SIGN_KEY_VAULT_CLIENT_SECRET `
+        --azure-key-vault-certificate $env:_51DEGREES_SIGN_KEY_VAULT_CERTIFICATE_NAME || $(throw "package signing failed")
 
 }
 finally {

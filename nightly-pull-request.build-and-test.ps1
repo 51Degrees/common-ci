@@ -1,7 +1,6 @@
 param (
     [Parameter(Mandatory)][string]$RepoName,
     [Parameter(Mandatory)][string]$OrgName,
-    [Parameter(Mandatory)][string]$GitHubToken,
     [Parameter(Mandatory)][string]$GitHubOutput,
     [Parameter(Mandatory)][string]$PullRequestId,
     [Parameter(Mandatory)][hashtable]$Options,
@@ -14,12 +13,9 @@ param (
 $ErrorActionPreference = "Stop"
 
 $Options += $PSBoundParameters # Add RepoName, DryRun etc.
-if ($Options.Keys) {
-    $Options += $Options.Keys # Expand keys into options
-}
 
 Write-Host "::group::Configure Git"
-./steps/configure-git.ps1 -GitHubToken $GitHubToken -GitHubUser $GitHubUser -GitHubEmail $GitHubEmail
+./steps/configure-git.ps1 -GitHubUser $GitHubUser -GitHubEmail $GitHubEmail
 Write-Host "::endgroup::"
 
 # On Windows, map the workspace to a short drive letter to avoid MAX_PATH (260 char)
@@ -40,6 +36,7 @@ Write-Host "::group::Checkout PR"
 "pr-sha=$PullRequestSha" | Out-File $GitHubOutput -Append
 Write-Host "::endgroup::"
 
+
 if ($Options.CI) {
     & "./$RepoName/$($Options.CI)/build-and-test.ps1" @Options
     exit $LASTEXITCODE
@@ -51,10 +48,6 @@ Write-Host "::endgroup::"
 
 Write-Host "::group::Setup Environment"
 ./steps/run-script.ps1 ./$RepoName/ci/setup-environment.ps1 $Options
-Write-Host "::endgroup::"
-
-Write-Host "::group::Set Resource Keys"
-./steps/set-resource-keys.ps1 -Keys $Options.Keys
 Write-Host "::endgroup::"
 
 Write-Host "::group::Build Project"

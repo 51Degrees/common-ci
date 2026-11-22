@@ -57,24 +57,19 @@ For a more in depth description of this, see [Performance Tests](/DESIGN.md#perf
 **Script: `configure-git.ps1`**
 
 Configures the default Git behavior in the following ways:
-- Sets the auth token to use for any Git operations,
+- Sets the auth token to use for any Git operations, read from `_51DEGREES_ACCESS_TOKEN`,
 - Sets the user and email for any commits,
 - Disables pulling of Git LFS files by default.
 
 ## Download Data File
 **Script: `download-data-file.ps1`**
 
-Attempts to download a data file from the 51Degrees Distributor service. The type of file and license must be provided.
-
-## Fetch CSV Assets
-**Script: `fetch-csv-assets.ps1`**
-
-Uses the `download-data-file` script to download a 51Degrees CSV data file.
+Downloads a data file of the given type and product from the 51Degrees Distributor service, with the data licence key read from `_51DEGREES_LICENSE_KEY`. Fails naming that variable when it is not set.
 
 ## Fetch Hash Assets
 **Script: `fetch-hash-assets.ps1`**
 
-Uses the `download-data-file` script to download a 51Degrees Hash V4.1 data file.
+Uses the `download-data-file` script to download a 51Degrees Hash V4.1 data file, and extracts it.
 
 ## Generate Accessors
 **Script: `generate-accessors.ps1`**
@@ -111,10 +106,17 @@ Runs GitVersion in the repo, and stores the result object under the variable nam
 
 This will use the GitVersion config in the repo, or the path to a common config can be supplied.
 
+It first runs `install-gitversion.ps1`, so the version used does not depend on what the runner already has.
+
 ## GUnzip File
 **Script: `gunzip-file.ps1`**
 
 Unzips a GZip file.
+
+## Install GitVersion
+**Script: `install-gitversion.ps1`**
+
+Makes sure the one pinned GitVersion version is installed. It reads the version with `dotnet-gitversion /version`, and when it differs runs `dotnet tool update --global --allow-downgrade`, which installs the pinned version, moves an older one up, or moves a newer one down (the flag needs .NET SDK 8.0.200 or later). It fails if the version is still wrong afterward. The pinned version is the default of the `Version` parameter, which is the only place it is set. The nightly publish workflows, the `bump-version` action and `get-next-package-version.ps1` all run it, and `gitversion-pin.Tests.ps1` fails if any other install appears.
 
 ## Has Changed?
 **Script: `has-changed.ps1`**
@@ -179,14 +181,13 @@ Chooses the entries of a repository's `options.json` that a pull request is buil
 
 [Select Options](/REPO_SCRIPTS.md#select-options) describes what it gives that script and what the script returns.
 
-## Set Resource Keys
-**Script: `set-resource-keys.ps1`**
 
-Exports the 51Degrees resource key secrets as environment variables for the steps and tests that follow.
+## Export Secrets
+**Script: `export-secrets.ps1`**
 
-Takes the secrets available to the job as a hashtable (in the framework this is `$Options.Keys`) and exports every key whose name follows the resource-key convention (any name beginning with `_51DEGREES_RESOURCE_KEY`, for example `_51DEGREES_RESOURCE_KEY_FREE` and `_51DEGREES_RESOURCE_KEY_PAID`). Each is set in the process environment and, under GitHub Actions, appended to `$GITHUB_ENV`.
+Exports the job's `_51DEGREES_` secrets and variables into the environment, each under its own name, for the steps that follow.
 
-This is the single, central place that knows the resource-key convention. To make a new resource key available to every repository, add the secret at the organisation level using the `_51DEGREES_RESOURCE_KEY_*` convention; it is picked up automatically with no change to any repository's CI. Secret values are never written to the log.
+Takes the job's secrets as JSON (`${{ toJSON(secrets) }}`) and its variables as JSON (`${{ toJSON(vars) }}`) and exports every secret and every variable whose name starts with `_51DEGREES_`, and nothing else, to the process environment and, under GitHub Actions, to `$GITHUB_ENV`. Nothing is renamed, filled from another name or defaulted, and the step holds no list of names. A name that starts with `_51DEGREES_PUBLISH_` is exported only with `-Publish`, which the job that publishes passes, and a name that starts with `_51DEGREES_SIGN_` only with `-Sign`, which the job that signs passes. A name holds one thing: a `_51DEGREES_` name that is both a secret and a variable is an error, and the step fails naming it and exports nothing. The log carries the names alone, for variables as for secrets.
 
 ## Update Sub-Modules
 **Script: `update-sub-modules.ps1`**
@@ -198,9 +199,9 @@ A submodule moves when that latest commit holds the commit the repo records for 
 ## Update Tag
 **Script: `update-tag.ps1`**
 
-Tags the repository with the version supplied, and pushed to GitHub.
+Tags the repository with the version supplied, and pushes the tag to GitHub.
 
-A GitHub release is then created from the tag containing a description generated from the PRs linked to the tag.
+A GitHub release is then created from the tag, with a description generated from the pull requests linked to the tag. Every file in the `package` folder is attached in the same call, with a folder zipped first and `dummy.txt` left out. gh publishes the release only once the files are attached, which matters because SourceForge's copy of the releases does not see files added after a release is published ([GitHub Importer](https://sourceforge.net/p/forge/documentation/GitHub%20Importer/)).
 
 ## Version Tags
 **Script: `version-tags.ps1`**
@@ -239,10 +240,8 @@ works out. It provides `ci/check-version-bump.ps1`, which the publish runs in
 place of this script. That script must refuse the same moves, with the same
 exit codes, for every package it is about to publish, usually by running this
 script once for each with `-TagPrefix` or `-ReleasedVersion`. The publish never
-skips the check. Only the repositories named in `OWN_CHECK` in
-`nightly-publish.yml` may replace it with their own, so a script that checks
-nothing cannot switch it off, and naming another repository is a change to
-common-ci.
+skips the check: it runs the repository's script when the repository has one,
+and this script otherwise.
 
 With `-Plan`, this script and `check-release-interval.ps1` check every package
 of a release plan in one call, each against its own tags, and refuse when any
@@ -268,8 +267,8 @@ commit message does quietly.
 seven calendar days, counted in UTC, after the last one, as
 [Releasing at most once a week](/CONTRIBUTING.md#releasing-at-most-once-a-week)
 explains. `nightly-publish.yml` runs it on the newest version tag, and a
-repository named in that workflow's `OWN_CHECK` runs it for each package about
-to be published. `.github/workflows/only-rc-into-main.yml` runs it, through
+repository with its own `ci/check-release-interval.ps1` runs that for each
+package about to be published. `.github/workflows/only-rc-into-main.yml` runs it, through
 `steps/check-release-pull-request.ps1`, on a pull request from `rc` into the
 default branch, counting from the last one merged. Each script's help says how
 it dates the last release.

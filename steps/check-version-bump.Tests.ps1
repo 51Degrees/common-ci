@@ -35,7 +35,7 @@ AfterEach {
         Remove-Item -Recurse -Force $script:Repo
     }
     $script:Repo = $null
-    $env:ALLOW_VERSION_BUMP = $null
+    $env:_51DEGREES_ALLOW_VERSION_BUMP = $null
 }
 
 Describe 'a branch with no tags' {
@@ -52,11 +52,11 @@ Describe 'a branch with no tags' {
         (Invoke-Check @{ Version = '4.5.0'; RepoName = $script:Repo }).ExitCode | Should -Be 1
     }
 
-    It 'is not talked out of the refusal by ALLOW_VERSION_BUMP' {
+    It 'is not talked out of the refusal by _51DEGREES_ALLOW_VERSION_BUMP' {
         # That switch is for a deliberate major or minor move, not for a number
         # nobody chose.
         $script:Repo = New-TaggedRepo @()
-        $env:ALLOW_VERSION_BUMP = 'true'
+        $env:_51DEGREES_ALLOW_VERSION_BUMP = 'true'
         (Invoke-Check @{ Version = '0.0.1'; RepoName = $script:Repo }).ExitCode | Should -Be 1
     }
 
@@ -105,9 +105,9 @@ Describe 'a repository with plain version tags' {
         (Invoke-Check @{ Version = '4.6.0'; RepoName = $script:Repo }).ExitCode | Should -Be 1
     }
 
-    It 'allows a minor move when ALLOW_VERSION_BUMP is set' {
+    It 'allows a minor move when _51DEGREES_ALLOW_VERSION_BUMP is set' {
         $script:Repo = New-TaggedRepo @('4.5.96')
-        $env:ALLOW_VERSION_BUMP = 'true'
+        $env:_51DEGREES_ALLOW_VERSION_BUMP = 'true'
         (Invoke-Check @{ Version = '4.6.0'; RepoName = $script:Repo }).ExitCode | Should -Be 0
     }
 
@@ -224,8 +224,8 @@ Describe 'several packages, with -Plan' {
         $result.Output | Should -Match 'these packages were refused: dd\.'
     }
 
-    It 'allows the move when ALLOW_VERSION_BUMP is set' {
-        $env:ALLOW_VERSION_BUMP = 'true'
+    It 'allows the move when _51DEGREES_ALLOW_VERSION_BUMP is set' {
+        $env:_51DEGREES_ALLOW_VERSION_BUMP = 'true'
         (Invoke-Check @{ RepoName = $script:Repo; Plan = @(
             [pscustomobject]@{ Name = 'dd'; Version = '4.6.0' }) }
         ).ExitCode | Should -Be 0
