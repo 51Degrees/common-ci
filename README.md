@@ -362,6 +362,10 @@ This flow modifies the old one, where the JSON string was passed in by the calle
 
 [environment-variables.md](environment-variables.md) lists every environment variable name that 51Degrees packages, tests, examples and CI scripts read, in every language, with what each holds, the test and example that use it, the organization secret CI sets it from, and the deprecated names each replaced. Every language reads every current name. It is made from [environment-variables.json](environment-variables.json) by [steps/environment-variables.ps1](steps/environment-variables.ps1). The JSON file decides, so each language repository refers to it rather than keeping a list of its own.
 
+# Package distribution
+
+[PACKAGE_DISTRIBUTION.md](PACKAGE_DISTRIBUTION.md) says the kinds of place a 51Degrees package is listed publicly, being the package registries, SourceForge, Context7 and lists kept by other projects, and what each package release must update. Every package release updates every place the package is listed.
+
 # Reusable actions
 
 There is also a set of actions that can be used independently from the framework described above, see [their README](actions/README.md).
