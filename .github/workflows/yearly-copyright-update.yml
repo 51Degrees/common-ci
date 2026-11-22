@@ -1,4 +1,6 @@
-name: Monthly Copyright Update
+name: Yearly Copyright Update
+
+# Called once a year, on 1 January, when the copyright year changes.
 
 on:
   workflow_call:
@@ -27,7 +29,7 @@ on:
         required: true
         
 jobs:
-  monthly-copyright-update:
+  yearly-copyright-update:
     runs-on: ubuntu-latest
 
     steps:
@@ -45,7 +47,7 @@ jobs:
         working-directory: ${{ github.workspace }}/common/
         run: |
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
-          . ${{ github.workspace }}/common/monthly-copyright-update.ps1 `
+          . ${{ github.workspace }}/common/yearly-copyright-update.ps1 `
           -GitHubToken ${{ secrets.token }} `
           -RepoName ${{ inputs.repo-name }} `
           -OrgName ${{ inputs.org-name }} `

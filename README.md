@@ -239,12 +239,12 @@ classDef green fill:green;
   end
 ```
 
-## Monthly Copyright Update
+## Yearly Copyright Update
 
 ``` mermaid
 graph LR
 classDef green fill:green;
-  subgraph "Monthly Copyright Update"
+  subgraph "Yearly Copyright Update"
     direction LR
     A([Common Setup]):::green
     B[Clone Tools Repo]
@@ -319,11 +319,11 @@ One limitation of such approach is that GitHub's scheduled pipelines always run 
 
 The unified nightly pipeline is opt-in. Only repositories that need to run the nightly suite from branches other than `main` have to use it. Other repositories can continue using the previous system, based on `workflow_run` triggers.
 
-### Monthly Copyright Update
+### Yearly Copyright Update
 
 If the copyright is updated, the source code files are all updated with the latest copyright in the header of the file.
 
-This does no happen often, so the workflow can be run monthly rather than nightly.
+This does no happen often, so the workflow can be run yearly rather than nightly.
 
 ### Common Scenarios
 

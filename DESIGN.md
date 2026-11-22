@@ -38,7 +38,7 @@ Scripts should be written to support PowerShell 7.
 | `nightly-publish-main.ps1` |
 | `nightly-submodule-update.ps1` |
 | `nightly-documentation-update.ps1` |
-| `monthly-copyright-update.ps1` |
+| `yearly-copyright-update.ps1` |
 
 | scripts in `.github/workflows` |
 | ------------------------------ |
@@ -48,7 +48,7 @@ Scripts should be written to support PowerShell 7.
 | `nightly-publish-main.yml` |
 | `nightly-submodule-update.yml` |
 | `nightly-documentation-update.yml` |
-| `monthly-copyright-update.yml` |
+| `yearly-copyright-update.yml` |
 
 *NOTE: The scripts above call the root PowerShell workflow scripts.*
 
@@ -501,7 +501,7 @@ We need to seek a tradeoff between satisfying the requirements and stretching th
 51degrees-cxx holds what were common-cxx, device-detection-cxx, ip-intelligence-cxx and ip-graph-cxx.
 * Nightly Pipeline should run at 35 0 * * *. It updates the submodules, merges the eligible pull requests and publishes, in that order, and can take up to 1.5 hours.
   Its pull requests target `rc` and it merges into `rc`, so what it publishes from `main` changes only when `rc` is released into `main`.
-* Monthly Copyright Update should run at 0 0 1 * *.
+* Yearly Copyright Update should run at 0 0 1 1 *.
 
 Other repos should start submodule updates around 0 2 * * *, after 51degrees-cxx has likely finished running:
 
@@ -509,7 +509,7 @@ Other repos should start submodule updates around 0 2 * * *, after 51degrees-cxx
 * Nightly Data File Change should run at 0 0 * * *
 * Nightly Package Update should run at 0 0 * * *
 * Nightly Submodule Update should run at 0 2 * * * - to incorporate updates from 51degrees-cxx
-* Monthly Copyright Update should run at 0 0 1 * *
+* Yearly Copyright Update should run at 0 0 1 1 *
 * Nightly PRs to Main should run on workflow_run complete after Submodule Update
 * Nightly Publish Main should run on wokflow_run complete after PRs to Main
 * Nightly Documentation Update should run at 30 3 * * * - as it is a completely independent job dealing with github pages, but should run presumably after PRs to Main is complete
