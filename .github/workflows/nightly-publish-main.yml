@@ -83,6 +83,7 @@ jobs:
         with:
           repo: ${{ inputs.repo-name }}
           secrets: ${{ toJSON(secrets) }}
+          vars: ${{ toJSON(vars) }}
 
   PreBuild:
     needs: Configure
@@ -106,13 +107,14 @@ jobs:
           language: ${{ matrix.options.Language }}
           version: ${{ matrix.options.LanguageVersion }}
 
-      # The _51DEGREES_ secrets, each under its own name, for the steps that
-      # follow. The secrets context is read here alone.
-      - name: Export secrets
+      # The _51DEGREES_ secrets and variables, each under its own name, for the
+      # steps that follow. The secrets context is read here alone.
+      - name: Export secrets and variables
         if: ${{ matrix.options.packagerequirement }}
         env:
           SECRETS: ${{ toJSON(secrets) }}
-        run: ./steps/set-resource-keys.ps1 -Secrets $env:SECRETS
+          VARS: ${{ toJSON(vars) }}
+        run: ./steps/set-resource-keys.ps1 -Secrets $env:SECRETS -Vars $env:VARS
 
       - name: PreBuild
         if: ${{ matrix.options.packagerequirement }}
@@ -156,12 +158,13 @@ jobs:
           pattern: package_*
           path: ${{ github.workspace }}/package-files
 
-      # The _51DEGREES_ secrets, each under its own name, for the steps that
-      # follow. The secrets context is read here alone.
-      - name: Export secrets
+      # The _51DEGREES_ secrets and variables, each under its own name, for the
+      # steps that follow. The secrets context is read here alone.
+      - name: Export secrets and variables
         env:
           SECRETS: ${{ toJSON(secrets) }}
-        run: ./steps/set-resource-keys.ps1 -Secrets $env:SECRETS
+          VARS: ${{ toJSON(vars) }}
+        run: ./steps/set-resource-keys.ps1 -Secrets $env:SECRETS -Vars $env:VARS
 
       - name: Build
         run: |
@@ -227,13 +230,14 @@ jobs:
           path: assets
           enableCrossOsArchive: true
 
-      # The _51DEGREES_ secrets, each under its own name, for the steps that
-      # follow. The secrets context is read here alone.
-      - name: Export secrets
+      # The _51DEGREES_ secrets and variables, each under its own name, for the
+      # steps that follow. The secrets context is read here alone.
+      - name: Export secrets and variables
         if: ${{ success() && matrix.options.packagerequirement }}
         env:
           SECRETS: ${{ toJSON(secrets) }}
-        run: ./steps/set-resource-keys.ps1 -Secrets $env:SECRETS
+          VARS: ${{ toJSON(vars) }}
+        run: ./steps/set-resource-keys.ps1 -Secrets $env:SECRETS -Vars $env:VARS
 
       - name: Test
         if: ${{ success() && matrix.options.packagerequirement }}
@@ -349,13 +353,14 @@ jobs:
           name: package
           path: ${{ github.workspace }}/package
 
-      # The _51DEGREES_ secrets, each under its own name, for the steps that
-      # follow. The secrets context is read here alone.
-      - name: Export secrets
+      # The _51DEGREES_ secrets and variables, each under its own name, for the
+      # steps that follow. The secrets context is read here alone.
+      - name: Export secrets and variables
         if: ${{ success() }}
         env:
           SECRETS: ${{ toJSON(secrets) }}
-        run: ./steps/set-resource-keys.ps1 -Secrets $env:SECRETS
+          VARS: ${{ toJSON(vars) }}
+        run: ./steps/set-resource-keys.ps1 -Secrets $env:SECRETS -Vars $env:VARS
 
       - name: Package
         if: ${{ success() }}

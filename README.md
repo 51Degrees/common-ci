@@ -352,17 +352,19 @@ To run these PowerShell scripts, either locally, or in a CI/CD pipeline, the fol
 - `GITHUB_TOKEN` environment variable (this is automatically set if using GitHub actions)
 - Some repositories require a cloud resource key. This can be obtained on the [configuration page](https://51degrees.com/configure)
 
-# Secrets
+# Secrets and variables
 
 Every secret the workflows read is an organization secret named `_51DEGREES_<NAME>`. A calling workflow passes `secrets: inherit`, and the reusable workflows declare no secret of their own.
 
-In each job that builds, tests or publishes, one step, [steps/set-resource-keys.ps1](steps/set-resource-keys.ps1), exports every secret whose name starts with `_51DEGREES_` into the environment under its own name, so the scripts and tests that follow read each by that name. Nothing is renamed or filled from another name, and this repository keeps no list of names: a new organization secret with a `_51DEGREES_` name reaches every job with no change here. The secrets context is read in that step alone.
+In each job that builds, tests or publishes, one step, [steps/set-resource-keys.ps1](steps/set-resource-keys.ps1), exports every secret and every variable whose name starts with `_51DEGREES_` into the environment under its own name, so the scripts and tests that follow read each by that name. Nothing is renamed or filled from another name, and this repository keeps no list of names: a new organization secret or variable with a `_51DEGREES_` name reaches every job with no change here. A name holds one thing, so a `_51DEGREES_` name that is both a secret and a variable fails the step. The secrets context is read in that step alone.
+
+An organization or repository variable, such as `_51DEGREES_CLOUD_ENDPOINT`, reaches the called workflows with no change to the calling workflow.
 
 A publishing or signing secret is `_51DEGREES_` followed by its name, such as `_51DEGREES_NUGET_API_KEY`, and the script that publishes or signs reads it at the point of use. The automation token is `_51DEGREES_ACCESS_TOKEN`, which the workflows pass to the scripts that need it.
 
 A name that a tool defines, such as `GITHUB_TOKEN` or twine's `TWINE_PASSWORD`, is set at the point of use straight from the `_51DEGREES_` secret.
 
-The export step writes only names to the log.
+The export step writes only names to the log, for variables as for secrets.
 
 # Environment variable names
 

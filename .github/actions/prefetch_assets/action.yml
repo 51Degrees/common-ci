@@ -2,6 +2,8 @@ name: Prefetch assets
 inputs:
   secrets:
     required: true # should be converted with toJSON()
+  vars:
+    required: true # should be converted with toJSON()
   repo:
     default: .
 outputs:
@@ -51,12 +53,13 @@ runs:
         env:
           repo: ${{ inputs.repo }}
           secrets:  ${{ inputs.secrets }}
+          vars: ${{ inputs.vars }}
         run: |
           $ErrorActionPreference = 'Stop'
-          # The _51DEGREES_ secrets go into the environment under their own
-          # names, as in the build jobs, so the repository's fetch-assets.ps1
-          # reads _51DEGREES_LICENSE_KEY from there.
-          & "${{ github.action_path }}/../../../steps/set-resource-keys.ps1" -Secrets $env:secrets
+          # The _51DEGREES_ secrets and variables go into the environment under
+          # their own names, as in the build jobs, so the repository's
+          # fetch-assets.ps1 reads _51DEGREES_LICENSE_KEY from there.
+          & "${{ github.action_path }}/../../../steps/set-resource-keys.ps1" -Secrets $env:secrets -Vars $env:vars
           & "$env:repo/ci/fetch-assets.ps1"
 
       - name: Cache assets

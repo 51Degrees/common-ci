@@ -178,9 +178,9 @@ Chooses the entries of a repository's `options.json` that a pull request is buil
 ## Set Resource Keys
 **Script: `set-resource-keys.ps1`**
 
-Exports the job's `_51DEGREES_` secrets into the environment, each under its own name, for the steps that follow.
+Exports the job's `_51DEGREES_` secrets and variables into the environment, each under its own name, for the steps that follow.
 
-Takes the job's secrets as JSON (`${{ toJSON(secrets) }}`) and exports every secret whose name starts with `_51DEGREES_`, and nothing else, to the process environment and, under GitHub Actions, to `$GITHUB_ENV`. Nothing is renamed, filled from another name or defaulted, and the step holds no list of names. The log carries the names alone.
+Takes the job's secrets as JSON (`${{ toJSON(secrets) }}`) and its variables as JSON (`${{ toJSON(vars) }}`) and exports every secret and every variable whose name starts with `_51DEGREES_`, and nothing else, to the process environment and, under GitHub Actions, to `$GITHUB_ENV`. Nothing is renamed, filled from another name or defaulted, and the step holds no list of names. A name holds one thing: a `_51DEGREES_` name that is both a secret and a variable is an error, and the step fails naming it and exports nothing. The log carries the names alone, for variables as for secrets.
 
 ## Update Sub-Modules
 **Script: `update-sub-modules.ps1`**

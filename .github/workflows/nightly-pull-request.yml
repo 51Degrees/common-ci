@@ -97,6 +97,7 @@ jobs:
         with:
           repo: ${{ inputs.repo-name }}
           secrets: ${{ toJSON(secrets) }}
+          vars: ${{ toJSON(vars) }}
 
   BuildAndTest:
     needs: Configure
@@ -131,12 +132,13 @@ jobs:
           path: assets
           enableCrossOsArchive: true
 
-      # The _51DEGREES_ secrets, each under its own name, for the steps that
-      # follow. The secrets context is read here alone.
-      - name: Export secrets
+      # The _51DEGREES_ secrets and variables, each under its own name, for the
+      # steps that follow. The secrets context is read here alone.
+      - name: Export secrets and variables
         env:
           SECRETS: ${{ toJSON(secrets) }}
-        run: ./steps/set-resource-keys.ps1 -Secrets $env:SECRETS
+          VARS: ${{ toJSON(vars) }}
+        run: ./steps/set-resource-keys.ps1 -Secrets $env:SECRETS -Vars $env:VARS
 
       - name: Build and Test
         id: build-and-test
