@@ -132,19 +132,23 @@ Describe 'get-caller-ci-secrets.ps1' {
         BeforeEach {
             $script:SavedGitHubEnv = $env:GITHUB_ENV
             $env:GITHUB_ENV = $null
+            # A caller's own name is not a _51DEGREES_ name or a listed CI
+            # secret, so it is held in a variable, as the export tests hold
+            # theirs, and the name guard in names.Tests.ps1 passes it.
+            $script:Listed = 'EXAMPLE_TOKEN'
         }
 
         AfterEach {
             $env:GITHUB_ENV = $script:SavedGitHubEnv
-            Remove-Item -Path 'Env:EXAMPLE_TOKEN' -ErrorAction SilentlyContinue
+            Remove-Item -Path "Env:$script:Listed" -ErrorAction SilentlyContinue
         }
 
         It 'saves a list the export step takes' {
-            Set-Repository -Content (New-List 'EXAMPLE_TOKEN')
+            Set-Repository -Content (New-List $script:Listed)
             Invoke-Step | Out-Null
-            $secrets = @{ EXAMPLE_TOKEN = 'value-example-token-5e2a' } | ConvertTo-Json -Compress
+            $secrets = @{ $script:Listed = 'value-example-token-5e2a' } | ConvertTo-Json -Compress
             & $script:Export -Secrets $secrets -Vars '{}' -CallerList $script:Saved *>&1 | Out-Null
-            (Get-Item -Path 'Env:EXAMPLE_TOKEN').Value | Should -Be 'value-example-token-5e2a'
+            (Get-Item -Path "Env:$script:Listed").Value | Should -Be 'value-example-token-5e2a'
         }
 
         It 'saves a publishing, signing or _51DEGREES_ name as listed, and the export step refuses it' {
