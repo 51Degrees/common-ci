@@ -194,6 +194,11 @@ Set-Content -Path $FullFilePath -Value 'downloaded'
             Remove-Item -Recurse -Force $script:Work
         }
     }
+
+    It 'takes a JSON file for an unknown asset, not a licensed one, when there is no key' {
+        { Invoke-KeyStep 'example-source.json' } | Should -Throw "*Unknown asset: example-source.json*"
+        $global:FetchAssetsKeyTest.Calls | Should -BeNullOrEmpty
+    }
 }
 
 Describe 'actions/fetch-assets' {

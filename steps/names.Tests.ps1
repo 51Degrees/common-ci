@@ -16,9 +16,7 @@ BeforeAll {
     # The tracked text files, as paths relative to the root.
     $tracked = @(git -C $script:Root ls-files)
     $binary = '\.(png|jpg|jpeg|gif|ico|snk|zip|gz)$'
-    # This folder is used by other 51Degrees repositories.
-    $shared = '^docker/'
-    $script:Files = @($tracked | Where-Object { $_ -notmatch $binary -and $_ -notmatch $shared -and $_ -ne $script:Self })
+    $script:Files = @($tracked | Where-Object { $_ -notmatch $binary -and $_ -ne $script:Self })
 
     $script:Workflows = @($script:Files | Where-Object { $_ -like '.github/workflows/*.yml' })
     $script:Actions = @($script:Files | Where-Object { $_ -like '*/action.yml' })

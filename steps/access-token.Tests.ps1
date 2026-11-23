@@ -18,9 +18,7 @@ BeforeAll {
     # The scripts of this repository, as paths relative to the root, without
     # the tests.
     $tracked = @(git -C $script:Root ls-files '*.ps1')
-    # This folder is used by other 51Degrees repositories.
-    $shared = '^docker/'
-    $script:Scripts = @($tracked | Where-Object { $_ -notmatch $shared -and $_ -notlike '*.Tests.ps1' })
+    $script:Scripts = @($tracked | Where-Object { $_ -notlike '*.Tests.ps1' })
 
     # The scripts that the workflows run: those at the root and in steps.
     $script:Text = @{}
