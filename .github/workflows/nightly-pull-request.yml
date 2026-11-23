@@ -188,7 +188,10 @@ jobs:
           if-no-files-found: ignore
           include-hidden-files: true
 
+      # Also after a failed build or test, so that what a failure leaves in
+      # artifacts, such as the dump of a test program that crashed, is kept.
       - name: Upload Artifacts
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
         with:
           name: artifacts-${{ inputs.pull-request-id }}-${{ matrix.options.name }}
