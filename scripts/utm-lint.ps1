@@ -106,7 +106,8 @@ $urlAllowlist = @('million\.zip', '/reflector/', 'datareceiver',
 $excludedHostPattern = '^(cloud|distributor|devices-v4|bulkdata|docs|legacy|ipcloud|crm[\w-]*|srv[\w-]*)\.51degrees\.com$'
 
 $sources = 'github|code|nuget|npm|maven|packagist|pypi|docs\.rs'
-$mediums = 'readme|docs|example|comment|package'
+# "about" is the website link in a GitHub repository's About box.
+$mediums = 'readme|docs|example|comment|package|about'
 $slug = '[a-z0-9][a-z0-9._-]*'
 $campaignEscaped = [regex]::Escape($Campaign)
 $queryPattern = "^([^&#]+&)?utm_source=($sources)&utm_medium=($mediums)" +
