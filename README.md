@@ -374,7 +374,7 @@ A secret that only one repository's own build and test scripts read is listed by
 }
 ```
 
-The jobs that run the repository's build and test scripts, BuildAndTest in `nightly-pull-request.yml` and PreBuild and Test in `nightly-publish.yml` and `nightly-publish-main.yml`, read that file from the branch they build with [steps/get-caller-ci-secrets.ps1](steps/get-caller-ci-secrets.ps1), so a pull request cannot widen what its own run receives, and pass it to the export step as `-CallerList`. No job that publishes or signs takes it. A repository with no such file gets nothing more. A listed name the job does not have stops the job, naming it, and so does a listed name that starts `_51DEGREES_` or that is a publishing or signing secret, as those reach a job by their own rules.
+The jobs that run the repository's build and test scripts, BuildAndTest in `nightly-pull-request.yml` and PreBuild and Test in `nightly-publish.yml` and `nightly-publish-main.yml`, read that file with [steps/get-caller-ci-secrets.ps1](steps/get-caller-ci-secrets.ps1) and pass it to the export step as `-CallerList`. BuildAndTest reads it from the branch the pull request goes into, and PreBuild and Test read it from the branch they build. No job that publishes or signs takes it. A repository with no such file gets nothing more. A listed name the job does not have stops the job, naming it, and so does a listed name that starts `_51DEGREES_` or that is a publishing or signing secret, as those reach a job by their own rules.
 
 A name that a tool defines, such as `GITHUB_TOKEN` or twine's `TWINE_PASSWORD`, is set at the point of use straight from the secret.
 

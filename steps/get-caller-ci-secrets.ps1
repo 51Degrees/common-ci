@@ -4,10 +4,11 @@
     test scripts read, for steps/export-secrets.ps1.
 
 .DESCRIPTION
-    Reads ci/ci-secrets.psd1 from the repository at the branch the job builds,
-    not from a pull request's head, so a pull request cannot widen the
-    secrets its own run receives. Saves it at Path. When the repository has
-    no such file, nothing is saved, and the export step exports nothing more.
+    Reads ci/ci-secrets.psd1 from the repository through the GitHub API. A
+    pull request job reads it from the branch the pull request goes into, and
+    a publish job from the branch it builds. Saves it at Path. When the
+    repository has no such file, nothing is saved, and the export step
+    exports nothing more.
 
     The file is a PowerShell data file with the names under Scripts:
 
@@ -23,7 +24,7 @@
     The calling repository, as owner/name.
 
 .PARAMETER Ref
-    The branch the job builds.
+    The branch to read the list from.
 
 .PARAMETER Path
     Where to save the list.

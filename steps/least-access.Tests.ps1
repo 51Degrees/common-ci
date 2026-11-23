@@ -107,6 +107,30 @@ Describe 'Secrets in <_.Name>' -ForEach $Workflows {
         }
     }
 
+    # The step that reads the list comes straight before the export step that
+    # takes it. It reads at the branch the workflow was given, or the branch
+    # the workflow runs on, and saves to the file the export step reads.
+    It 'reads the calling repository''s list at the branch the workflow works on, straight before the step that takes it' {
+        $refs = @(
+            '${{ github.ref_name }}'
+            '${{ inputs.branch != '''' && inputs.branch || github.ref_name }}'
+        )
+        foreach ($name in $script:Jobs.Keys) {
+            $steps = @(Get-Steps $script:Jobs[$name])
+            for ($i = 0; $i -lt $steps.Count; $i++) {
+                if ($steps[$i] -cnotmatch 'export-secrets\.ps1' -or $steps[$i] -cnotmatch ' -CallerList\b') { continue }
+                $steps[$i] | Should -Match ' -CallerList caller-ci-secrets\.psd1\b' -Because "the export step of $name reads the file the read step saves"
+                $i | Should -BeGreaterThan 0 -Because "the export step of $name follows the step that reads the list"
+                $read = $steps[$i - 1]
+                $read | Should -Match 'get-caller-ci-secrets\.ps1' -Because "the step before the export step of $name reads the list"
+                $read | Should -Match ' -Ref \$env:_51DEGREES_REF\b' -Because "the read step of $name takes the branch from _51DEGREES_REF"
+                $read | Should -Match ' -Path caller-ci-secrets\.psd1\b' -Because "the read step of $name saves the file the export step reads"
+                $ref = [regex]::Match($read, '(?m)^\s*_51DEGREES_REF:\s*(.+?)\s*$').Groups[1].Value
+                $ref | Should -BeIn $refs -Because "the read step of $name reads at the branch the workflow works on"
+            }
+        }
+    }
+
     # The automation token, CI_ACCESS_TOKEN, and in a workflow that publishes
     # the publishing token, PUBLISH_ACCESS_TOKEN.
     It 'reads by name only the automation token, and the publishing token where it publishes' {

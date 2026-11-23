@@ -134,7 +134,8 @@ jobs:
           enableCrossOsArchive: true
 
       # The CI secrets the repository's own build and test scripts read, as
-      # its ci/ci-secrets.psd1 lists them on the branch this job builds.
+      # its ci/ci-secrets.psd1 lists them on the branch the pull request goes
+      # into.
       - name: Read the repository's list of CI secrets
         env:
           GH_TOKEN: ${{ secrets.CI_ACCESS_TOKEN }}
