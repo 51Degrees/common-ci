@@ -8,15 +8,26 @@ $ErrorActionPreference = "Stop"
 # the bulkdata data source <name>.
 $dataSourceAsset = '^[a-z0-9][a-z0-9-]*\.json$'
 
-# The licensed files and every data source come from the Distributor and the
-# bulk data service with the data license key, which the shared workflows
-# export as _51DEGREES_LICENSE_KEY. Without it, the step fails naming the
-# variable, rather than with the service's refusal.
+# The licensed files come from the Distributor with the data license key,
+# which the shared workflows export as _51DEGREES_LICENSE_KEY. A data source
+# is read with the license key for internal data, which they export as
+# LICENSE_KEY_INTERNAL. Without the key an asset needs, the step fails naming
+# the variable, rather than with the service's refusal.
 $licensed = @('TAC-HashV41.hash', '51Degrees-EnterpriseIpiV41.ipi', '51Degrees.csv',
     '51Degrees-Tac.zip')
-function Test-Licensed ([string]$Asset) {
-    if (($Asset -cnotin $licensed) -and ($Asset -cnotmatch $dataSourceAsset)) { return $true }
-    return -not [string]::IsNullOrWhiteSpace($env:_51DEGREES_LICENSE_KEY)
+
+# The message for an asset whose key is not set, or nothing when the asset
+# needs no key or has the one it needs.
+function Get-MissingKeyMessage ([string]$Asset) {
+    if ($Asset -cin $licensed) {
+        $key, $name, $value = 'data license key', '_51DEGREES_LICENSE_KEY', $env:_51DEGREES_LICENSE_KEY
+    } elseif ($Asset -cmatch $dataSourceAsset) {
+        $key, $name, $value = 'license key for internal data', 'LICENSE_KEY_INTERNAL', $env:LICENSE_KEY_INTERNAL
+    } else {
+        return $null
+    }
+    if (-not [string]::IsNullOrWhiteSpace($value)) { return $null }
+    return "'$Asset' needs the $key, and $name is not set. It is an organization secret, which the calling workflow passes with 'secrets: inherit'."
 }
 $PSNativeCommandUseErrorActionPreference = $true
 
@@ -88,7 +99,7 @@ function Get-FromBulkData {
         [Parameter(Mandatory)][string]$Data,
         [Parameter(Mandatory)][string]$Output
     )
-    $License = $env:_51DEGREES_LICENSE_KEY
+    $License = $env:LICENSE_KEY_INTERNAL
     $monthAgo = [DateTime]::Now.AddDays(-30).ToString('yyyy-MM-dd')
     $tomorrow = [DateTime]::Now.AddDays(1).ToString('yyyy-MM-dd')
     Write-Host "Retrieving the latest $Data version..."
@@ -128,9 +139,8 @@ foreach ($asset in $Assets) {
         Write-Host "Asset '$asset' already present in cache, skipping download"
         continue
     }
-    if (-not (Test-Licensed $asset)) {
-        throw "'$asset' needs the data license key, and _51DEGREES_LICENSE_KEY is not set. It is an organization secret, which the calling workflow passes with 'secrets: inherit'."
-    }
+    $missingKey = Get-MissingKeyMessage $asset
+    if ($missingKey) { throw $missingKey }
     Write-Host "Fetching '$asset'"
     try {
         if ($dataFiles.ContainsKey($asset)) {

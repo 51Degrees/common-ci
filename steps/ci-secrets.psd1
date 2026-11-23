@@ -6,6 +6,7 @@
     # Every job that exports its secrets.
     Every = @(
         'CI_ACCESS_TOKEN'
+        'LICENSE_KEY_INTERNAL'
     )
 
     # Only a job that publishes.
