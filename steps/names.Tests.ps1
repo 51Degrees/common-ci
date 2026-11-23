@@ -182,6 +182,12 @@ Describe 'A script reads a publishing or signing secret only where it publishes 
         }
     }
 
+    # The license key for internal data is read where the assets are fetched.
+    It 'reads LICENSE_KEY_INTERNAL only in the step that fetches the assets' {
+        $script:CiNames | Should -Contain 'LICENSE_KEY_INTERNAL'
+        Get-Readers @('LICENSE_KEY_INTERNAL') | Should -Be 'steps/fetch-assets.ps1'
+    }
+
     It 'signs a package with signing secrets alone' {
         $signers = @($script:Reads.Keys | Where-Object { $_ -like '*/build-package*.ps1' -and $script:Reads[$_].Count -gt 0 })
         $signers.Count | Should -BeGreaterThan 0

@@ -102,7 +102,9 @@ Describe 'fetch-assets.ps1 and the license key' {
     # which record what they were asked for and write a small file, so no
     # test reaches the Distributor. The key reaches the step as the
     # _51DEGREES_LICENSE_KEY environment variable, as the shared workflows
-    # export it.
+    # export it. The license key for internal data, LICENSE_KEY_INTERNAL, is
+    # not set here, so these tests also show that a Distributor file needs
+    # only the one key.
     BeforeAll {
         $script:Folder = Join-Path ([IO.Path]::GetTempPath()) "fetch-assets-key-$(New-Guid)"
         New-Item -ItemType Directory -Path $script:Folder | Out-Null
@@ -135,11 +137,14 @@ Set-Content -Path $FullFilePath -Value 'downloaded'
 
     BeforeEach {
         $script:SavedKey = $env:_51DEGREES_LICENSE_KEY
+        $script:SavedInternalKey = $env:LICENSE_KEY_INTERNAL
         $env:_51DEGREES_LICENSE_KEY = $null
+        $env:LICENSE_KEY_INTERNAL = $null
     }
 
     AfterEach {
         $env:_51DEGREES_LICENSE_KEY = $script:SavedKey
+        $env:LICENSE_KEY_INTERNAL = $script:SavedInternalKey
         Remove-Item -Recurse -Force $script:Work -ErrorAction SilentlyContinue
     }
 
@@ -167,10 +172,11 @@ Set-Content -Path $FullFilePath -Value 'downloaded'
         $global:FetchAssetsKeyTest.Calls | Should -Be 'file CSV V4TAC key=license'
     }
 
-    It 'fails for each asset that needs a license when there is none, naming the variable' {
+    It 'fails for each Distributor file when there is no license, naming the variable' {
+        # The other key is set, and does not stand in for the missing one.
+        $env:LICENSE_KEY_INTERNAL = 'internal'
         foreach ($asset in 'TAC-HashV41.hash', '51Degrees-EnterpriseIpiV41.ipi',
-            '51Degrees.csv', '51Degrees-Tac.zip', 'chargify.json', 'entitlement.json',
-            'example-source.json') {
+            '51Degrees.csv', '51Degrees-Tac.zip') {
             { Invoke-KeyStep $asset } |
                 Should -Throw "*'$asset' needs the data license key, and _51DEGREES_LICENSE_KEY is not set*"
             $global:FetchAssetsKeyTest.Calls | Should -BeNullOrEmpty
@@ -242,17 +248,22 @@ Describe 'fetch-assets.ps1 with bulkdata' {
     }
 
     BeforeAll {
-        # Runs the step for $Asset in the stand-in work folder, with the
-        # license key in the environment as the shared workflows export it.
-        function Invoke-BulkStep ([string]$Asset) {
+        # Runs the step for $Asset in the stand-in work folder, with both
+        # license keys in the environment as the shared workflows export
+        # them. A data source is read with LICENSE_KEY_INTERNAL, so the
+        # stand-in addresses carry its value and never the other key's.
+        function Invoke-BulkStep ([string]$Asset, [string]$InternalKey = 'KEY') {
             $before = $env:_51DEGREES_LICENSE_KEY
-            $env:_51DEGREES_LICENSE_KEY = 'KEY'
+            $beforeInternal = $env:LICENSE_KEY_INTERNAL
+            $env:_51DEGREES_LICENSE_KEY = 'OTHER'
+            $env:LICENSE_KEY_INTERNAL = $InternalKey
             Push-Location $global:FetchAssetsTest.Work
             try {
                 & $script:Step -Assets $Asset 3>$null
             } finally {
                 Pop-Location
                 $env:_51DEGREES_LICENSE_KEY = $before
+                $env:LICENSE_KEY_INTERNAL = $beforeInternal
             }
         }
     }
@@ -274,6 +285,30 @@ Describe 'fetch-assets.ps1 with bulkdata' {
         Invoke-BulkStep 'example-source.json'
         $file = Get-Content -Raw "$($global:FetchAssetsTest.Work)/assets/example-source.json" | ConvertFrom-Json
         $file.url | Should -BeLike '*/example-source/KEY/2026-11-10'
+    }
+
+    It 'reads the key for <Asset> from LICENSE_KEY_INTERNAL alone' -ForEach @(
+        @{ Asset = 'chargify.json' }
+        @{ Asset = 'entitlement.json' }
+    ) {
+        Invoke-BulkStep $Asset
+        $global:FetchAssetsTest.Urls.Count | Should -Be 2
+        foreach ($url in $global:FetchAssetsTest.Urls) {
+            $url | Should -BeLike '*/KEY/*'
+            $url | Should -Not -BeLike '*OTHER*'
+        }
+    }
+
+    It 'stops for <Asset> when LICENSE_KEY_INTERNAL is <State>, naming it' -ForEach @(
+        @{ Asset = 'chargify.json'; State = 'not set'; Value = '' }
+        @{ Asset = 'entitlement.json'; State = 'not set'; Value = '' }
+        @{ Asset = 'example-source.json'; State = 'not set'; Value = '' }
+        @{ Asset = 'chargify.json'; State = 'blank'; Value = ' ' }
+    ) {
+        { Invoke-BulkStep $Asset -InternalKey $Value } |
+            Should -Throw -ExpectedMessage "*'$Asset' needs the license key for internal data, and LICENSE_KEY_INTERNAL is not set*"
+        $global:FetchAssetsTest.Urls.Count | Should -Be 0
+        "$($global:FetchAssetsTest.Work)/assets/$Asset" | Should -Not -Exist
     }
 
     It 'refuses <Asset>, which is no data source name' -ForEach @(

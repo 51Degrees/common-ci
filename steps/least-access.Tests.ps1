@@ -104,6 +104,30 @@ Describe 'Secrets in <_.Name>' -ForEach $Workflows {
     }
 }
 
+Describe 'The license key for internal data' {
+
+    BeforeAll {
+        $script:Ci = Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot 'ci-secrets.psd1')
+    }
+
+    # A job that fetches assets neither publishes nor signs, so the key is
+    # in neither class and the export step hands it over with no switch.
+    It 'goes to every job that exports its secrets, as LICENSE_KEY_INTERNAL' {
+        $script:Ci.Every | Should -Contain 'LICENSE_KEY_INTERNAL'
+        $script:Ci.Publish | Should -Not -Contain 'LICENSE_KEY_INTERNAL'
+        $script:Ci.Sign | Should -Not -Contain 'LICENSE_KEY_INTERNAL'
+    }
+
+    It 'is named in no workflow and no action, which take it from the export step' {
+        $root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+        $files = @(Get-ChildItem (Join-Path $root '.github'), (Join-Path $root 'actions') -Recurse -Filter '*.yml')
+        $files.Count | Should -BeGreaterThan 0
+        foreach ($file in $files) {
+            (Get-Content -Raw -LiteralPath $file.FullName) | Should -Not -Match 'LICENSE_KEY_INTERNAL' -Because "$($file.Name) reads no secret by this name"
+        }
+    }
+}
+
 Describe 'Secrets in the composite actions' {
 
     # An action that runs a caller's script with the secrets exports them
