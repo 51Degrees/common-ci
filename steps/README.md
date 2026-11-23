@@ -64,7 +64,7 @@ Configures the default Git behavior in the following ways:
 ## Download Data File
 **Script: `download-data-file.ps1`**
 
-Downloads a data file of the given type and product from the 51Degrees Distributor service, with the data licence key read from `_51DEGREES_LICENSE_KEY`. Fails naming that variable when it is not set.
+Downloads a data file of the given type and product from the 51Degrees Distributor service, with the data licence key read from `_51DEGREES_LICENSE_KEY`, which the download step sets from `LICENSE_KEY_DATA_FILES`. Fails naming that variable when it is not set.
 
 ## Fetch Hash Assets
 **Script: `fetch-hash-assets.ps1`**
@@ -174,6 +174,11 @@ The `RepoName`, `OrgName`, and `DryRun` parameters will always be available to t
 
 For a more detailed description of options usage, see [Options](/DESIGN.md#build-options).
 
+## Run Fetch Assets
+**Script: `run-fetch-assets.ps1`**
+
+Runs the repository's `ci/fetch-assets.ps1` with the data license, given as `-License`, set as `_51DEGREES_LICENSE_KEY` while that script runs, and puts the variable back as it was afterwards. The Build and Test step of `nightly-pull-request.yml` and the Test step of `nightly-publish.yml` and `nightly-publish-main.yml` take `LICENSE_KEY_DATA_FILES` in their own environment, and their scripts take it out of the environment before anything else runs and hand it to this script alone, so the build and the tests never see it.
+
 ## Select Options
 **Script: `select-options.ps1`**
 
@@ -187,7 +192,7 @@ Chooses the entries of a repository's `options.json` that a pull request is buil
 
 Exports the job's secrets and variables into the environment, each under its own name, for the steps that follow.
 
-Takes the job's secrets as JSON (`${{ toJSON(secrets) }}`) and its variables as JSON (`${{ toJSON(vars) }}`) and exports every secret and every variable whose name starts with `_51DEGREES_`, and the secrets that only CI uses, which [ci-secrets.psd1](ci-secrets.psd1) lists, to the process environment and, under GitHub Actions, to `$GITHUB_ENV`. Nothing else is exported, and nothing is renamed, filled from another name or defaulted. The names listed under `Publish` are exported only with `-Publish`, which the job that publishes passes, and the names listed under `Sign` only with `-Sign`, which the job that signs passes. A name holds one thing, so a name that is both a secret and a variable is an error, and the step fails naming it and exports nothing. The log carries the names alone, for variables as for secrets.
+Takes the job's secrets as JSON (`${{ toJSON(secrets) }}`) and its variables as JSON (`${{ toJSON(vars) }}`) and exports every secret and every variable whose name starts with `_51DEGREES_`, and the secrets that only CI uses, which [ci-secrets.psd1](ci-secrets.psd1) lists, to the process environment and, under GitHub Actions, to `$GITHUB_ENV`. Nothing else is exported, and nothing is renamed, filled from another name or defaulted. The names listed under `Publish` are exported only with `-Publish`, which the job that publishes passes, and the names listed under `Sign` only with `-Sign`, which the job that signs passes. The names listed under `Data` are never exported, because the step that downloads the data files sets the one it needs as `_51DEGREES_LICENSE_KEY` itself. A name holds one thing, so a name that is both a secret and a variable is an error, and the step fails naming it and exports nothing. The log carries the names alone, for variables as for secrets.
 
 ## Update Sub-Modules
 **Script: `update-sub-modules.ps1`**

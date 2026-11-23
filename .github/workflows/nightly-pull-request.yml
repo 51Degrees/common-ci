@@ -99,6 +99,7 @@ jobs:
           repo: ${{ inputs.repo-name }}
           secrets: ${{ toJSON(secrets) }}
           vars: ${{ toJSON(vars) }}
+          data-license: ${{ secrets.LICENSE_KEY_DATA_FILES }}
 
   BuildAndTest:
     needs: Configure
@@ -147,6 +148,9 @@ jobs:
           # Through env rather than inline, so the branch name is never
           # parsed as PowerShell.
           _51DEGREES_EXAMPLES_BRANCH: ${{ inputs.examples-branch }}
+          # The data license, for the asset download alone. The script takes
+          # it out of the environment before anything else runs.
+          LICENSE_KEY_DATA_FILES: ${{ secrets.LICENSE_KEY_DATA_FILES }}
         run: |
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
           $Options = $(ConvertFrom-Json -AsHashtable '${{ toJSON(matrix.options) }}')

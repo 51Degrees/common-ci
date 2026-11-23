@@ -30,4 +30,11 @@
         'JAVA_KEY_PGP_FILE'
         'STRONG_NAME_KEY_BASE64'
     )
+
+    # Only the step that downloads the data files, which sets it as
+    # _51DEGREES_LICENSE_KEY for the download alone. The export never takes
+    # these names, so no job carries them in its environment.
+    Data = @(
+        'LICENSE_KEY_DATA_FILES'
+    )
 }

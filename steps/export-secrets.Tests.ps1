@@ -30,6 +30,7 @@ BeforeAll {
         OTHER_TOKEN = 'value-other-token-3d4e'
         github_token = 'value-github-token-5f60'
         SOME_OTHER_NAME = 'value-other-name-7a8b'
+        LICENSE_KEY_DATA_FILES = 'value-data-license-1c3d'
     }
     $script:Json = $script:Given | ConvertTo-Json -Compress
     $script:Listed = @($script:Ci.Every) + @($script:Ci.Publish) + @($script:Ci.Sign)

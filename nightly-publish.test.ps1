@@ -11,6 +11,11 @@ $ErrorActionPreference = "Stop"
 
 $Options += $PSBoundParameters # Add RepoName, DryRun etc.
 
+# The data license is for the asset download alone, so it leaves the
+# environment before anything else runs.
+$DataLicense = $env:LICENSE_KEY_DATA_FILES
+Remove-Item -Path Env:LICENSE_KEY_DATA_FILES -ErrorAction SilentlyContinue
+
 Write-Host "::group::Configure Git"
 ./steps/configure-git.ps1 -GitHubUser $GitHubUser -GitHubEmail $GitHubEmail
 Write-Host "::endgroup::"
@@ -26,7 +31,7 @@ if ($Options.CI) {
 }
 
 Write-Host "::group::Fetch Assets"
-./steps/run-script.ps1 ./$RepoName/ci/fetch-assets.ps1 $Options
+./steps/run-fetch-assets.ps1 -RepoName $RepoName -Options $Options -License $DataLicense
 Write-Host "::endgroup::"
 
 Write-Host "::group::Setup Environment"
