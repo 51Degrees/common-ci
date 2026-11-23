@@ -12,11 +12,11 @@ $PSNativeCommandUseErrorActionPreference = $true
 
 # The packages are signed with the signing secrets, which the job that signs
 # exports under these names. Each is read at the point of use below.
-foreach ($name in '_51DEGREES_SIGN_JAVA_KEY_PGP_FILE', '_51DEGREES_SIGN_JAVA_GPG_KEY_PASSPHRASE',
-    '_51DEGREES_SIGN_KEY_VAULT_NAME', '_51DEGREES_SIGN_KEY_VAULT_URL',
-    '_51DEGREES_SIGN_KEY_VAULT_CLIENT_ID', '_51DEGREES_SIGN_KEY_VAULT_TENANT_ID',
-    '_51DEGREES_SIGN_KEY_VAULT_CLIENT_SECRET', '_51DEGREES_SIGN_KEY_VAULT_CERTIFICATE_NAME',
-    '_51DEGREES_SIGN_KEY_VAULT_CERTIFICATE_DATA') {
+foreach ($name in 'JAVA_KEY_PGP_FILE', 'JAVA_GPG_KEY_PASSPHRASE',
+    'CODE_SIGNING_KEY_VAULT_NAME', 'CODE_SIGNING_KEY_VAULT_URL',
+    'CODE_SIGNING_KEY_VAULT_CLIENT_ID', 'CODE_SIGNING_KEY_VAULT_TENANT_ID',
+    'CODE_SIGNING_KEY_VAULT_CLIENT_SECRET', 'CODE_SIGNING_KEY_VAULT_CERTIFICATE_NAME',
+    'CODE_SIGNING_KEY_VAULT_CERTIFICATE_DATA') {
     if ([string]::IsNullOrWhiteSpace((Get-Item -Path "Env:$name" -ErrorAction SilentlyContinue).Value)) {
         throw "$name is not set, so the packages cannot be signed."
     }
@@ -41,7 +41,7 @@ try {
 
     Write-Host "Writing certificate chain"
     $vaultCertChain = "$PWD/certchain.pem"
-    Set-Content -Path $vaultCertChain -Value $env:_51DEGREES_SIGN_KEY_VAULT_CERTIFICATE_DATA
+    Set-Content -Path $vaultCertChain -Value $env:CODE_SIGNING_KEY_VAULT_CERTIFICATE_DATA
 
     $jcaDownloadLink = "https://github.com/ebourg/jsign/releases/download/6.0/jsign-6.0.jar"
     $jcaProviderJar = "$PWD/jsign.jar"
@@ -50,30 +50,30 @@ try {
 
     Write-Host "Importing PGP file"
     $pgpFile = "Java Maven GPG Key Private.pgp"
-    Set-Content -Path $pgpFile -Value $env:_51DEGREES_SIGN_JAVA_KEY_PGP_FILE
-    Write-Output $env:_51DEGREES_SIGN_JAVA_GPG_KEY_PASSPHRASE | gpg --import --batch --yes --passphrase-fd 0 $pgpFile
+    Set-Content -Path $pgpFile -Value $env:JAVA_KEY_PGP_FILE
+    Write-Output $env:JAVA_GPG_KEY_PASSPHRASE | gpg --import --batch --yes --passphrase-fd 0 $pgpFile
     gpg --list-keys
 
     try {
         az login --service-principal --allow-no-subscriptions `
-            --username $env:_51DEGREES_SIGN_KEY_VAULT_CLIENT_ID `
-            --password $env:_51DEGREES_SIGN_KEY_VAULT_CLIENT_SECRET `
-            --tenant $env:_51DEGREES_SIGN_KEY_VAULT_TENANT_ID `
+            --username $env:CODE_SIGNING_KEY_VAULT_CLIENT_ID `
+            --password $env:CODE_SIGNING_KEY_VAULT_CLIENT_SECRET `
+            --tenant $env:CODE_SIGNING_KEY_VAULT_TENANT_ID `
 
-        $vaultAccessToken = (az account get-access-token --resource "https://vault.azure.net" --tenant $env:_51DEGREES_SIGN_KEY_VAULT_TENANT_ID | ConvertFrom-Json).accessToken
+        $vaultAccessToken = (az account get-access-token --resource "https://vault.azure.net" --tenant $env:CODE_SIGNING_KEY_VAULT_TENANT_ID | ConvertFrom-Json).accessToken
 
         Write-Host "Deploying '$Name' locally"
         mvn deploy --batch-mode --no-transfer-progress --settings $mvnSettings $ExtraArgs `
             "-DskipTests" `
             "-Dskippackagesign=false" `
-            "-Dgpg.passphrase=$env:_51DEGREES_SIGN_JAVA_GPG_KEY_PASSPHRASE" `
+            "-Dgpg.passphrase=$env:JAVA_GPG_KEY_PASSPHRASE" `
             "-DkeyvaultJcaJar=$jcaProviderJar" `
-            "-DkeyvaultVaultName=$env:_51DEGREES_SIGN_KEY_VAULT_NAME" `
-            "-DkeyvaultUrl=$env:_51DEGREES_SIGN_KEY_VAULT_URL" `
-            "-DkeyvaultClientId=$env:_51DEGREES_SIGN_KEY_VAULT_CLIENT_ID" `
-            "-DkeyvaultTenant=$env:_51DEGREES_SIGN_KEY_VAULT_TENANT_ID" `
-            "-DkeyvaultClientSecret=$env:_51DEGREES_SIGN_KEY_VAULT_CLIENT_SECRET" `
-            "-DkeyvaultCertName=$env:_51DEGREES_SIGN_KEY_VAULT_CERTIFICATE_NAME" `
+            "-DkeyvaultVaultName=$env:CODE_SIGNING_KEY_VAULT_NAME" `
+            "-DkeyvaultUrl=$env:CODE_SIGNING_KEY_VAULT_URL" `
+            "-DkeyvaultClientId=$env:CODE_SIGNING_KEY_VAULT_CLIENT_ID" `
+            "-DkeyvaultTenant=$env:CODE_SIGNING_KEY_VAULT_TENANT_ID" `
+            "-DkeyvaultClientSecret=$env:CODE_SIGNING_KEY_VAULT_CLIENT_SECRET" `
+            "-DkeyvaultCertName=$env:CODE_SIGNING_KEY_VAULT_CERTIFICATE_NAME" `
             "-DkeyvaultCertChain=$vaultCertChain" `
             "-DkeyvaultAccessToken=$vaultAccessToken" `
             "-DskipPublishing=true"

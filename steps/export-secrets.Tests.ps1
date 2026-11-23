@@ -1,16 +1,18 @@
 # Tests for steps/export-secrets.ps1. Run with: Invoke-Pester ./steps/export-secrets.Tests.ps1
 #
-# The step takes the job's secrets and variables as JSON and exports every
-# secret and every variable whose name starts with _51DEGREES_ into the
-# environment under its own name, and nothing else. A name that starts with
-# _51DEGREES_PUBLISH_ is exported only with -Publish, and one that starts with
-# _51DEGREES_SIGN_ only with -Sign. A name that is both a secret and a
-# variable is an error. The tests run it in this process, so each test clears
-# the variables it set, and point GITHUB_ENV at a file of their own.
+# The step takes the job's secrets and variables as JSON and exports into the
+# environment, each under its own name, every secret and every variable whose
+# name starts with _51DEGREES_ and the secrets that only CI uses, which
+# ci-secrets.psd1 lists, and nothing else. A name listed under Publish is
+# exported only with -Publish, and one listed under Sign only with -Sign. A
+# name that is both a secret and a variable is an error. The tests run it in
+# this process, so each test clears the variables it set, and point GITHUB_ENV
+# at a file of their own.
 
 BeforeAll {
     $script:Step = Join-Path $PSScriptRoot 'export-secrets.ps1'
     $script:Root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+    $script:Ci = Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot 'ci-secrets.psd1')
 
     # Stand-in values. None is a real secret, and each is distinctive so that a
     # test can tell a value from a name.
@@ -18,20 +20,22 @@ BeforeAll {
         _51DEGREES_RESOURCE_KEY_BESPOKE = 'value-resource-key-7f3a'
         _51DEGREES_LICENSE_KEY = 'value-license-key-2c9e'
         _51DEGREES_RESOURCE_KEY_51DID = 'value-51did-key-b41d'
-        _51DEGREES_SIGN_KEY_VAULT_URL = 'value-vault-url-e5d0'
-        _51DEGREES_SIGN_JAVA_KEY_PGP_FILE = "-----BEGIN PGP-----`nline-one-9a8b`nline-two-1c2d`n-----END PGP-----"
-        _51DEGREES_PUBLISH_NPM_AUTH_TOKEN = 'value-npm-token-4e6f'
-        _51DEGREES_PUBLISH_NUGET_API_KEY = 'value-nuget-key-8d2b'
+        CODE_SIGNING_KEY_VAULT_URL = 'value-vault-url-e5d0'
+        JAVA_KEY_PGP_FILE = "-----BEGIN PGP-----`nline-one-9a8b`nline-two-1c2d`n-----END PGP-----"
+        NPM_AUTH_TOKEN = 'value-npm-token-4e6f'
+        NUGET_API_KEY = 'value-nuget-key-8d2b'
+        PUBLISH_ACCESS_TOKEN = 'value-publish-token-2a7c'
         _51DEGREES_NOT_PUBLISH_OR_SIGN = 'value-neither-class-6c1a'
-        _51DEGREES_ACCESS_TOKEN = 'value-access-token-0b1c'
+        CI_ACCESS_TOKEN = 'value-access-token-0b1c'
         OTHER_TOKEN = 'value-other-token-3d4e'
         github_token = 'value-github-token-5f60'
         SOME_OTHER_NAME = 'value-other-name-7a8b'
     }
     $script:Json = $script:Given | ConvertTo-Json -Compress
-    $script:Exported = @($script:Given.Keys | Where-Object { $_ -clike '_51DEGREES_*' })
-    $script:Publishing = @($script:Exported | Where-Object { $_ -clike '_51DEGREES_PUBLISH_*' })
-    $script:Signing = @($script:Exported | Where-Object { $_ -clike '_51DEGREES_SIGN_*' })
+    $script:Listed = @($script:Ci.Every) + @($script:Ci.Publish) + @($script:Ci.Sign)
+    $script:Exported = @($script:Given.Keys | Where-Object { $_ -clike '_51DEGREES_*' -or $_ -cin $script:Listed })
+    $script:Publishing = @($script:Exported | Where-Object { $_ -cin $script:Ci.Publish })
+    $script:Signing = @($script:Exported | Where-Object { $_ -cin $script:Ci.Sign })
     $script:Unclassed = @($script:Exported | Where-Object { $_ -cnotin $script:Publishing -and $_ -cnotin $script:Signing })
 
     # Stand-in variables, none a real address.
@@ -105,10 +109,10 @@ Describe 'export-secrets.ps1' {
         }
     }
 
-    It 'exports every _51DEGREES_ secret under its own name' {
+    It 'exports every _51DEGREES_ secret and every listed CI secret under its own name' {
         Invoke-Step -Json $script:Json | Out-Null
         foreach ($name in $script:Exported) {
-            (Get-Item -Path "Env:$name").Value | Should -Be $script:Given[$name] -Because "$name is a _51DEGREES_ secret"
+            (Get-Item -Path "Env:$name").Value | Should -Be $script:Given[$name] -Because "$name is a _51DEGREES_ secret or a listed CI secret"
         }
     }
 
@@ -116,8 +120,13 @@ Describe 'export-secrets.ps1' {
         Invoke-Step -Json $script:Json | Out-Null
         foreach ($name in $script:Given.Keys) {
             if ($name -cin $script:Exported) { continue }
-            Test-Path -Path "Env:$name" | Should -BeFalse -Because "$name is not a _51DEGREES_ secret"
+            Test-Path -Path "Env:$name" | Should -BeFalse -Because "$name is neither a _51DEGREES_ secret nor a listed CI secret"
         }
+    }
+
+    It 'exports the automation token to a job that neither publishes nor signs' {
+        Invoke-Step -Json $script:Json -Publish $false -Sign $false | Out-Null
+        (Get-Item -Path 'Env:CI_ACCESS_TOKEN').Value | Should -Be $script:Given['CI_ACCESS_TOKEN']
     }
 
     It 'writes exactly the exported names to GITHUB_ENV, with their values, a multi-line value whole' {
@@ -204,21 +213,21 @@ Describe 'export-secrets.ps1' {
             Get-Left | Should -Be @($script:Exported | Sort-Object)
         }
 
-        It 'takes the class from the start of the name alone' {
+        It 'takes the class from the lists alone, not from the start of the name' {
             Invoke-Step -Json $script:Json -Publish $false -Sign $false | Out-Null
             (Get-Item -Path 'Env:_51DEGREES_NOT_PUBLISH_OR_SIGN').Value | Should -Be $script:Given['_51DEGREES_NOT_PUBLISH_OR_SIGN']
         }
 
         It 'treats a variable as it treats a secret' {
             $vars = [ordered]@{
-                _51DEGREES_PUBLISH_FEED = 'value-publish-feed-1a2b'
-                _51DEGREES_SIGN_TIMESTAMP_SERVER = 'value-sign-server-3c4d'
+                MAVEN_SETTINGS = 'value-maven-settings-1a2b'
+                CODE_SIGNING_KEY_VAULT_NAME = 'value-vault-name-3c4d'
                 _51DEGREES_CLOUD_ENDPOINT = 'value-cloud-endpoint-9e1f'
             }
             try {
                 Invoke-Step -Json '{}' -Vars ($vars | ConvertTo-Json -Compress) -Publish $false -Sign $true | Out-Null
-                Test-Path -Path 'Env:_51DEGREES_PUBLISH_FEED' | Should -BeFalse
-                (Get-Item -Path 'Env:_51DEGREES_SIGN_TIMESTAMP_SERVER').Value | Should -Be 'value-sign-server-3c4d'
+                Test-Path -Path 'Env:MAVEN_SETTINGS' | Should -BeFalse
+                (Get-Item -Path 'Env:CODE_SIGNING_KEY_VAULT_NAME').Value | Should -Be 'value-vault-name-3c4d'
                 (Get-Item -Path 'Env:_51DEGREES_CLOUD_ENDPOINT').Value | Should -Be 'value-cloud-endpoint-9e1f'
             } finally {
                 foreach ($name in $vars.Keys) { Remove-Item -Path "Env:$name" -ErrorAction SilentlyContinue }
@@ -243,16 +252,16 @@ Describe 'export-secrets.ps1' {
             }
         }
 
-        It 'exports no variable without the prefix' {
+        It 'exports no variable that is neither a _51DEGREES_ name nor a listed one' {
             Invoke-Step -Json $script:Json -Vars $script:VarsJson | Out-Null
             foreach ($name in $script:GivenVars.Keys) {
                 if ($name -cin $script:ExportedVars) { continue }
-                Test-Path -Path "Env:$name" | Should -BeFalse -Because "$name is not a _51DEGREES_ variable"
+                Test-Path -Path "Env:$name" | Should -BeFalse -Because "$name is neither a _51DEGREES_ name nor a listed one"
             }
             $written = Read-GitHubEnv $script:GitHubEnv
             foreach ($name in $script:GivenVars.Keys) {
                 if ($name -cin $script:ExportedVars) { continue }
-                $written.Contains($name) | Should -BeFalse -Because "$name is not a _51DEGREES_ variable"
+                $written.Contains($name) | Should -BeFalse -Because "$name is neither a _51DEGREES_ name nor a listed one"
             }
         }
 
@@ -276,9 +285,9 @@ Describe 'export-secrets.ps1' {
         }
 
         It 'fails on such a name in a class the job does not take' {
-            $secrets = @{ _51DEGREES_PUBLISH_NPM_AUTH_TOKEN = 'value-npm-token-4e6f' } | ConvertTo-Json -Compress
-            $vars = @{ _51DEGREES_PUBLISH_NPM_AUTH_TOKEN = 'value-variable-npm-2f7d' } | ConvertTo-Json -Compress
-            { & $script:Step -Secrets $secrets -Vars $vars *>&1 | Out-Null } | Should -Throw '*_51DEGREES_PUBLISH_NPM_AUTH_TOKEN*'
+            $secrets = @{ NPM_AUTH_TOKEN = 'value-npm-token-4e6f' } | ConvertTo-Json -Compress
+            $vars = @{ NPM_AUTH_TOKEN = 'value-variable-npm-2f7d' } | ConvertTo-Json -Compress
+            { & $script:Step -Secrets $secrets -Vars $vars *>&1 | Out-Null } | Should -Throw '*NPM_AUTH_TOKEN*'
         }
 
         It 'writes only names to its output, no variable value' {

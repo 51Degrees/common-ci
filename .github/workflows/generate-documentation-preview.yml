@@ -49,7 +49,7 @@ jobs:
         shell: pwsh
         working-directory: ${{ github.workspace }}/common/
         env:
-          _51DEGREES_ACCESS_TOKEN: ${{ secrets._51DEGREES_ACCESS_TOKEN }}
+          CI_ACCESS_TOKEN: ${{ secrets.CI_ACCESS_TOKEN }}
         run: |
           $SeparateExamples = [bool]::Parse( "${{ inputs.separate-examples}}" )
           . ${{ github.workspace }}/common/generate-documentation.ps1 `
@@ -72,7 +72,7 @@ jobs:
         shell: pwsh
         working-directory: ${{ github.workspace }}/common/
         env:
-          _51DEGREES_ACCESS_TOKEN: ${{ secrets._51DEGREES_ACCESS_TOKEN }}
+          CI_ACCESS_TOKEN: ${{ secrets.CI_ACCESS_TOKEN }}
         run: |
           . ${{ github.workspace }}/common/steps/comment-on-issue.ps1 `
           -RepoName ${{ inputs.repo-name }} `

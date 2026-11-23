@@ -3,15 +3,15 @@ param (
 )
 
 # twine reads the token from TWINE_PASSWORD, set here from the publishing
-# secret. The job that publishes exports it as _51DEGREES_PUBLISH_PYPI_TOKEN.
+# secret. The job that publishes exports it as PYPI_TOKEN.
 $env:TWINE_USERNAME = "__token__"
 
 pip install twine || $(throw "pip install failed")
 if (!$DryRun) {
-    if ([string]::IsNullOrWhiteSpace($env:_51DEGREES_PUBLISH_PYPI_TOKEN)) {
-        throw "_51DEGREES_PUBLISH_PYPI_TOKEN is not set, so publishing cannot succeed."
+    if ([string]::IsNullOrWhiteSpace($env:PYPI_TOKEN)) {
+        throw "PYPI_TOKEN is not set, so publishing cannot succeed."
     }
-    $env:TWINE_PASSWORD = $env:_51DEGREES_PUBLISH_PYPI_TOKEN
+    $env:TWINE_PASSWORD = $env:PYPI_TOKEN
     # twine stops at the first file PyPI rejects, so a publish of several
     # packages can fail with some of them already released. PyPI never accepts
     # the same file twice, so without --skip-existing a re-run fails on the

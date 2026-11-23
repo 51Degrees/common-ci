@@ -126,6 +126,10 @@ parameter, and the parameter is set within the script using the `Set-Variable` f
 `-Scope 1` so it is available to the caller (and only the caller).
 
 
+### Names of secrets and variables
+
+The `_51DEGREES_` prefix is only for the names a customer uses, in the demos and the examples. A secret that only CI uses has no prefix, and its name says what it does, such as `CI_ACCESS_TOKEN`, the token the jobs sign in to GitHub with, and `PUBLISH_ACCESS_TOKEN`, the token the publishing steps use. [steps/ci-secrets.psd1](steps/ci-secrets.psd1) lists the secrets that only CI uses, by the jobs that take them.
+
 ### Inversion of Control
 
 By using the principals of inversion of control, many of the scripts can be generic, thus avoiding
@@ -298,7 +302,7 @@ steps:
     shell: pwsh
     working-directory: ${{ github.workspace }}/common/
     env:
-      _51DEGREES_ACCESS_TOKEN: ${{ secrets._51DEGREES_ACCESS_TOKEN }}
+      CI_ACCESS_TOKEN: ${{ secrets.CI_ACCESS_TOKEN }}
     run: |
       . ${{ github.workspace }}/common/some-powershell-workflow.ps1 `
       -RepoName ${{ inputs.repo-name }}
@@ -342,7 +346,7 @@ jobs:
         shell: pwsh
         working-directory: ${{ github.workspace }}/common/
         env:
-          _51DEGREES_ACCESS_TOKEN: ${{ secrets._51DEGREES_ACCESS_TOKEN }}
+          CI_ACCESS_TOKEN: ${{ secrets.CI_ACCESS_TOKEN }}
         run: |
           . ${{ github.workspace }}/common/some-powershell-workflow.ps1 `
           -RepoName ${{ inputs.repo-name }} `

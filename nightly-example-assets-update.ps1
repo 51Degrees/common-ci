@@ -24,7 +24,7 @@ Write-Output "::group::Clone $RepoName"
 Write-Output "::endgroup::"
 
 Write-Output "::group::Update Example Assets"
-$env:GITHUB_TOKEN = $env:_51DEGREES_ACCESS_TOKEN
+$env:GITHUB_TOKEN = $env:CI_ACCESS_TOKEN
 ./steps/update-example-assets.ps1 -RepoName $RepoName -Tag $Tag
 Write-Output "::endgroup::"
 

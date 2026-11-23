@@ -14,7 +14,7 @@ $ErrorActionPreference = "Stop"
 
 # This token is used by the gh command.
 Write-Output "Setting GITHUB_TOKEN"
-$env:GITHUB_TOKEN = $env:_51DEGREES_ACCESS_TOKEN
+$env:GITHUB_TOKEN = $env:CI_ACCESS_TOKEN
 
 # Where the repository takes changes through rc, the pull requests built and
 # merged are the ones into rc, never the ones into the default branch.

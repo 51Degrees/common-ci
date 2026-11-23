@@ -1,8 +1,8 @@
 # Checks how the automation token reaches the scripts. Run with:
 # Invoke-Pester ./steps/access-token.Tests.ps1
 #
-# A script that needs the automation token reads _51DEGREES_ACCESS_TOKEN from
-# the environment itself. No script takes a token as a parameter and no
+# A script that needs the automation token reads CI_ACCESS_TOKEN from the
+# environment itself. No script takes a token as a parameter and no
 # workflow passes one. A step that runs such a script has the name in its
 # environment, from the export step of its job or from its own env block.
 
@@ -13,7 +13,7 @@ BeforeDiscovery {
 
 BeforeAll {
     $script:Root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-    $script:Name = '_51DEGREES_ACCESS_TOKEN'
+    $script:Name = 'CI_ACCESS_TOKEN'
 
     # The scripts of this repository, as paths relative to the root, without
     # the tests.
