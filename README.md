@@ -354,7 +354,7 @@ To run these PowerShell scripts, either locally, or in a CI/CD pipeline, the fol
 
 # Secrets and variables
 
-The `_51DEGREES_` prefix is only for the names a customer uses, in the demos and the examples, such as `_51DEGREES_RESOURCE_KEY_FREE` and `_51DEGREES_CLOUD_ENDPOINT`. A secret that only CI uses has no prefix, and its name says what it does. `CI_ACCESS_TOKEN` is the token the jobs sign in to GitHub with, and `PUBLISH_ACCESS_TOKEN` is the token the publishing steps use.
+The `_51DEGREES_` prefix is only for the names a customer uses, in the demos and the examples, such as `_51DEGREES_RESOURCE_KEY_FREE` and `_51DEGREES_CLOUD_ENDPOINT`. A secret that only CI uses has no prefix, and its name says what it does. `CI_ACCESS_TOKEN` is the token the jobs sign in to GitHub with, `PUBLISH_ACCESS_TOKEN` is the token the publishing steps use, and `LICENSE_KEY_INTERNAL` is a license key for internal data.
 
 Every secret the workflows read is an organization secret. A calling workflow passes `secrets: inherit`, and the reusable workflows declare no secret of their own.
 
@@ -362,7 +362,7 @@ In each job that builds, tests or publishes, one step, [steps/export-secrets.ps1
 
 An organization or repository variable, such as `_51DEGREES_CLOUD_ENDPOINT`, reaches the called workflows with no change to the calling workflow.
 
-A job receives only the secrets it uses. [steps/ci-secrets.psd1](steps/ci-secrets.psd1) lists the secrets that only CI uses by the jobs that take them. Every job takes `CI_ACCESS_TOKEN`. The secrets used to publish, such as `PUBLISH_ACCESS_TOKEN` and `NUGET_API_KEY`, go only to the job that publishes, which passes `-Publish` to the export step. The secrets used to sign, such as `CODE_SIGNING_KEY_VAULT_URL`, go only to the job that signs, which passes `-Sign`. A new secret that only CI uses is added to that list. The script that publishes or signs reads each at the point of use. No script takes a token as a parameter.
+A job receives only the secrets it uses. [steps/ci-secrets.psd1](steps/ci-secrets.psd1) lists the secrets that only CI uses by the jobs that take them. Every job takes `CI_ACCESS_TOKEN` and `LICENSE_KEY_INTERNAL`. The secrets used to publish, such as `PUBLISH_ACCESS_TOKEN` and `NUGET_API_KEY`, go only to the job that publishes, which passes `-Publish` to the export step. The secrets used to sign, such as `CODE_SIGNING_KEY_VAULT_URL`, go only to the job that signs, which passes `-Sign`. A new secret that only CI uses is added to that list. The script that publishes or signs reads each at the point of use. No script takes a token as a parameter.
 
 A name that a tool defines, such as `GITHUB_TOKEN` or twine's `TWINE_PASSWORD`, is set at the point of use straight from the secret.
 
