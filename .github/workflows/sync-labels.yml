@@ -30,5 +30,4 @@ jobs:
               51Degrees/cloud-issues
               51Degrees/common-ci
               51Degrees/data-file-tool
-              51Degrees/pipeline-specification
           token: ${{ secrets.CI_ACCESS_TOKEN }}
