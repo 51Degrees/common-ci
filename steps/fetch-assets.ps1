@@ -4,18 +4,13 @@ param (
 )
 $ErrorActionPreference = "Stop"
 
-# An asset named <name>.json, in lower case letters, digits, and hyphens, is
-# the bulkdata data source <name>.
-$dataSourceAsset = '^[a-z0-9][a-z0-9-]*\.json$'
-
-# The licensed files and every data source come from the Distributor and the
-# bulk data service with the data license key, which the shared workflows
-# export as _51DEGREES_LICENSE_KEY. Without it, the step fails naming the
-# variable, rather than with the service's refusal.
+# The licensed files come from the Distributor with the data license key,
+# which the shared workflows export as _51DEGREES_LICENSE_KEY. Without it,
+# the step fails naming the variable, rather than with the service's refusal.
 $licensed = @('TAC-HashV41.hash', '51Degrees-EnterpriseIpiV41.ipi', '51Degrees.csv',
     '51Degrees-Tac.zip')
 function Test-Licensed ([string]$Asset) {
-    if (($Asset -cnotin $licensed) -and ($Asset -cnotmatch $dataSourceAsset)) { return $true }
+    if ($Asset -cnotin $licensed) { return $true }
     return -not [string]::IsNullOrWhiteSpace($env:_51DEGREES_LICENSE_KEY)
 }
 $PSNativeCommandUseErrorActionPreference = $true
@@ -83,46 +78,6 @@ function Get-FromData {
     Copy-Item -LiteralPath $file -Destination (Join-Path $cache $Asset)
 }
 
-function Get-FromBulkData {
-    param (
-        [Parameter(Mandatory)][string]$Data,
-        [Parameter(Mandatory)][string]$Output
-    )
-    $License = $env:_51DEGREES_LICENSE_KEY
-    $monthAgo = [DateTime]::Now.AddDays(-30).ToString('yyyy-MM-dd')
-    $tomorrow = [DateTime]::Now.AddDays(1).ToString('yyyy-MM-dd')
-    Write-Host "Retrieving the latest $Data version..."
-    $available = Invoke-WebRequest "https://bulkdata.51degrees.com/api/v4/Available/Production/$Data/$License/$monthAgo/$tomorrow" | ConvertFrom-Json -AsHashtable
-    # The Available index returns version keys as YYYY/MM/DD, but the Download
-    # endpoint expects YYYY-MM-DD - passing the key through verbatim builds a
-    # slashed URL that 404s. Normalise to dashes. Also iterate newest-first and
-    # fall back to older versions in case a given day's blob is genuinely
-    # missing, and sort explicitly rather than trusting the API's key order.
-    $versions = @($available.Keys | Sort-Object -Descending)
-    if (-not $versions) {
-        throw "No $Data versions listed by bulkdata in the last 30 days"
-    }
-    foreach ($version in $versions) {
-        $datePath = $version -replace '/', '-'
-        Write-Host "Downloading $Data from $version..."
-        try {
-            curl -fLo $Output "https://bulkdata.51degrees.com/api/v4/Download/Production/$Data/$License/$datePath"
-            # A 200 with an empty or truncated body passes curl -f. Accepted,
-            # the file is cached for the rest of the day and every consumer
-            # reads it as no data, which is what a fetch just after midnight
-            # UTC once did to chargify.json.
-            $content = Get-Content -Raw $Output
-            if (-not $content -or -not (Test-Json -Json $content -ErrorAction SilentlyContinue)) {
-                throw "the download is empty or not JSON"
-            }
-            return
-        } catch {
-            Write-Warning "$Data $version is not downloadable ($_); trying an older version..."
-        }
-    }
-    throw "No downloadable $Data version found in the last 30 days"
-}
-
 foreach ($asset in $Assets) {
     if (Test-Path $cache/$asset) {
         Write-Host "Asset '$asset' already present in cache, skipping download"
@@ -158,11 +113,6 @@ foreach ($asset in $Assets) {
             }
             "51Degrees-Tac.zip" {  # same as the CSV above, without extracting
                 & $PSScriptRoot/download-data-file.ps1 -DataType 'CSV' -Product 'V4TAC' -FullFilePath "$cache/$_"
-            }
-            # A data source is fetched newest day first, so a new one needs
-            # no change here.
-            { $_ -cmatch $dataSourceAsset } {
-                Get-FromBulkData -Data ($_ -creplace '\.json$', '') -Output $cache/$_
             }
             default { Write-Error "Unknown asset: $_" }
         }
