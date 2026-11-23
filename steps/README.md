@@ -189,6 +189,13 @@ Exports the job's secrets and variables into the environment, each under its own
 
 Takes the job's secrets as JSON (`${{ toJSON(secrets) }}`) and its variables as JSON (`${{ toJSON(vars) }}`) and exports every secret and every variable whose name starts with `_51DEGREES_`, and the secrets that only CI uses, which [ci-secrets.psd1](ci-secrets.psd1) lists, to the process environment and, under GitHub Actions, to `$GITHUB_ENV`. Nothing else is exported, and nothing is renamed, filled from another name or defaulted. The names listed under `Publish` are exported only with `-Publish`, which the job that publishes passes, and the names listed under `Sign` only with `-Sign`, which the job that signs passes. A name holds one thing, so a name that is both a secret and a variable is an error, and the step fails naming it and exports nothing. The log carries the names alone, for variables as for secrets.
 
+With `-CallerList`, the step also exports the secrets that the calling repository's own `ci/ci-secrets.psd1` lists under `Scripts`, which [get-caller-ci-secrets.ps1](get-caller-ci-secrets.ps1) saved. Only the jobs that run the calling repository's build and test scripts pass it. When the file is not there, nothing more is exported. A listed name that the job does not have, that starts `_51DEGREES_`, or that `ci-secrets.psd1` lists under `Publish` or `Sign`, stops the step, naming it, before anything is exported.
+
+## Get Caller CI Secrets
+**Script: `get-caller-ci-secrets.ps1`**
+
+Saves the calling repository's `ci/ci-secrets.psd1`, read through the GitHub API from the branch the job builds rather than from a pull request's head, for `export-secrets.ps1 -CallerList`. Saves nothing when the repository has no such file. gh reads the token from `GH_TOKEN`.
+
 ## Update Sub-Modules
 **Script: `update-sub-modules.ps1`**
 

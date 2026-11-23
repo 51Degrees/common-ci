@@ -364,6 +364,18 @@ An organization or repository variable, such as `_51DEGREES_CLOUD_ENDPOINT`, rea
 
 A job receives only the secrets it uses. [steps/ci-secrets.psd1](steps/ci-secrets.psd1) lists the secrets that only CI uses by the jobs that take them. Every job takes `CI_ACCESS_TOKEN`. The secrets used to publish, such as `PUBLISH_ACCESS_TOKEN` and `NUGET_API_KEY`, go only to the job that publishes, which passes `-Publish` to the export step. The secrets used to sign, such as `CODE_SIGNING_KEY_VAULT_URL`, go only to the job that signs, which passes `-Sign`. A new secret that only CI uses is added to that list. The script that publishes or signs reads each at the point of use. No script takes a token as a parameter.
 
+A secret that only one repository's own build and test scripts read is listed by that repository, not here. It goes in the repository's `ci/ci-secrets.psd1`, under `Scripts`:
+
+```powershell
+@{
+    Scripts = @(
+        'NAME_OF_THE_SECRET'
+    )
+}
+```
+
+The jobs that run the repository's build and test scripts, BuildAndTest in `nightly-pull-request.yml` and PreBuild and Test in `nightly-publish.yml` and `nightly-publish-main.yml`, read that file from the branch they build with [steps/get-caller-ci-secrets.ps1](steps/get-caller-ci-secrets.ps1), so a pull request cannot widen what its own run receives, and pass it to the export step as `-CallerList`. No job that publishes or signs takes it. A repository with no such file gets nothing more. A listed name the job does not have stops the job, naming it, and so does a listed name that starts `_51DEGREES_` or that is a publishing or signing secret, as those reach a job by their own rules.
+
 A name that a tool defines, such as `GITHUB_TOKEN` or twine's `TWINE_PASSWORD`, is set at the point of use straight from the secret.
 
 The export step writes only names to the log, for variables as for secrets.

@@ -92,6 +92,21 @@ Describe 'Secrets in <_.Name>' -ForEach $Workflows {
         }
     }
 
+    # The calling repository's own list goes to the jobs that run its build
+    # and test scripts, and never to a job that publishes or signs.
+    It 'passes the calling repository''s list only to the jobs that run its build and test scripts' {
+        $callerJobs = @('BuildAndTest', 'PreBuild', 'Test')
+        foreach ($name in $script:Jobs.Keys) {
+            foreach ($step in Get-Steps $script:Jobs[$name]) {
+                if ($step -cnotmatch 'export-secrets\.ps1') { continue }
+                ($step -cmatch ' -CallerList\b') | Should -Be ($name -cin $callerJobs) -Because "only the jobs that run the caller's build and test scripts take its list, and this is $name"
+                if ($step -cmatch ' -CallerList\b') {
+                    $step | Should -Not -Match ' -(Publish|Sign)\b' -Because 'a job that takes the list neither publishes nor signs'
+                }
+            }
+        }
+    }
+
     # The automation token, CI_ACCESS_TOKEN, and in a workflow that publishes
     # the publishing token, PUBLISH_ACCESS_TOKEN.
     It 'reads by name only the automation token, and the publishing token where it publishes' {

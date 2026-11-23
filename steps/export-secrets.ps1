@@ -36,22 +36,46 @@
 
 .PARAMETER Sign
     The job signs, so it takes the names under Sign.
+
+.PARAMETER CallerList
+    The calling repository's own list of the CI secrets its build and test
+    scripts read, its ci/ci-secrets.psd1 as steps/get-caller-ci-secrets.ps1
+    saved it, with the names under Scripts. Only the jobs that run the
+    caller's build and test scripts pass it. When the file is not there, the
+    caller has no list and nothing more is exported. A listed name the job
+    does not have stops the step, as does a listed name that starts
+    _51DEGREES_ or that ci-secrets.psd1 lists under Publish or Sign, since
+    those reach a job by their own rules.
 #>
 param(
     [Parameter(Mandatory)][string]$Secrets,
     [Parameter(Mandatory)][string]$Vars,
     [switch]$Publish,
-    [switch]$Sign
+    [switch]$Sign,
+    [string]$CallerList
 )
 $ErrorActionPreference = "Stop"
 
 $prefix = '_51DEGREES_'
 $ci = Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot 'ci-secrets.psd1')
 
+# The names the calling repository lists for its own scripts.
+$caller = @()
+if ($CallerList -and (Test-Path -LiteralPath $CallerList -PathType Leaf)) {
+    $caller = @((Import-PowerShellDataFile -LiteralPath $CallerList).Scripts | Where-Object { $_ })
+    $refused = @($caller | Where-Object {
+        $_.StartsWith($prefix, [StringComparison]::Ordinal) -or $_ -cin $ci.Publish -or $_ -cin $ci.Sign
+    })
+    if ($refused.Count -gt 0) {
+        throw "The repository's ci/ci-secrets.psd1 may list only secrets that its own scripts read, not: $($refused -join ', ')"
+    }
+}
+
 # Whether this step knows a name at all.
 function Test-Known ([string]$Name) {
     return $Name.StartsWith($prefix, [StringComparison]::Ordinal) -or
-        $Name -cin $ci.Every -or $Name -cin $ci.Publish -or $Name -cin $ci.Sign
+        $Name -cin $ci.Every -or $Name -cin $ci.Publish -or $Name -cin $ci.Sign -or
+        $Name -cin $caller
 }
 
 # Whether this job takes a name it knows.
@@ -77,6 +101,13 @@ $namedVars = Get-Named $Vars
 $both = @($namedVars.Keys | Where-Object { $namedSecrets.ContainsKey($_) } | Sort-Object)
 if ($both.Count -gt 0) {
     throw "Both a secret and a variable, and a name holds one thing: $($both -join ', ')"
+}
+
+$missing = @($caller | Where-Object {
+    [string]::IsNullOrEmpty([string]$namedSecrets[$_]) -and [string]::IsNullOrEmpty([string]$namedVars[$_])
+} | Sort-Object)
+if ($missing.Count -gt 0) {
+    throw "The repository's ci/ci-secrets.psd1 lists secrets this job does not have: $($missing -join ', ')"
 }
 
 function Export-Named ([hashtable]$Named) {

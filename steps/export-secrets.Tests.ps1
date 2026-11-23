@@ -310,6 +310,96 @@ Describe 'export-secrets.ps1' {
             (Get-Item -Path 'Env:_51DEGREES_WEEKLY_RELEASES_FROM').Value | Should -Be 'value-weekly-from-3b5c'
         }
     }
+
+    # The calling repository lists the CI secrets its own build and test
+    # scripts read in ci/ci-secrets.psd1. The jobs that run those scripts pass
+    # the list as -CallerList, and no other job does.
+    Context 'the calling repository''s list' {
+
+        BeforeAll {
+            $script:CallerGiven = [ordered]@{
+                CALLER_ONLY_KEY = "-----BEGIN KEY-----`nline-one-4b7d`n-----END KEY-----"
+                CALLER_ONLY_TOKEN = 'value-caller-token-1f5c'
+            }
+            $script:CallerJson = ([ordered]@{} + $script:Given + $script:CallerGiven) | ConvertTo-Json -Compress
+
+            # Writes a caller list holding the names given and returns its path.
+            function New-CallerList ([string[]]$Names) {
+                $path = Join-Path ([IO.Path]::GetTempPath()) "caller-ci-secrets-$(New-Guid).psd1"
+                $quoted = ($Names | ForEach-Object { "        '$_'" }) -join "`n"
+                Set-Content -LiteralPath $path -Value "@{`n    Scripts = @(`n$quoted`n    )`n}"
+                return $path
+            }
+        }
+
+        AfterEach {
+            foreach ($name in $script:CallerGiven.Keys) { Remove-Item -Path "Env:$name" -ErrorAction SilentlyContinue }
+        }
+
+        It 'exports the names the list holds to a job that passes it' {
+            $list = New-CallerList @($script:CallerGiven.Keys)
+            try {
+                & $script:Step -Secrets $script:CallerJson -Vars '{}' -CallerList $list *>&1 | Out-Null
+                $written = Read-GitHubEnv $script:GitHubEnv
+                foreach ($name in $script:CallerGiven.Keys) {
+                    (Get-Item -Path "Env:$name").Value | Should -Be $script:CallerGiven[$name]
+                    $written[$name] | Should -Be $script:CallerGiven[$name] -Because 'a multi-line value arrives whole'
+                }
+            } finally { Remove-Item -LiteralPath $list -ErrorAction SilentlyContinue }
+        }
+
+        It 'exports none of them to a job that does not pass the list' {
+            & $script:Step -Secrets $script:CallerJson -Vars '{}' -Publish -Sign *>&1 | Out-Null
+            foreach ($name in $script:CallerGiven.Keys) {
+                Test-Path -Path "Env:$name" | Should -BeFalse -Because "$name is listed by the caller alone"
+            }
+        }
+
+        It 'exports nothing extra when the caller has no list' {
+            $missing = Join-Path ([IO.Path]::GetTempPath()) "no-caller-list-$(New-Guid).psd1"
+            & $script:Step -Secrets $script:CallerJson -Vars '{}' -CallerList $missing *>&1 | Out-Null
+            foreach ($name in $script:CallerGiven.Keys) {
+                Test-Path -Path "Env:$name" | Should -BeFalse
+            }
+            (Get-Item -Path 'Env:CI_ACCESS_TOKEN').Value | Should -Be $script:Given['CI_ACCESS_TOKEN']
+        }
+
+        It 'stops naming a listed secret that is missing, and exports nothing' {
+            $list = New-CallerList @('CALLER_ONLY_KEY', 'CALLER_NOT_SET')
+            try {
+                { & $script:Step -Secrets $script:CallerJson -Vars '{}' -CallerList $list *>&1 | Out-Null } |
+                    Should -Throw '*CALLER_NOT_SET*'
+                foreach ($name in $script:CallerGiven.Keys) {
+                    Test-Path -Path "Env:$name" | Should -BeFalse -Because 'nothing is exported when a listed name is missing'
+                }
+                (Get-Content -LiteralPath $script:GitHubEnv) | Should -BeNullOrEmpty
+            } finally { Remove-Item -LiteralPath $list -ErrorAction SilentlyContinue }
+        }
+
+        It 'refuses a publishing, signing or _51DEGREES_ name on the list' {
+            foreach ($name in 'NPM_AUTH_TOKEN', 'CODE_SIGNING_KEY_VAULT_URL', '_51DEGREES_LICENSE_KEY') {
+                $list = New-CallerList @($name)
+                try {
+                    { & $script:Step -Secrets $script:CallerJson -Vars '{}' -CallerList $list *>&1 | Out-Null } |
+                        Should -Throw "*$name*"
+                    Test-Path -Path "Env:$name" | Should -BeFalse
+                } finally { Remove-Item -LiteralPath $list -ErrorAction SilentlyContinue }
+            }
+        }
+
+        It 'writes only names to its output' {
+            $list = New-CallerList @($script:CallerGiven.Keys)
+            try {
+                $output = & $script:Step -Secrets $script:CallerJson -Vars '{}' -CallerList $list *>&1 | Out-String
+                foreach ($name in $script:CallerGiven.Keys) {
+                    foreach ($line in ($script:CallerGiven[$name] -split "`n")) {
+                        $output | Should -Not -Match ([regex]::Escape($line))
+                    }
+                    $output | Should -Match $name
+                }
+            } finally { Remove-Item -LiteralPath $list -ErrorAction SilentlyContinue }
+        }
+    }
 }
 
 Describe 'Every place the step runs passes the variables with the secrets' {
