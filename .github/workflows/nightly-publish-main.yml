@@ -79,6 +79,7 @@ jobs:
           repo: ${{ inputs.repo-name }}
           secrets: ${{ toJSON(secrets) }}
           vars: ${{ toJSON(vars) }}
+          license-key: ${{ secrets.LICENSE_KEY_V4TAC_IPIV4ENTERPRISE }}
 
   PreBuild:
     needs: Configure
@@ -236,6 +237,9 @@ jobs:
       - name: Test
         if: ${{ success() && matrix.options.packagerequirement }}
         env:
+          # The data file license, for the data file downloads and the data
+          # file update example tests that this step runs.
+          _51DEGREES_LICENSE_KEY: ${{ secrets.LICENSE_KEY_V4TAC_IPIV4ENTERPRISE }}
         run: |
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
           $Options = $(ConvertFrom-Json -AsHashtable '${{ toJSON(matrix.options) }}')

@@ -55,6 +55,10 @@ BeforeAll {
     # The jobs that run a caller's build, test or publish scripts, and so need
     # the secrets in the environment.
     $script:ExportingJobs = @('PreBuild', 'Build', 'Test', 'Package', 'BuildAndTest')
+
+    # The data file license, which only the steps that download the data files
+    # take.
+    $script:Data = @((Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot 'ci-secrets.psd1')).Data)
 }
 
 Describe 'Secrets in <_.Name>' -ForEach $Workflows {
@@ -92,14 +96,49 @@ Describe 'Secrets in <_.Name>' -ForEach $Workflows {
         }
     }
 
-    # The automation token, CI_ACCESS_TOKEN, and in a workflow that publishes
-    # the publishing token, PUBLISH_ACCESS_TOKEN.
-    It 'reads by name only the automation token, and the publishing token where it publishes' {
+    # The automation token, CI_ACCESS_TOKEN, in a workflow that publishes
+    # the publishing token, PUBLISH_ACCESS_TOKEN, and the data file license.
+    It 'reads by name only the automation token, the publishing token where it publishes, and the data file license' {
         $text = Get-Content -Raw -LiteralPath $_.FullName
-        $tokens = @('CI_ACCESS_TOKEN')
+        $tokens = @('CI_ACCESS_TOKEN') + $script:Data
         if ($_.Name -clike 'nightly-publish*.yml') { $tokens += 'PUBLISH_ACCESS_TOKEN' }
         foreach ($match in [regex]::Matches($text, '(?<![\w-])secrets\.([A-Za-z0-9_.-]+)')) {
             $match.Groups[1].Value | Should -BeIn $tokens -Because "$($match.Value) is not a token $($_.Name) reads by name"
+        }
+    }
+}
+
+Describe 'The data file license in <_.Name>' -ForEach $Workflows {
+
+    BeforeAll {
+        $script:Jobs = Get-Jobs $_.FullName
+    }
+
+    # The asset prefetch takes it as its license-key input, and the step that
+    # runs the build and test script or the test script sets it as
+    # _51DEGREES_LICENSE_KEY in its own env, for the data file downloads and
+    # the data file update example tests. No job takes it in its env, and no
+    # export step takes it.
+    It 'hands the data file license only to the steps that download the data files' {
+        foreach ($name in $script:Jobs.Keys) {
+            $inSteps = 0
+            foreach ($step in Get-Steps $script:Jobs[$name]) {
+                $count = 0
+                foreach ($license in $script:Data) {
+                    $count += [regex]::Matches($step, [regex]::Escape($license)).Count
+                }
+                if ($count -eq 0) { continue }
+                $inSteps += $count
+                $step | Should -Not -Match 'export-secrets\.ps1' -Because "an export step of $name takes no data file license"
+                ($step -cmatch 'prefetch_assets' -or
+                    $step -cmatch 'nightly-pull-request\.build-and-test\.ps1|nightly-publish\.test\.ps1') |
+                    Should -BeTrue -Because "only the steps of $name that download the data files take the data file license"
+            }
+            $inJob = 0
+            foreach ($license in $script:Data) {
+                $inJob += [regex]::Matches($script:Jobs[$name], [regex]::Escape($license)).Count
+            }
+            $inSteps | Should -Be $inJob -Because "$name takes the data file license in no env of its own"
         }
     }
 }
