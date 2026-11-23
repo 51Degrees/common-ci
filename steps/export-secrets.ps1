@@ -16,7 +16,9 @@
     These names are listed in ci-secrets.psd1, by the jobs that take them, so
     that a job receives only what it uses. The names under Every go to every
     job, those under Publish only to a job that publishes, and those under Sign
-    only to a job that signs.
+    only to a job that signs. The names under Data are never exported, because
+    the steps that download the data files set _51DEGREES_LICENSE_KEY from
+    them.
 
     Nothing is renamed, filled from another name or defaulted.
 

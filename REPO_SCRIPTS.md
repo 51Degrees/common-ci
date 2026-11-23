@@ -30,7 +30,7 @@ This should output any files required for the package to the `package-files` dir
 
 **Script: `fetch-assets.ps1`**
 
-Fetches any assets needed for building or testing. This should reuse common asset steps. It takes no parameters. It reads the data license key from `_51DEGREES_LICENSE_KEY` in the environment.
+Fetches any assets needed for building or testing. This should reuse common asset steps. It takes no parameters. It reads the data license key from `_51DEGREES_LICENSE_KEY` in the environment, which the shared workflows set from `LICENSE_KEY_V4TAC_IPIV4ENTERPRISE` in the steps that download the data files.
 
 ## Get Next Package Version
 

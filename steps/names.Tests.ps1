@@ -10,7 +10,7 @@
 BeforeAll {
     $script:Root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
     $script:Ci = Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot 'ci-secrets.psd1')
-    $script:CiNames = @($script:Ci.Every) + @($script:Ci.Publish) + @($script:Ci.Sign)
+    $script:CiNames = @($script:Ci.Every) + @($script:Ci.Publish) + @($script:Ci.Sign) + @($script:Ci.Data)
     $script:Self = [IO.Path]::GetRelativePath($script:Root, $PSCommandPath) -replace '\\', '/'
 
     # The tracked text files, as paths relative to the root.
