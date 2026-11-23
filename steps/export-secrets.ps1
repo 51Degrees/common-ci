@@ -20,8 +20,9 @@
 
     Nothing is renamed, filled from another name or defaulted.
 
-    A name holds one thing. A name that is both a secret and a variable is an
-    error, so the step fails naming it and exports nothing.
+    A name holds one thing. A name this step exports that is both a secret
+    and a variable is an error, even in a class the job does not take, so the
+    step fails naming it and exports nothing.
 
     The log carries the names alone.
 

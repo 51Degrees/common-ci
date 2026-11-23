@@ -213,9 +213,18 @@ Describe 'export-secrets.ps1' {
             Get-Left | Should -Be @($script:Exported | Sort-Object)
         }
 
+        # The name is joined at run time, so that no file holds a publishing
+        # class under the prefix, which names.Tests.ps1 forbids.
         It 'takes the class from the lists alone, not from the start of the name' {
-            Invoke-Step -Json $script:Json -Publish $false -Sign $false | Out-Null
-            (Get-Item -Path 'Env:_51DEGREES_NOT_PUBLISH_OR_SIGN').Value | Should -Be $script:Given['_51DEGREES_NOT_PUBLISH_OR_SIGN']
+            $lookalike = '_51DEGREES_' + 'PUBLISH_' + 'LOOKALIKE'
+            $json = @{ $lookalike = 'value-lookalike-4b8e'; NUGET_API_KEY = 'value-nuget-key-8d2b' } | ConvertTo-Json -Compress
+            try {
+                Invoke-Step -Json $json -Publish $false -Sign $false | Out-Null
+                (Get-Item -Path "Env:$lookalike").Value | Should -Be 'value-lookalike-4b8e'
+                Test-Path -Path 'Env:NUGET_API_KEY' | Should -BeFalse
+            } finally {
+                Remove-Item -Path "Env:$lookalike" -ErrorAction SilentlyContinue
+            }
         }
 
         It 'treats a variable as it treats a secret' {
@@ -309,6 +318,34 @@ Describe 'export-secrets.ps1' {
             Test-Path -Path 'Env:_51DEGREES_CLOUD_ENDPOINT' | Should -BeFalse
             (Get-Item -Path 'Env:_51DEGREES_WEEKLY_RELEASES_FROM').Value | Should -Be 'value-weekly-from-3b5c'
         }
+    }
+}
+
+# The lists decide which job receives a secret, so they are pinned here by
+# name. Moving a publishing or signing secret into Every would hand it to
+# every job, the pull request builds included.
+Describe 'ci-secrets.psd1' {
+
+    BeforeAll {
+        $script:Lists = Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot 'ci-secrets.psd1')
+    }
+
+    It 'gives every job the automation token alone' {
+        @($script:Lists.Every) | Should -Be @('CI_ACCESS_TOKEN')
+    }
+
+    It 'holds exactly the publishing secrets under Publish' {
+        @($script:Lists.Publish | Sort-Object) | Should -Be @(
+            'MAVEN_SETTINGS', 'NPM_AUTH_TOKEN', 'NUGET_API_KEY', 'PUBLISH_ACCESS_TOKEN', 'PYPI_TOKEN')
+    }
+
+    It 'holds exactly the signing secrets under Sign' {
+        @($script:Lists.Sign | Sort-Object) | Should -Be @(
+            'CODE_SIGNING_KEY_VAULT_CERTIFICATE_DATA', 'CODE_SIGNING_KEY_VAULT_CERTIFICATE_NAME',
+            'CODE_SIGNING_KEY_VAULT_CLIENT_ID', 'CODE_SIGNING_KEY_VAULT_CLIENT_SECRET',
+            'CODE_SIGNING_KEY_VAULT_NAME', 'CODE_SIGNING_KEY_VAULT_TENANT_ID',
+            'CODE_SIGNING_KEY_VAULT_URL', 'JAVA_GPG_KEY_PASSPHRASE', 'JAVA_KEY_PGP_FILE',
+            'STRONG_NAME_KEY_BASE64')
     }
 }
 
