@@ -141,6 +141,16 @@ Describe 'The data file license in <_.Name>' -ForEach $Workflows {
             $inSteps | Should -Be $inJob -Because "$name takes the data file license in no env of its own"
         }
     }
+
+    # A workflow level env would hand it to every job, the publishing and
+    # signing jobs among them.
+    It 'names the data file license nowhere outside its jobs' {
+        $text = Get-Content -Raw -LiteralPath $_.FullName
+        $head = ($text -split '(?m)^jobs:\s*$', 2)[0]
+        foreach ($license in $script:Data) {
+            $head | Should -Not -Match ([regex]::Escape($license)) -Because "$($_.Name) names $license outside its jobs"
+        }
+    }
 }
 
 Describe 'Secrets in the composite actions' {
@@ -161,6 +171,16 @@ Describe 'Secrets in the composite actions' {
         $steps.Count | Should -BeGreaterThan 0 -Because 'the action runs the caller''s ci/fetch-assets.ps1'
         foreach ($step in $steps) {
             $step | Should -Not -Match 'inputs\.secrets|toJSON\(secrets\)|_51DEGREES_SECRETS|export-secrets\.ps1' -Because 'the step that runs the caller''s script takes no secrets context'
+        }
+    }
+
+    # The data file license reaches the step that runs the caller's script
+    # and no other step of the action.
+    It '<_.Directory.Name> hands its license-key input only to the step that runs the caller''s script' -ForEach $Actions {
+        $text = Get-Content -Raw -LiteralPath $_.FullName
+        foreach ($step in Get-Steps $text) {
+            if ($step -cnotmatch 'inputs\.license-key') { continue }
+            $step | Should -Match '&\s*"[^"]*ci/fetch-assets\.ps1"' -Because 'only the step that runs the caller''s script takes the data file license'
         }
     }
 
