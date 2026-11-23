@@ -5,6 +5,7 @@
 # name starts with _51DEGREES_ and the secrets that only CI uses, which
 # ci-secrets.psd1 lists, and nothing else. A name listed under Publish is
 # exported only with -Publish, and one listed under Sign only with -Sign. A
+# name listed under Data is never exported. A
 # name that is both a secret and a variable is an error. The tests run it in
 # this process, so each test clears the variables it set, and point GITHUB_ENV
 # at a file of their own.

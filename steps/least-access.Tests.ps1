@@ -142,6 +142,22 @@ Describe 'The data file license in <_.Name>' -ForEach $Workflows {
         }
     }
 
+    # The steps that download the data files and run the data file update
+    # example tests each take it.
+    It 'hands the data file license to each step that downloads the data files' {
+        $names = ($script:Data | ForEach-Object { [regex]::Escape($_) }) -join '|'
+        foreach ($name in $script:Jobs.Keys) {
+            foreach ($step in Get-Steps $script:Jobs[$name]) {
+                if ($step -cmatch 'prefetch_assets') {
+                    $step | Should -Match "license-key: \$\{\{ secrets\.($names) \}\}" -Because "the asset prefetch of $name downloads the data files"
+                }
+                if ($step -cmatch 'nightly-pull-request\.build-and-test\.ps1|nightly-publish\.test\.ps1') {
+                    $step | Should -Match "_51DEGREES_LICENSE_KEY: \$\{\{ secrets\.($names) \}\}" -Because "a step of $name downloads the data files and runs the data file update example tests"
+                }
+            }
+        }
+    }
+
     # A workflow level env would hand it to every job, the publishing and
     # signing jobs among them.
     It 'names the data file license nowhere outside its jobs' {
@@ -171,6 +187,15 @@ Describe 'Secrets in the composite actions' {
         $steps.Count | Should -BeGreaterThan 0 -Because 'the action runs the caller''s ci/fetch-assets.ps1'
         foreach ($step in $steps) {
             $step | Should -Not -Match 'inputs\.secrets|toJSON\(secrets\)|_51DEGREES_SECRETS|export-secrets\.ps1' -Because 'the step that runs the caller''s script takes no secrets context'
+        }
+    }
+
+    # The step that runs the caller's fetch script sets the license from the
+    # action's input.
+    It '<_.Directory.Name> sets _51DEGREES_LICENSE_KEY from its license-key input for the caller''s script' -ForEach $ScriptRunningActions {
+        $steps = @(Get-Steps (Get-Content -Raw -LiteralPath $_.FullName) | Where-Object { $_ -cmatch '&\s*"[^"]*ci/fetch-assets\.ps1"' })
+        foreach ($step in $steps) {
+            $step | Should -Match '_51DEGREES_LICENSE_KEY: \$\{\{ inputs\.license-key \}\}' -Because 'the caller''s fetch script downloads the data files with it'
         }
     }
 
