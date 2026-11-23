@@ -349,20 +349,22 @@ To run these PowerShell scripts, either locally, or in a CI/CD pipeline, the fol
 
 - [Git CLI](https://git-scm.com/downloads)
 - [Hub CLI](https://hub.github.com/)
-- `_51DEGREES_ACCESS_TOKEN` environment variable, a GitHub token that the scripts sign in with (the workflows set it from the secret of that name)
+- `CI_ACCESS_TOKEN` environment variable, a GitHub token that the scripts sign in with (the workflows set it from the organization secret of that name)
 - Some repositories require a cloud resource key. This can be obtained on the [configuration page](https://51degrees.com/configure)
 
 # Secrets and variables
 
-Every secret the workflows read is an organization secret named `_51DEGREES_<NAME>`. A calling workflow passes `secrets: inherit`, and the reusable workflows declare no secret of their own.
+The `_51DEGREES_` prefix is only for the names a customer uses, in the demos and the examples, such as `_51DEGREES_RESOURCE_KEY_FREE` and `_51DEGREES_CLOUD_ENDPOINT`. A secret that only CI uses has no prefix, and its name says what it does. `CI_ACCESS_TOKEN` is the token the jobs sign in to GitHub with, and `PUBLISH_ACCESS_TOKEN` is the token the publishing steps use.
 
-In each job that builds, tests or publishes, one step, [steps/export-secrets.ps1](steps/export-secrets.ps1), exports every secret and every variable whose name starts with `_51DEGREES_` into the environment under its own name, so the scripts and tests that follow read each by that name. Nothing is renamed or filled from another name, and this repository keeps no list of names: a new organization secret or variable with a `_51DEGREES_` name reaches the jobs with no change here. A name holds one thing, so a `_51DEGREES_` name that is both a secret and a variable fails the step. The whole secrets context is read in that step alone, apart from the asset prefetch, where it is also hashed into the cache key. The prefetch exports the secrets in a step of its own as well, and runs the repository's `ci/fetch-assets.ps1` in the next step, which has the exported names and not the secrets context. A step in a job without the export step reads `_51DEGREES_ACCESS_TOKEN` alone, by name.
+Every secret the workflows read is an organization secret. A calling workflow passes `secrets: inherit`, and the reusable workflows declare no secret of their own.
+
+In each job that builds, tests or publishes, one step, [steps/export-secrets.ps1](steps/export-secrets.ps1), exports the secrets and variables into the environment, each under its own name, so the scripts and tests that follow read each by that name. Every secret and every variable whose name starts with `_51DEGREES_` is exported, so a new organization secret or variable with a `_51DEGREES_` name reaches the jobs with no change here. The secrets that only CI uses are listed in [steps/ci-secrets.psd1](steps/ci-secrets.psd1), and no other name is exported. Nothing is renamed or filled from another name. A name holds one thing, so a name that is both a secret and a variable fails the step. The whole secrets context is read in that step alone, apart from the asset prefetch, where it is also hashed into the cache key. The prefetch exports the secrets in a step of its own as well, and runs the repository's `ci/fetch-assets.ps1` in the next step, which has the exported names and not the secrets context. A step in a job without the export step reads `CI_ACCESS_TOKEN` or `PUBLISH_ACCESS_TOKEN` alone, by name.
 
 An organization or repository variable, such as `_51DEGREES_CLOUD_ENDPOINT`, reaches the called workflows with no change to the calling workflow.
 
-A job receives only the secrets it uses. A secret used only to publish is named `_51DEGREES_PUBLISH_<NAME>`, such as `_51DEGREES_PUBLISH_NUGET_API_KEY`, and a secret used to sign is named `_51DEGREES_SIGN_<NAME>`, such as `_51DEGREES_SIGN_KEY_VAULT_URL`. The export step takes `-Publish` in the job that publishes and `-Sign` in the job that signs, and exports neither class to any other job. The start of the name decides, so a new publishing or signing secret needs no change here. The script that publishes or signs reads each at the point of use. The automation token is `_51DEGREES_ACCESS_TOKEN`, which each script that needs it reads from the environment. No script takes it as a parameter.
+A job receives only the secrets it uses. [steps/ci-secrets.psd1](steps/ci-secrets.psd1) lists the secrets that only CI uses by the jobs that take them. Every job takes `CI_ACCESS_TOKEN`. The secrets used to publish, such as `PUBLISH_ACCESS_TOKEN` and `NUGET_API_KEY`, go only to the job that publishes, which passes `-Publish` to the export step. The secrets used to sign, such as `CODE_SIGNING_KEY_VAULT_URL`, go only to the job that signs, which passes `-Sign`. A new secret that only CI uses is added to that list. The script that publishes or signs reads each at the point of use. No script takes a token as a parameter.
 
-A name that a tool defines, such as `GITHUB_TOKEN` or twine's `TWINE_PASSWORD`, is set at the point of use straight from the `_51DEGREES_` secret.
+A name that a tool defines, such as `GITHUB_TOKEN` or twine's `TWINE_PASSWORD`, is set at the point of use straight from the secret.
 
 The export step writes only names to the log, for variables as for secrets.
 

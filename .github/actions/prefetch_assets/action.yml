@@ -46,7 +46,7 @@ runs:
           path: assets
           lookup-only: true
 
-      # The _51DEGREES_ secrets and variables go into the environment under
+      # The secrets and variables go into the environment under
       # their own names, as in the build jobs, so the repository's
       # fetch-assets.ps1 reads _51DEGREES_LICENSE_KEY from there. The export
       # takes neither the publishing nor the signing names.

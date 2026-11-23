@@ -19,7 +19,7 @@ foreach ($Artifact in $Artifacts) {
     if ($Artifact.name -eq $ArtifactName) {
         Write-Output "Downloading '$ArtifactName'"
 
-        Invoke-WebRequest -Uri $Artifact.archive_download_url -Headers @{"Authorization" = "Bearer $env:_51DEGREES_ACCESS_TOKEN"} -Outfile "$ArtifactName.zip"
+        Invoke-WebRequest -Uri $Artifact.archive_download_url -Headers @{"Authorization" = "Bearer $env:CI_ACCESS_TOKEN"} -Outfile "$ArtifactName.zip"
         exit 0
     }
 }

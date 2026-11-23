@@ -1,24 +1,27 @@
 <#
 .SYNOPSIS
-    Exports the job's _51DEGREES_ secrets and variables into the environment,
-    each under its own name.
+    Exports the job's secrets and variables into the environment, each under
+    its own name.
 
 .DESCRIPTION
-    Every secret and every variable whose name starts with _51DEGREES_ is set
-    in the process environment and, under GitHub Actions, written to
-    $GITHUB_ENV for the steps that follow. Nothing else is exported. Nothing
-    is renamed, filled from another name or defaulted, and no list of names is
-    kept here: an organization secret or variable with a _51DEGREES_ name
-    reaches the job with no change to this repository.
+    Two kinds of name are exported, and nothing else.
 
-    A job receives only what it uses. A name that starts with
-    _51DEGREES_PUBLISH_ is exported only to a job that publishes, and a name
-    that starts with _51DEGREES_SIGN_ only to a job that signs. The start of
-    the name decides, so a new publishing or signing secret needs no change
-    here either.
+    A name a customer uses, in the demos and the examples, starts with
+    _51DEGREES_. Every secret and every variable with that prefix is exported
+    to every job, so an organization secret or variable with a _51DEGREES_
+    name reaches the tests and the examples with no change to this
+    repository.
 
-    A name holds one thing. A _51DEGREES_ name that is both a secret and a
-    variable is an error: the step fails naming it and exports nothing.
+    A secret that only CI uses has no prefix, and its name says what it does.
+    These names are listed in ci-secrets.psd1, by the jobs that take them, so
+    that a job receives only what it uses. The names under Every go to every
+    job, those under Publish only to a job that publishes, and those under Sign
+    only to a job that signs.
+
+    Nothing is renamed, filled from another name or defaulted.
+
+    A name holds one thing. A name that is both a secret and a variable is an
+    error, so the step fails naming it and exports nothing.
 
     The log carries the names alone.
 
@@ -29,10 +32,10 @@
     The job's variables as JSON: ${{ toJSON(vars) }}.
 
 .PARAMETER Publish
-    The job publishes, so it takes the _51DEGREES_PUBLISH_ names.
+    The job publishes, so it takes the names under Publish.
 
 .PARAMETER Sign
-    The job signs, so it takes the _51DEGREES_SIGN_ names.
+    The job signs, so it takes the names under Sign.
 #>
 param(
     [Parameter(Mandatory)][string]$Secrets,
@@ -43,11 +46,18 @@ param(
 $ErrorActionPreference = "Stop"
 
 $prefix = '_51DEGREES_'
+$ci = Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot 'ci-secrets.psd1')
 
-# Whether this job takes a name, by the class the name starts with.
+# Whether this step knows a name at all.
+function Test-Known ([string]$Name) {
+    return $Name.StartsWith($prefix, [StringComparison]::Ordinal) -or
+        $Name -cin $ci.Every -or $Name -cin $ci.Publish -or $Name -cin $ci.Sign
+}
+
+# Whether this job takes a name it knows.
 function Test-Taken ([string]$Name) {
-    if ($Name.StartsWith("${prefix}PUBLISH_", [StringComparison]::Ordinal)) { return [bool]$Publish }
-    if ($Name.StartsWith("${prefix}SIGN_", [StringComparison]::Ordinal)) { return [bool]$Sign }
+    if ($Name -cin $ci.Publish) { return [bool]$Publish }
+    if ($Name -cin $ci.Sign) { return [bool]$Sign }
     return $true
 }
 
@@ -56,7 +66,7 @@ function Get-Named ([string]$Json) {
     if ($null -eq $all) { $all = @{} }
     $named = @{}
     foreach ($name in $all.Keys) {
-        if ($name.StartsWith($prefix, [StringComparison]::Ordinal)) { $named[$name] = $all[$name] }
+        if (Test-Known $name) { $named[$name] = $all[$name] }
     }
     return $named
 }
@@ -97,10 +107,10 @@ $exportedVars = Export-Named $namedVars
 if ($exportedSecrets.Count -gt 0) {
     Write-Host "Exported $($exportedSecrets.Count) secret(s): $($exportedSecrets -join ', ')"
 } else {
-    Write-Host "No $prefix secret to export."
+    Write-Host "No secret to export."
 }
 if ($exportedVars.Count -gt 0) {
     Write-Host "Exported $($exportedVars.Count) variable(s): $($exportedVars -join ', ')"
 } else {
-    Write-Host "No $prefix variable to export."
+    Write-Host "No variable to export."
 }
