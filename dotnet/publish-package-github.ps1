@@ -11,8 +11,8 @@ param(
 $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
 
-# The GitHub feed takes a GitHub token as its key: the automation token, which
-# the workflow passes as _51DEGREES_ACCESS_TOKEN.
+# The GitHub feed takes a GitHub token as its key, the publishing token, which
+# the job that publishes has as PUBLISH_ACCESS_TOKEN.
 $Source = "https://nuget.pkg.github.com/$OrgName/index.json"
 $PackagePath = [IO.Path]::Combine($pwd, "package")
 
@@ -25,10 +25,10 @@ try {
     if ($DryRun) {
         Write-Output "Dry run - not pushing $((Get-ChildItem *.nupkg).Name -join ', ') to '$Source'"
     } else {
-        if ([string]::IsNullOrWhiteSpace($env:_51DEGREES_ACCESS_TOKEN)) {
-            throw "_51DEGREES_ACCESS_TOKEN is not set, so publishing cannot succeed."
+        if ([string]::IsNullOrWhiteSpace($env:PUBLISH_ACCESS_TOKEN)) {
+            throw "PUBLISH_ACCESS_TOKEN is not set, so publishing cannot succeed."
         }
-        dotnet nuget push "*.nupkg" --source $Source --api-key $env:_51DEGREES_ACCESS_TOKEN --skip-duplicate
+        dotnet nuget push "*.nupkg" --source $Source --api-key $env:PUBLISH_ACCESS_TOKEN --skip-duplicate
     }
 }
 finally {

@@ -14,7 +14,7 @@ $ErrorActionPreference = "Stop"
 
 # This token is used by the gh command.
 Write-Output "Setting GITHUB_TOKEN"
-$env:GITHUB_TOKEN = $env:_51DEGREES_ACCESS_TOKEN
+$env:GITHUB_TOKEN = $env:CI_ACCESS_TOKEN
 
 Write-Output "::group::Configure Git"
 ./steps/configure-git.ps1 -GitHubUser $GitHubUser -GitHubEmail $GitHubEmail

@@ -57,7 +57,7 @@ For a more in depth description of this, see [Performance Tests](/DESIGN.md#perf
 **Script: `configure-git.ps1`**
 
 Configures the default Git behavior in the following ways:
-- Sets the auth token to use for any Git operations, read from `_51DEGREES_ACCESS_TOKEN`,
+- Sets the auth token to use for any Git operations, read from `CI_ACCESS_TOKEN`,
 - Sets the user and email for any commits,
 - Disables pulling of Git LFS files by default.
 
@@ -185,9 +185,9 @@ Chooses the entries of a repository's `options.json` that a pull request is buil
 ## Export Secrets
 **Script: `export-secrets.ps1`**
 
-Exports the job's `_51DEGREES_` secrets and variables into the environment, each under its own name, for the steps that follow.
+Exports the job's secrets and variables into the environment, each under its own name, for the steps that follow.
 
-Takes the job's secrets as JSON (`${{ toJSON(secrets) }}`) and its variables as JSON (`${{ toJSON(vars) }}`) and exports every secret and every variable whose name starts with `_51DEGREES_`, and nothing else, to the process environment and, under GitHub Actions, to `$GITHUB_ENV`. Nothing is renamed, filled from another name or defaulted, and the step holds no list of names. A name that starts with `_51DEGREES_PUBLISH_` is exported only with `-Publish`, which the job that publishes passes, and a name that starts with `_51DEGREES_SIGN_` only with `-Sign`, which the job that signs passes. A name holds one thing: a `_51DEGREES_` name that is both a secret and a variable is an error, and the step fails naming it and exports nothing. The log carries the names alone, for variables as for secrets.
+Takes the job's secrets as JSON (`${{ toJSON(secrets) }}`) and its variables as JSON (`${{ toJSON(vars) }}`) and exports every secret and every variable whose name starts with `_51DEGREES_`, and the secrets that only CI uses, which [ci-secrets.psd1](ci-secrets.psd1) lists, to the process environment and, under GitHub Actions, to `$GITHUB_ENV`. Nothing else is exported, and nothing is renamed, filled from another name or defaulted. The names listed under `Publish` are exported only with `-Publish`, which the job that publishes passes, and the names listed under `Sign` only with `-Sign`, which the job that signs passes. A name holds one thing, so a name that is both a secret and a variable is an error, and the step fails naming it and exports nothing. The log carries the names alone, for variables as for secrets.
 
 ## Update Sub-Modules
 **Script: `update-sub-modules.ps1`**

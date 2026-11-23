@@ -38,7 +38,7 @@ Write-Output "::group::Clone Tools"
 Write-Output "::endgroup::"
 
 Write-Output "::group::Setup Environment"
-./tools/ci/setup-environment.ps1 -NugetUser $GitHubUser -NugetPassword $env:_51DEGREES_ACCESS_TOKEN
+./tools/ci/setup-environment.ps1 -NugetUser $GitHubUser -NugetPassword $env:CI_ACCESS_TOKEN
 Write-Output "::endgroup::"
 
 Write-Output "::group::Generate Accessors"

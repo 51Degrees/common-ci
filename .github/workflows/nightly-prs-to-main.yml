@@ -62,7 +62,7 @@ jobs:
       - name: Get Pull Requests
         id: get_pull_requests
         env:
-          _51DEGREES_ACCESS_TOKEN: ${{ secrets._51DEGREES_ACCESS_TOKEN }}
+          CI_ACCESS_TOKEN: ${{ secrets.CI_ACCESS_TOKEN }}
           _51DEGREES_PULL_REQUEST_IDS: ${{ inputs.prs }}
         run: |
           ./nightly-pull-requests.get-prs.ps1 `

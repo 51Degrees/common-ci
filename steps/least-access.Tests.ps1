@@ -2,9 +2,9 @@
 # step alone. Run with: Invoke-Pester ./steps/least-access.Tests.ps1
 #
 # The secrets reach a job's scripts through steps/export-secrets.ps1, which
-# exports the _51DEGREES_ secrets into the environment. A job receives only
-# the secrets it uses: the publishing names reach the job that publishes and
-# the signing names the job that signs. These checks read each workflow job by
+# exports them into the environment. A job receives only the secrets it uses,
+# so the publishing names reach the job that publishes and the signing names
+# the job that signs. These checks read each workflow job by
 # job and look at where the secrets context appears.
 
 # The files are listed at discovery, because each one becomes its own set of
@@ -53,7 +53,7 @@ BeforeAll {
     }
 
     # The jobs that run a caller's build, test or publish scripts, and so need
-    # the _51DEGREES_ secrets in the environment.
+    # the secrets in the environment.
     $script:ExportingJobs = @('PreBuild', 'Build', 'Test', 'Package', 'BuildAndTest')
 }
 
@@ -76,7 +76,7 @@ Describe 'Secrets in <_.Name>' -ForEach $Workflows {
     It 'exports the secrets in each job that runs a caller''s scripts' {
         foreach ($name in $script:Jobs.Keys) {
             if ($name -cnotin $script:ExportingJobs) { continue }
-            $script:Jobs[$name] | Should -Match 'export-secrets\.ps1' -Because "$name runs scripts that read the _51DEGREES_ secrets"
+            $script:Jobs[$name] | Should -Match 'export-secrets\.ps1' -Because "$name runs scripts that read the secrets"
         }
     }
 
@@ -92,10 +92,14 @@ Describe 'Secrets in <_.Name>' -ForEach $Workflows {
         }
     }
 
-    It 'reads by name only the automation token, as _51DEGREES_ACCESS_TOKEN' {
+    # The automation token, CI_ACCESS_TOKEN, and in a workflow that publishes
+    # the publishing token, PUBLISH_ACCESS_TOKEN.
+    It 'reads by name only the automation token, and the publishing token where it publishes' {
         $text = Get-Content -Raw -LiteralPath $_.FullName
+        $tokens = @('CI_ACCESS_TOKEN')
+        if ($_.Name -clike 'nightly-publish*.yml') { $tokens += 'PUBLISH_ACCESS_TOKEN' }
         foreach ($match in [regex]::Matches($text, '(?<![\w-])secrets\.([A-Za-z0-9_.-]+)')) {
-            $match.Groups[1].Value | Should -BeExactly '_51DEGREES_ACCESS_TOKEN' -Because "$($match.Value) is not the automation token"
+            $match.Groups[1].Value | Should -BeIn $tokens -Because "$($match.Value) is not a token $($_.Name) reads by name"
         }
     }
 }

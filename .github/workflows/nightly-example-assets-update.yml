@@ -46,7 +46,7 @@ jobs:
         shell: pwsh
         working-directory: ${{ github.workspace }}/common/
         env:
-          _51DEGREES_ACCESS_TOKEN: ${{ secrets._51DEGREES_ACCESS_TOKEN }}
+          CI_ACCESS_TOKEN: ${{ secrets.CI_ACCESS_TOKEN }}
         run: |
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
           ./nightly-example-assets-update.ps1 `

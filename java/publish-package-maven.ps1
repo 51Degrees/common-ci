@@ -7,15 +7,15 @@ $ErrorActionPreference = "Stop"
 $PSNativeCommandUseErrorActionPreference = $true
 
 # The Central Portal token, which the job that publishes exports as
-# _51DEGREES_PUBLISH_MAVEN_SETTINGS.
-if (-not $DryRun -and [string]::IsNullOrWhiteSpace($env:_51DEGREES_PUBLISH_MAVEN_SETTINGS)) {
-    throw "_51DEGREES_PUBLISH_MAVEN_SETTINGS is not set, so publishing cannot succeed."
+# MAVEN_SETTINGS.
+if (-not $DryRun -and [string]::IsNullOrWhiteSpace($env:MAVEN_SETTINGS)) {
+    throw "MAVEN_SETTINGS is not set, so publishing cannot succeed."
 }
 $args = @{
     ConnectionTimeoutSeconds = 30
     OperationTimeoutSeconds = 30
     Method = 'Post'
-    Headers = @{Authorization = "Bearer $env:_51DEGREES_PUBLISH_MAVEN_SETTINGS"}
+    Headers = @{Authorization = "Bearer $env:MAVEN_SETTINGS"}
 }
 $api = "https://central.sonatype.com/api/v1/publisher"
 

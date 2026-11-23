@@ -13,6 +13,6 @@ $ErrorActionPreference = "Stop"
 
 # This token is used by the gh command.
 Write-Output "Setting GITHUB_TOKEN"
-$env:GITHUB_TOKEN = $env:_51DEGREES_ACCESS_TOKEN
+$env:GITHUB_TOKEN = $env:CI_ACCESS_TOKEN
 
 ./steps/merge-pr.ps1 -RepoName $RepoName -OrgName $OrgName -PullRequestId $PullRequestId -Branch $Branch -DryRun $DryRun

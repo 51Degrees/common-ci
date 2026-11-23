@@ -1,14 +1,16 @@
 # Guards the names in this repository. Run with: Invoke-Pester ./steps/names.Tests.ps1
 #
-# Every name that a script, a workflow, an action or a test reads or sets in
-# the environment starts with _51DEGREES_, so wherever it appears it is clearly
-# a 51Degrees name. The exception is a name that GitHub, the operating system
-# or a tool defines, which is used as that tool requires. The checks look at
-# the shape of each name and keep no list of the names in use. This file is
-# left out of its own checks.
+# A name that a customer uses, in the demos and the examples, starts with
+# _51DEGREES_. A secret that only CI uses has no prefix, its name says what it
+# does, and steps/ci-secrets.psd1 lists it. Every name that a script, a
+# workflow, an action or a test reads or sets in the environment is one of
+# these, or a name that GitHub, the operating system or a tool defines, which
+# is used as that tool requires. This file is left out of its own checks.
 
 BeforeAll {
     $script:Root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+    $script:Ci = Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot 'ci-secrets.psd1')
+    $script:CiNames = @($script:Ci.Every) + @($script:Ci.Publish) + @($script:Ci.Sign)
     $script:Self = [IO.Path]::GetRelativePath($script:Root, $PSCommandPath) -replace '\\', '/'
 
     # The tracked text files, as paths relative to the root.
@@ -39,11 +41,12 @@ BeforeAll {
     ) -join '|') + ')$'
 
     function Test-Name ([string]$Name) {
-        return $Name.StartsWith('_51DEGREES_', [StringComparison]::Ordinal) -or $Name -cmatch $script:ToolNames
+        return $Name.StartsWith('_51DEGREES_', [StringComparison]::Ordinal) -or
+            $Name -cin $script:CiNames -or $Name -cmatch $script:ToolNames
     }
 
-    # Every name the pattern's first group finds in the files that is neither
-    # a _51DEGREES_ name nor a tool's, as path:line: name.
+    # Every name the pattern's first group finds in the files that is not a
+    # _51DEGREES_ name, a listed CI secret or a tool's, as path:line: name.
     function Find-OtherNames {
         param([string[]]$Paths, [string]$Pattern)
         $hits = @()
@@ -59,9 +62,9 @@ BeforeAll {
         return $hits
     }
 
-    # Every key of an 'env:' block in the files that is neither a _51DEGREES_
-    # name nor a tool's, as path:line: name. A block's keys are the lines
-    # indented further than its 'env:' line.
+    # Every key of an 'env:' block in the files that is not a _51DEGREES_
+    # name, a listed CI secret or a tool's, as path:line: name. A block's keys
+    # are the lines indented further than its 'env:' line.
     function Find-OtherEnvKeys {
         param([string[]]$Paths)
         $hits = @()
@@ -86,7 +89,7 @@ BeforeAll {
     }
 }
 
-Describe 'Every name in the environment is a _51DEGREES_ name or one a tool defines' {
+Describe 'Every name in the environment is a _51DEGREES_ name, a listed CI secret or one a tool defines' {
 
     It 'reads and sets only such names in the scripts and the tests' {
         # $env:NAME, ${env:NAME} and the Env:NAME drive path.
@@ -124,33 +127,57 @@ Describe 'Workflows take their secrets from the caller' {
     }
 }
 
+Describe 'A secret that only CI uses has no prefix' {
+
+    It 'lists each CI secret once, without the _51DEGREES_ prefix' {
+        $script:CiNames.Count | Should -BeGreaterThan 0
+        $script:CiNames | Where-Object { $_.StartsWith('_51DEGREES_', [StringComparison]::Ordinal) } | Should -BeNullOrEmpty
+        $script:CiNames | Group-Object | Where-Object Count -gt 1 | ForEach-Object Name | Should -BeNullOrEmpty
+    }
+
+    # A listed name with the prefix, a publishing or signing class under the
+    # prefix, or the automation token under the prefix.
+    It 'never reads a CI secret under the _51DEGREES_ prefix' {
+        $prefixed = '\b_51DEGREES_(PUBLISH_\w+|SIGN_\w+|ACCESS_TOKEN|' + (($script:CiNames | ForEach-Object { [regex]::Escape($_) }) -join '|') + ')\b'
+        $hits = @()
+        foreach ($path in $script:Files) {
+            $lines = @(Get-Content -LiteralPath (Join-Path $script:Root $path))
+            for ($i = 0; $i -lt $lines.Count; $i++) {
+                if ($lines[$i] -cmatch $prefixed) { $hits += "${path}:$($i + 1): $($Matches[0])" }
+            }
+        }
+        $hits | Should -BeNullOrEmpty
+    }
+}
+
 Describe 'A script reads a publishing or signing secret only where it publishes or signs' {
 
     BeforeAll {
-        # The _51DEGREES_ names each script mentions.
+        # The _51DEGREES_ names and the CI secrets each script mentions.
+        $named = '\b(_51DEGREES_[A-Z0-9_]*[A-Z0-9]|' + (($script:CiNames | ForEach-Object { [regex]::Escape($_) }) -join '|') + ')\b'
         $script:Reads = @{}
         foreach ($path in $script:Scripts | Where-Object { $_ -notlike '*.Tests.ps1' }) {
             [string]$text = Get-Content -Raw -LiteralPath (Join-Path $script:Root $path)
-            $script:Reads[$path] = @([regex]::Matches($text, '\b_51DEGREES_[A-Z0-9_]*[A-Z0-9]') | ForEach-Object Value | Sort-Object -Unique)
+            $script:Reads[$path] = @([regex]::Matches($text, $named) | ForEach-Object Value | Sort-Object -Unique)
         }
-        function Get-Readers ([string]$Like) {
-            return @($script:Reads.Keys | Where-Object { @($script:Reads[$_] -clike $Like).Count -gt 0 } | Sort-Object)
+        function Get-Readers ([string[]]$Names) {
+            return @($script:Reads.Keys | Where-Object { @($script:Reads[$_] | Where-Object { $_ -cin $Names }).Count -gt 0 } | Sort-Object)
         }
     }
 
-    It 'reads a _51DEGREES_PUBLISH_ name only in a script that publishes a package' {
-        Get-Readers '_51DEGREES_PUBLISH_*' | Where-Object { $_ -notlike '*/publish-package*.ps1' } | Should -BeNullOrEmpty
+    It 'reads a publishing name only in a script that publishes a package' {
+        Get-Readers $script:Ci.Publish | Where-Object { $_ -notlike '*/publish-package*.ps1' } | Should -BeNullOrEmpty
     }
 
-    It 'reads a _51DEGREES_SIGN_ name only in a script that builds a package' {
-        Get-Readers '_51DEGREES_SIGN_*' | Where-Object { $_ -notlike '*/build-package*.ps1' } | Should -BeNullOrEmpty
+    It 'reads a signing name only in a script that builds a package' {
+        Get-Readers $script:Ci.Sign | Where-Object { $_ -notlike '*/build-package*.ps1' } | Should -BeNullOrEmpty
     }
 
-    It 'publishes a package with a publishing secret or the automation token alone' {
+    It 'publishes a package with publishing secrets alone' {
         $publishers = @($script:Reads.Keys | Where-Object { $_ -like '*/publish-package*.ps1' -and $script:Reads[$_].Count -gt 0 })
         $publishers.Count | Should -BeGreaterThan 0
         foreach ($path in $publishers) {
-            $script:Reads[$path] | Where-Object { $_ -cnotlike '_51DEGREES_PUBLISH_*' -and $_ -cne '_51DEGREES_ACCESS_TOKEN' } |
+            $script:Reads[$path] | Where-Object { $_ -cnotin $script:Ci.Publish } |
                 Should -BeNullOrEmpty -Because "$path publishes"
         }
     }
@@ -159,7 +186,7 @@ Describe 'A script reads a publishing or signing secret only where it publishes 
         $signers = @($script:Reads.Keys | Where-Object { $_ -like '*/build-package*.ps1' -and $script:Reads[$_].Count -gt 0 })
         $signers.Count | Should -BeGreaterThan 0
         foreach ($path in $signers) {
-            $script:Reads[$path] | Where-Object { $_ -cnotlike '_51DEGREES_SIGN_*' } |
+            $script:Reads[$path] | Where-Object { $_ -cnotin $script:Ci.Sign } |
                 Should -BeNullOrEmpty -Because "$path signs what it builds"
         }
     }

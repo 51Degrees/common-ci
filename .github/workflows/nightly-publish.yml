@@ -84,7 +84,7 @@ jobs:
       - name: Configure
         id: configure
         env:
-          _51DEGREES_ACCESS_TOKEN: ${{ secrets._51DEGREES_ACCESS_TOKEN }}
+          CI_ACCESS_TOKEN: ${{ secrets.CI_ACCESS_TOKEN }}
         run: |
           ./nightly-publish.configure.ps1 `
           -RepoName ${{ inputs.repo-name }} `
@@ -122,7 +122,7 @@ jobs:
         shell: pwsh
         env:
           _51DEGREES_ALLOW_EARLY_RELEASE: ${{ inputs.allow-early-release }}
-          GH_TOKEN: ${{ secrets._51DEGREES_ACCESS_TOKEN }}
+          GH_TOKEN: ${{ secrets.PUBLISH_ACCESS_TOKEN }}
           _51DEGREES_REPO_NAME: ${{ inputs.repo-name }}
           _51DEGREES_REPOSITORY: ${{ inputs.org-name }}/${{ inputs.repo-name }}
           # The calling repository's variable, or the organisation's.
@@ -166,7 +166,7 @@ jobs:
           language: ${{ matrix.options.Language }}
           version: ${{ matrix.options.LanguageVersion }}
 
-      # The _51DEGREES_ secrets and variables, each under its own name, for the
+      # The secrets and variables, each under its own name, for the
       # steps that follow. The secrets context is read here alone.
       - name: Export secrets and variables
         if: ${{ matrix.options.packagerequirement }}
@@ -216,7 +216,7 @@ jobs:
           pattern: package_*
           path: ${{ github.workspace }}/package-files
 
-      # The _51DEGREES_ secrets and variables, each under its own name, for the
+      # The secrets and variables, each under its own name, for the
       # steps that follow. The secrets context is read here alone.
       # This job signs the packages it builds, so it takes the signing names.
       - name: Export secrets and variables
@@ -290,7 +290,7 @@ jobs:
           path: assets
           enableCrossOsArchive: true
 
-      # The _51DEGREES_ secrets and variables, each under its own name, for the
+      # The secrets and variables, each under its own name, for the
       # steps that follow. The secrets context is read here alone.
       - name: Export secrets and variables
         if: ${{ success() && matrix.options.packagerequirement }}
@@ -366,7 +366,7 @@ jobs:
         id: compare
         continue-on-error: true
         env:
-          _51DEGREES_ACCESS_TOKEN: ${{ secrets._51DEGREES_ACCESS_TOKEN }}
+          CI_ACCESS_TOKEN: ${{ secrets.CI_ACCESS_TOKEN }}
         run: |
           ./nightly-publish.compare-performance.ps1 `
           -RepoName '${{ inputs.repo-name }}' `
@@ -425,7 +425,7 @@ jobs:
           name: package
           path: ${{ github.workspace }}/package
 
-      # The _51DEGREES_ secrets and variables, each under its own name, for the
+      # The secrets and variables, each under its own name, for the
       # steps that follow. The secrets context is read here alone.
       # This job publishes the packages, so it takes the publishing names.
       - name: Export secrets and variables
