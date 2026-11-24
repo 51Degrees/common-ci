@@ -78,33 +78,33 @@ Describe 'the approver rule' {
     $label = 'version bump approved'
 
     It 'refuses the author labelling their own pull request' {
-        $events = @((New-LabelEvent 'jwrosewell' $label))
-        Get-Approver $events 'jwrosewell' $label | Should -BeNullOrEmpty
+        $events = @((New-LabelEvent 'pr-author' $label))
+        Get-Approver $events 'pr-author' $label | Should -BeNullOrEmpty
     }
 
     It 'accepts a second person' {
-        $events = @((New-LabelEvent 'justadreamer' $label))
-        Get-Approver $events 'jwrosewell' $label | Should -Be 'justadreamer'
+        $events = @((New-LabelEvent 'second-person' $label))
+        Get-Approver $events 'pr-author' $label | Should -Be 'second-person'
     }
 
     It 'accepts a second person even when the author also labelled it' {
         $events = @(
-            (New-LabelEvent 'jwrosewell' $label),
-            (New-LabelEvent 'justadreamer' $label))
-        Get-Approver $events 'jwrosewell' $label | Should -Be 'justadreamer'
+            (New-LabelEvent 'pr-author' $label),
+            (New-LabelEvent 'second-person' $label))
+        Get-Approver $events 'pr-author' $label | Should -Be 'second-person'
     }
 
     It 'ignores a different label applied by someone else' {
-        $events = @((New-LabelEvent 'justadreamer' 'ready for review'))
-        Get-Approver $events 'jwrosewell' $label | Should -BeNullOrEmpty
+        $events = @((New-LabelEvent 'second-person' 'ready for review'))
+        Get-Approver $events 'pr-author' $label | Should -BeNullOrEmpty
     }
 
     It 'ignores an event that is not a labelling' {
-        $events = @([pscustomobject]@{ event = 'commented'; actor = @{ login = 'justadreamer' }; label = @{ name = $label } })
-        Get-Approver $events 'jwrosewell' $label | Should -BeNullOrEmpty
+        $events = @([pscustomobject]@{ event = 'commented'; actor = @{ login = 'second-person' }; label = @{ name = $label } })
+        Get-Approver $events 'pr-author' $label | Should -BeNullOrEmpty
     }
 
     It 'finds nothing when nothing happened' {
-        Get-Approver @() 'jwrosewell' $label | Should -BeNullOrEmpty
+        Get-Approver @() 'pr-author' $label | Should -BeNullOrEmpty
     }
 }

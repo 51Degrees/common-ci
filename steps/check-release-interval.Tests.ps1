@@ -159,11 +159,11 @@ Describe 'with the date of the last release given' {
         ).ExitCode | Should -Be 1
     }
 
-    It 'says how to release early, and whose permission that needs' {
+    It 'says how to release early, and that it needs permission' {
         $result = Invoke-Check @{
             LastRelease = '2026-11-04T09:00:00Z'; Now = '2026-11-06T09:00:00Z'
             HowToAllow = 'add the label.' }
-        $result.Output | Should -Match "needs James Rosewell's permission. With it, add the label\."
+        $result.Output | Should -Match 'needs permission for that release\. With it, add the label\.'
         $result.Output | Should -Match 'on or after 11 November 2026'
     }
 
