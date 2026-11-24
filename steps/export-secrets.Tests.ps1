@@ -5,6 +5,7 @@
 # name starts with _51DEGREES_ and the secrets that only CI uses, which
 # ci-secrets.psd1 lists, and nothing else. A name listed under Publish is
 # exported only with -Publish, and one listed under Sign only with -Sign. A
+# name listed under Data is never exported. A
 # name that is both a secret and a variable is an error. The tests run it in
 # this process, so each test clears the variables it set, and point GITHUB_ENV
 # at a file of their own.
@@ -30,6 +31,7 @@ BeforeAll {
         OTHER_TOKEN = 'value-other-token-3d4e'
         github_token = 'value-github-token-5f60'
         SOME_OTHER_NAME = 'value-other-name-7a8b'
+        LICENSE_KEY_V4TAC_IPIV4ENTERPRISE = 'value-data-license-1c3d'
     }
     $script:Json = $script:Given | ConvertTo-Json -Compress
     $script:Listed = @($script:Ci.Every) + @($script:Ci.Publish) + @($script:Ci.Sign)
@@ -345,6 +347,14 @@ Describe 'ci-secrets.psd1' {
             'CODE_SIGNING_KEY_VAULT_NAME', 'CODE_SIGNING_KEY_VAULT_TENANT_ID',
             'CODE_SIGNING_KEY_VAULT_URL', 'JAVA_GPG_KEY_PASSPHRASE', 'JAVA_KEY_PGP_FILE',
             'STRONG_NAME_KEY_BASE64')
+    }
+
+    It 'holds exactly the data file license under Data' {
+        @($script:Lists.Data) | Should -Be @('LICENSE_KEY_V4TAC_IPIV4ENTERPRISE')
+    }
+
+    It 'has no class other than Every, Publish, Sign and Data' {
+        @($script:Lists.Keys | Sort-Object) | Should -Be @('Data', 'Every', 'Publish', 'Sign')
     }
 }
 

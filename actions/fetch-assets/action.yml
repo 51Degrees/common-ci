@@ -32,8 +32,8 @@ runs:
         lookup-only: ${{ inputs.lazy == 'true' }}
 
     # The licensed files come from the Distributor with _51DEGREES_LICENSE_KEY,
-    # which the calling job sets in its environment from the secret of that
-    # name.
+    # which the calling step sets from the source secret that carries the
+    # products it downloads, LICENSE_KEY_V4TAC_IPIV4ENTERPRISE for the data files.
     - name: Fetch assets
       if: ${{ !inputs.lazy || steps.cache-restore.outputs.cache-hit != 'true' }}
       shell: pwsh

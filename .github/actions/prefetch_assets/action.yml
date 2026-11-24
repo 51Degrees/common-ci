@@ -6,6 +6,12 @@ inputs:
     required: true # should be converted with toJSON()
   repo:
     default: .
+  license-key:
+    # The license key the data files are downloaded with, from the secret
+    # that carries the data file products. Set as _51DEGREES_LICENSE_KEY for
+    # the download step alone.
+    required: false
+    default: ''
 outputs:
   cache-key:
     value: ${{ steps.hash-assets.outputs.key }}
@@ -47,9 +53,8 @@ runs:
           lookup-only: true
 
       # The secrets and variables go into the environment under
-      # their own names, as in the build jobs, so the repository's
-      # fetch-assets.ps1 reads _51DEGREES_LICENSE_KEY from there. The export
-      # takes neither the publishing nor the signing names.
+      # their own names, as in the build jobs. The export takes neither the
+      # publishing nor the signing names, nor the data file license.
       - name: Export secrets
         shell: pwsh
         if: ${{ !steps.check-cache.outputs.cache-hit }}
@@ -61,13 +66,15 @@ runs:
           & "${{ github.action_path }}/../../../steps/export-secrets.ps1" -Secrets $env:_51DEGREES_SECRETS -Vars $env:_51DEGREES_VARS
 
       # The repository's script runs in a step of its own, with the exported
-      # names and without the secrets context.
+      # names and without the secrets context. It reads the data file license
+      # as _51DEGREES_LICENSE_KEY, set here from the license-key input.
       - name: Prefetch assets
         id: prefetch-assets
         shell: pwsh
         if: ${{ !steps.check-cache.outputs.cache-hit }}
         env:
           _51DEGREES_REPO: ${{ inputs.repo }}
+          _51DEGREES_LICENSE_KEY: ${{ inputs.license-key }}
         run: |
           $ErrorActionPreference = 'Stop'
           & "$env:_51DEGREES_REPO/ci/fetch-assets.ps1"

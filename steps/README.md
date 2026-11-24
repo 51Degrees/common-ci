@@ -64,7 +64,7 @@ Configures the default Git behavior in the following ways:
 ## Download Data File
 **Script: `download-data-file.ps1`**
 
-Downloads a data file of the given type and product from the 51Degrees Distributor service, with the data licence key read from `_51DEGREES_LICENSE_KEY`. Fails naming that variable when it is not set.
+Downloads a data file of the given type and product from the 51Degrees Distributor service, with the data license key read from `_51DEGREES_LICENSE_KEY`, which the step that downloads sets from `LICENSE_KEY_V4TAC_IPIV4ENTERPRISE`. Fails naming that variable when it is not set.
 
 ## Fetch Hash Assets
 **Script: `fetch-hash-assets.ps1`**
@@ -187,7 +187,7 @@ Chooses the entries of a repository's `options.json` that a pull request is buil
 
 Exports the job's secrets and variables into the environment, each under its own name, for the steps that follow.
 
-Takes the job's secrets as JSON (`${{ toJSON(secrets) }}`) and its variables as JSON (`${{ toJSON(vars) }}`) and exports every secret and every variable whose name starts with `_51DEGREES_`, and every secret and variable named in [ci-secrets.psd1](ci-secrets.psd1), the list of the names that only CI uses, to the process environment and, under GitHub Actions, to `$GITHUB_ENV`. Nothing else is exported, and nothing is renamed, filled from another name or defaulted. The names listed under `Publish` are exported only with `-Publish`, which the job that publishes passes, and the names listed under `Sign` only with `-Sign`, which the job that signs passes. A name holds one thing, so a name the step exports that is both a secret and a variable is an error, and the step fails naming it and exports nothing. The log carries the names alone, for variables as for secrets.
+Takes the job's secrets as JSON (`${{ toJSON(secrets) }}`) and its variables as JSON (`${{ toJSON(vars) }}`) and exports every secret and every variable whose name starts with `_51DEGREES_`, and every secret and variable named in [ci-secrets.psd1](ci-secrets.psd1), the list of the names that only CI uses, to the process environment and, under GitHub Actions, to `$GITHUB_ENV`. Nothing else is exported, and nothing is renamed, filled from another name or defaulted. The names listed under `Publish` are exported only with `-Publish`, which the job that publishes passes, and the names listed under `Sign` only with `-Sign`, which the job that signs passes. The names listed under `Data` are never exported, because the steps that download the data files set `_51DEGREES_LICENSE_KEY` from them. A name holds one thing, so a name the step exports that is both a secret and a variable is an error, and the step fails naming it and exports nothing. The log carries the names alone, for variables as for secrets.
 
 ## Update Sub-Modules
 **Script: `update-sub-modules.ps1`**
