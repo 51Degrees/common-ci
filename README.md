@@ -364,6 +364,18 @@ An organization or repository variable, such as `_51DEGREES_CLOUD_ENDPOINT`, rea
 
 A job receives only the secrets it uses. [steps/ci-secrets.psd1](steps/ci-secrets.psd1) lists the secrets that only CI uses by the jobs that take them. The export step gives `CI_ACCESS_TOKEN` to every job, the secrets used to publish, such as `PUBLISH_ACCESS_TOKEN` and `NUGET_API_KEY`, only to the job that publishes, which passes `-Publish`, and the secrets used to sign, such as `CODE_SIGNING_KEY_VAULT_URL`, only to the job that signs, which passes `-Sign`. The license the data files are downloaded with, `LICENSE_KEY_V4TAC_IPIV4ENTERPRISE`, is listed under `Data`, which the export never takes. The asset prefetch step, the Build and Test step and the Test step set `_51DEGREES_LICENSE_KEY` from it, for the data file downloads and the data file update example tests those steps run, and no other step or job has `_51DEGREES_LICENSE_KEY` in its environment. Outside the export step, the check of the weekly release interval in the Configure job reads `PUBLISH_ACCESS_TOKEN` by name. A new secret that only CI uses is added to that list. The script that publishes or signs reads each at the point of use. No script in this repository takes a token as a parameter.
 
+A secret that only one repository's own build and test scripts read is listed by that repository, not here. It goes in the repository's `ci/ci-secrets.psd1`, under `Scripts`:
+
+```powershell
+@{
+    Scripts = @(
+        'NAME_OF_THE_SECRET'
+    )
+}
+```
+
+The jobs that run the repository's build and test scripts, BuildAndTest in `nightly-pull-request.yml` and PreBuild and Test in `nightly-publish.yml` and `nightly-publish-main.yml`, read that file with [steps/get-caller-ci-secrets.ps1](steps/get-caller-ci-secrets.ps1) and pass it to the export step as `-CallerList`. BuildAndTest reads it from the branch the pull request goes into, and PreBuild and Test read it from the branch they build. No job that publishes or signs takes it. A repository with no such file gets nothing more. The asset prefetch does not take the list. A listed name is a secret, in capitals, digits and underscores, that does not start `_51DEGREES_` and that [steps/ci-secrets.psd1](steps/ci-secrets.psd1) does not list in any class. Any other listed name stops the job, naming it, and so does a listed name the job does not have as a secret. A repository can list any other secret it has access to, so access to each organization secret is set per repository.
+
 A name that a tool defines, such as `GITHUB_TOKEN` or twine's `TWINE_PASSWORD`, is set at the point of use straight from the secret.
 
 The export step writes only names to the log, for variables as for secrets.

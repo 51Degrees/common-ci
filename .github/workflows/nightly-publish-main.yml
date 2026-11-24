@@ -103,6 +103,16 @@ jobs:
           language: ${{ matrix.options.Language }}
           version: ${{ matrix.options.LanguageVersion }}
 
+      # The CI secrets the repository's own build and test scripts read, as
+      # its ci/ci-secrets.psd1 lists them on the branch this job builds.
+      - name: Read the repository's list of CI secrets
+        if: ${{ matrix.options.packagerequirement }}
+        env:
+          GH_TOKEN: ${{ secrets.CI_ACCESS_TOKEN }}
+          _51DEGREES_REPOSITORY: ${{ inputs.org-name }}/${{ inputs.repo-name }}
+          _51DEGREES_REF: ${{ github.ref_name }}
+        run: ./steps/get-caller-ci-secrets.ps1 -Repository $env:_51DEGREES_REPOSITORY -Ref $env:_51DEGREES_REF -Path caller-ci-secrets.psd1
+
       # The secrets and variables, each under its own name, for the
       # steps that follow. The secrets context is read here alone.
       - name: Export secrets and variables
@@ -110,7 +120,7 @@ jobs:
         env:
           _51DEGREES_SECRETS: ${{ toJSON(secrets) }}
           _51DEGREES_VARS: ${{ toJSON(vars) }}
-        run: ./steps/export-secrets.ps1 -Secrets $env:_51DEGREES_SECRETS -Vars $env:_51DEGREES_VARS
+        run: ./steps/export-secrets.ps1 -Secrets $env:_51DEGREES_SECRETS -Vars $env:_51DEGREES_VARS -CallerList caller-ci-secrets.psd1
 
       - name: PreBuild
         if: ${{ matrix.options.packagerequirement }}
@@ -225,6 +235,16 @@ jobs:
           path: assets
           enableCrossOsArchive: true
 
+      # The CI secrets the repository's own build and test scripts read, as
+      # its ci/ci-secrets.psd1 lists them on the branch this job builds.
+      - name: Read the repository's list of CI secrets
+        if: ${{ success() && matrix.options.packagerequirement }}
+        env:
+          GH_TOKEN: ${{ secrets.CI_ACCESS_TOKEN }}
+          _51DEGREES_REPOSITORY: ${{ inputs.org-name }}/${{ inputs.repo-name }}
+          _51DEGREES_REF: ${{ github.ref_name }}
+        run: ./steps/get-caller-ci-secrets.ps1 -Repository $env:_51DEGREES_REPOSITORY -Ref $env:_51DEGREES_REF -Path caller-ci-secrets.psd1
+
       # The secrets and variables, each under its own name, for the
       # steps that follow. The secrets context is read here alone.
       - name: Export secrets and variables
@@ -232,7 +252,7 @@ jobs:
         env:
           _51DEGREES_SECRETS: ${{ toJSON(secrets) }}
           _51DEGREES_VARS: ${{ toJSON(vars) }}
-        run: ./steps/export-secrets.ps1 -Secrets $env:_51DEGREES_SECRETS -Vars $env:_51DEGREES_VARS
+        run: ./steps/export-secrets.ps1 -Secrets $env:_51DEGREES_SECRETS -Vars $env:_51DEGREES_VARS -CallerList caller-ci-secrets.psd1
 
       - name: Test
         if: ${{ success() && matrix.options.packagerequirement }}
