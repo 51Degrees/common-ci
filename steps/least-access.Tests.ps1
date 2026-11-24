@@ -55,6 +55,10 @@ BeforeAll {
     # The jobs that run a caller's build, test or publish scripts, and so need
     # the secrets in the environment.
     $script:ExportingJobs = @('PreBuild', 'Build', 'Test', 'Package', 'BuildAndTest')
+
+    # The data file license, which only the steps that download the data files
+    # take.
+    $script:Data = @((Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot 'ci-secrets.psd1')).Data)
 }
 
 Describe 'Secrets in <_.Name>' -ForEach $Workflows {
@@ -92,14 +96,114 @@ Describe 'Secrets in <_.Name>' -ForEach $Workflows {
         }
     }
 
-    # The automation token, CI_ACCESS_TOKEN, and in a workflow that publishes
-    # the publishing token, PUBLISH_ACCESS_TOKEN.
-    It 'reads by name only the automation token, and the publishing token where it publishes' {
+    # The calling repository's own list goes to the jobs that run its build
+    # and test scripts, and never to a job that publishes or signs.
+    It 'passes the calling repository''s list only to the jobs that run its build and test scripts' {
+        $callerJobs = @('BuildAndTest', 'PreBuild', 'Test')
+        foreach ($name in $script:Jobs.Keys) {
+            foreach ($step in Get-Steps $script:Jobs[$name]) {
+                if ($step -cnotmatch 'export-secrets\.ps1') { continue }
+                ($step -cmatch ' -CallerList\b') | Should -Be ($name -cin $callerJobs) -Because "only the jobs that run the caller's build and test scripts take its list, and this is $name"
+                if ($step -cmatch ' -CallerList\b') {
+                    $step | Should -Not -Match ' -(Publish|Sign)\b' -Because 'a job that takes the list neither publishes nor signs'
+                }
+            }
+        }
+    }
+
+    # The step that reads the list comes straight before the export step that
+    # takes it. It reads at the branch the workflow was given, or the branch
+    # the workflow runs on, and saves to the file the export step reads.
+    It 'reads the calling repository''s list at the branch the workflow works on, straight before the step that takes it' {
+        $refs = @(
+            '${{ github.ref_name }}'
+            '${{ inputs.branch != '''' && inputs.branch || github.ref_name }}'
+        )
+        foreach ($name in $script:Jobs.Keys) {
+            $steps = @(Get-Steps $script:Jobs[$name])
+            for ($i = 0; $i -lt $steps.Count; $i++) {
+                if ($steps[$i] -cnotmatch 'export-secrets\.ps1' -or $steps[$i] -cnotmatch ' -CallerList\b') { continue }
+                $steps[$i] | Should -Match ' -CallerList caller-ci-secrets\.psd1\b' -Because "the export step of $name reads the file the read step saves"
+                $i | Should -BeGreaterThan 0 -Because "the export step of $name follows the step that reads the list"
+                $read = $steps[$i - 1]
+                $read | Should -Match 'get-caller-ci-secrets\.ps1' -Because "the step before the export step of $name reads the list"
+                $read | Should -Match ' -Ref \$env:_51DEGREES_REF\b' -Because "the read step of $name takes the branch from _51DEGREES_REF"
+                $read | Should -Match ' -Path caller-ci-secrets\.psd1\b' -Because "the read step of $name saves the file the export step reads"
+                $ref = [regex]::Match($read, '(?m)^\s*_51DEGREES_REF:\s*(.+?)\s*$').Groups[1].Value
+                $ref | Should -BeIn $refs -Because "the read step of $name reads at the branch the workflow works on"
+            }
+        }
+    }
+
+    # The automation token, CI_ACCESS_TOKEN, in a workflow that publishes
+    # the publishing token, PUBLISH_ACCESS_TOKEN, and the data file license.
+    It 'reads by name only the automation token, the publishing token where it publishes, and the data file license' {
         $text = Get-Content -Raw -LiteralPath $_.FullName
-        $tokens = @('CI_ACCESS_TOKEN')
+        $tokens = @('CI_ACCESS_TOKEN') + $script:Data
         if ($_.Name -clike 'nightly-publish*.yml') { $tokens += 'PUBLISH_ACCESS_TOKEN' }
         foreach ($match in [regex]::Matches($text, '(?<![\w-])secrets\.([A-Za-z0-9_.-]+)')) {
             $match.Groups[1].Value | Should -BeIn $tokens -Because "$($match.Value) is not a token $($_.Name) reads by name"
+        }
+    }
+}
+
+Describe 'The data file license in <_.Name>' -ForEach $Workflows {
+
+    BeforeAll {
+        $script:Jobs = Get-Jobs $_.FullName
+    }
+
+    # The asset prefetch takes it as its license-key input, and the step that
+    # runs the build and test script or the test script sets it as
+    # _51DEGREES_LICENSE_KEY in its own env, for the data file downloads and
+    # the data file update example tests. No job takes it in its env, and no
+    # export step takes it.
+    It 'hands the data file license only to the steps that download the data files' {
+        foreach ($name in $script:Jobs.Keys) {
+            $inSteps = 0
+            foreach ($step in Get-Steps $script:Jobs[$name]) {
+                $count = 0
+                foreach ($license in $script:Data) {
+                    $count += [regex]::Matches($step, [regex]::Escape($license)).Count
+                }
+                if ($count -eq 0) { continue }
+                $inSteps += $count
+                $step | Should -Not -Match 'export-secrets\.ps1' -Because "an export step of $name takes no data file license"
+                ($step -cmatch 'prefetch_assets' -or
+                    $step -cmatch 'nightly-pull-request\.build-and-test\.ps1|nightly-publish\.test\.ps1') |
+                    Should -BeTrue -Because "only the steps of $name that download the data files take the data file license"
+            }
+            $inJob = 0
+            foreach ($license in $script:Data) {
+                $inJob += [regex]::Matches($script:Jobs[$name], [regex]::Escape($license)).Count
+            }
+            $inSteps | Should -Be $inJob -Because "$name takes the data file license in no env of its own"
+        }
+    }
+
+    # The steps that download the data files and run the data file update
+    # example tests each take it.
+    It 'hands the data file license to each step that downloads the data files' {
+        $names = ($script:Data | ForEach-Object { [regex]::Escape($_) }) -join '|'
+        foreach ($name in $script:Jobs.Keys) {
+            foreach ($step in Get-Steps $script:Jobs[$name]) {
+                if ($step -cmatch 'prefetch_assets') {
+                    $step | Should -Match "license-key: \$\{\{ secrets\.($names) \}\}" -Because "the asset prefetch of $name downloads the data files"
+                }
+                if ($step -cmatch 'nightly-pull-request\.build-and-test\.ps1|nightly-publish\.test\.ps1') {
+                    $step | Should -Match "_51DEGREES_LICENSE_KEY: \$\{\{ secrets\.($names) \}\}" -Because "a step of $name downloads the data files and runs the data file update example tests"
+                }
+            }
+        }
+    }
+
+    # A workflow level env would hand it to every job, the publishing and
+    # signing jobs among them.
+    It 'names the data file license nowhere outside its jobs' {
+        $text = Get-Content -Raw -LiteralPath $_.FullName
+        $head = ($text -split '(?m)^jobs:\s*$', 2)[0]
+        foreach ($license in $script:Data) {
+            $head | Should -Not -Match ([regex]::Escape($license)) -Because "$($_.Name) names $license outside its jobs"
         }
     }
 }
@@ -122,6 +226,25 @@ Describe 'Secrets in the composite actions' {
         $steps.Count | Should -BeGreaterThan 0 -Because 'the action runs the caller''s ci/fetch-assets.ps1'
         foreach ($step in $steps) {
             $step | Should -Not -Match 'inputs\.secrets|toJSON\(secrets\)|_51DEGREES_SECRETS|export-secrets\.ps1' -Because 'the step that runs the caller''s script takes no secrets context'
+        }
+    }
+
+    # The step that runs the caller's fetch script sets the license from the
+    # action's input.
+    It '<_.Directory.Name> sets _51DEGREES_LICENSE_KEY from its license-key input for the caller''s script' -ForEach $ScriptRunningActions {
+        $steps = @(Get-Steps (Get-Content -Raw -LiteralPath $_.FullName) | Where-Object { $_ -cmatch '&\s*"[^"]*ci/fetch-assets\.ps1"' })
+        foreach ($step in $steps) {
+            $step | Should -Match '_51DEGREES_LICENSE_KEY: \$\{\{ inputs\.license-key \}\}' -Because 'the caller''s fetch script downloads the data files with it'
+        }
+    }
+
+    # The data file license reaches the step that runs the caller's script
+    # and no other step of the action.
+    It '<_.Directory.Name> hands its license-key input only to the step that runs the caller''s script' -ForEach $Actions {
+        $text = Get-Content -Raw -LiteralPath $_.FullName
+        foreach ($step in Get-Steps $text) {
+            if ($step -cnotmatch 'inputs\.license-key') { continue }
+            $step | Should -Match '&\s*"[^"]*ci/fetch-assets\.ps1"' -Because 'only the step that runs the caller''s script takes the data file license'
         }
     }
 

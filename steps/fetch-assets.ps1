@@ -9,9 +9,10 @@ $ErrorActionPreference = "Stop"
 $dataSourceAsset = '^[a-z0-9][a-z0-9-]*\.json$'
 
 # The licensed files and every data source come from the Distributor and the
-# bulk data service with the data license key, which the shared workflows
-# export as _51DEGREES_LICENSE_KEY. Without it, the step fails naming the
-# variable, rather than with the service's refusal.
+# bulk data service with the license key in _51DEGREES_LICENSE_KEY, which the
+# step that downloads sets from the source secret that carries the products.
+# Without it, the step fails naming the variable, rather than with the
+# service's refusal.
 $licensed = @('TAC-HashV41.hash', '51Degrees-EnterpriseIpiV41.ipi', '51Degrees.csv',
     '51Degrees-Tac.zip')
 function Test-Licensed ([string]$Asset) {
@@ -129,7 +130,7 @@ foreach ($asset in $Assets) {
         continue
     }
     if (-not (Test-Licensed $asset)) {
-        throw "'$asset' needs the data license key, and _51DEGREES_LICENSE_KEY is not set. It is an organization secret, which the calling workflow passes with 'secrets: inherit'."
+        throw "'$asset' needs the data license key, and _51DEGREES_LICENSE_KEY is not set. The step that downloads sets it from the source secret that carries the products, which for the data files is LICENSE_KEY_V4TAC_IPIV4ENTERPRISE."
     }
     Write-Host "Fetching '$asset'"
     try {
