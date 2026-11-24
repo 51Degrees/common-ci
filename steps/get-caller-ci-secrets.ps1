@@ -5,10 +5,11 @@
 
 .DESCRIPTION
     Reads ci/ci-secrets.psd1 from the repository through the GitHub API. A
-    pull request job reads it from the branch the pull request goes into, and
-    a publish job from the branch it builds. Saves it at Path. When the
-    repository has no such file, nothing is saved, any file already at Path
-    is removed, and the export step exports nothing more.
+    pull request job reads it from the branch the pull request goes into, a
+    release pull request job from rc, and a publish job from the branch it
+    builds. Saves it at Path. When the repository has no such file, nothing
+    is saved, any file already at Path is removed, and the export step
+    exports nothing more.
 
     The file is a PowerShell data file with the names under Scripts:
 

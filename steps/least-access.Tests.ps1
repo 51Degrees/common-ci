@@ -118,6 +118,7 @@ Describe 'Secrets in <_.Name>' -ForEach $Workflows {
         $refs = @(
             '${{ github.ref_name }}'
             '${{ inputs.branch != '''' && inputs.branch || github.ref_name }}'
+            '${{ inputs.ci-secrets-branch != '''' && inputs.ci-secrets-branch || (inputs.branch != '''' && inputs.branch || github.ref_name) }}'
         )
         foreach ($name in $script:Jobs.Keys) {
             $steps = @(Get-Steps $script:Jobs[$name])
@@ -250,5 +251,22 @@ Describe 'Secrets in the composite actions' {
 
     It '<_.Directory.Name> takes no publishing or signing name' -ForEach $Actions {
         (Get-Content -Raw -LiteralPath $_.FullName) | Should -Not -Match ' -(Publish|Sign)\b'
+    }
+}
+
+# The release pull request builds rc's scripts, so it reads rc's list of the
+# CI secrets they read, not the list on the branch it goes into.
+Describe 'The calling repository''s list in the release pull request' {
+    BeforeAll {
+        $script:Release = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '../.github/workflows/release-pull-request.yml')
+    }
+
+    It 'runs only for the same repository''s rc' {
+        $script:Release | Should -Match "github\.head_ref == 'rc'"
+        $script:Release | Should -Match 'github\.event\.pull_request\.head\.repo\.full_name == github\.repository'
+    }
+
+    It 'reads the list from the branch the pull request comes from' {
+        $script:Release | Should -Match '(?m)^\s*ci-secrets-branch: \$\{\{ github\.head_ref \}\}\s*$'
     }
 }
