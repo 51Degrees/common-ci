@@ -7,8 +7,8 @@
     Reads ci/ci-secrets.psd1 from the repository through the GitHub API. A
     pull request job reads it from the branch the pull request goes into, and
     a publish job from the branch it builds. Saves it at Path. When the
-    repository has no such file, nothing is saved, and the export step
-    exports nothing more.
+    repository has no such file, nothing is saved, any file already at Path
+    is removed, and the export step exports nothing more.
 
     The file is a PowerShell data file with the names under Scripts:
 
@@ -42,6 +42,7 @@ if ($LASTEXITCODE -ne 0) {
     # gh exits non-zero on a 404, and on any other failure. Tell them apart.
     $status = gh api "repos/$Repository/contents/ci/ci-secrets.psd1?ref=$escaped" --jq '.type' 2>&1
     if ("$status" -match 'HTTP 404') {
+        Remove-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue
         $global:LASTEXITCODE = 0
         Write-Host "$Repository lists no CI secrets of its own at $Ref."
         return

@@ -107,6 +107,13 @@ Describe 'get-caller-ci-secrets.ps1' {
         $global:LASTEXITCODE | Should -Be 0 -Because 'the step that follows starts from a clean exit code'
     }
 
+    It 'removes a file already at the path when the repository has no list' {
+        Set-Content -LiteralPath $script:Saved -Value (New-List 'EXAMPLE_TOKEN')
+        Set-Repository -Failure 'gh: Not Found (HTTP 404)'
+        Invoke-Step -Ref rc | Out-Null
+        Test-Path -LiteralPath $script:Saved | Should -BeFalse -Because 'the export step then finds no list'
+    }
+
     It 'says that the repository has no list' {
         Set-Repository -Failure 'gh: Not Found (HTTP 404)'
         Invoke-Step -Ref rc | Should -Match ([regex]::Escape('org/demo lists no CI secrets of its own at rc.'))
@@ -132,9 +139,8 @@ Describe 'get-caller-ci-secrets.ps1' {
         BeforeEach {
             $script:SavedGitHubEnv = $env:GITHUB_ENV
             $env:GITHUB_ENV = $null
-            # A caller's own name is not a _51DEGREES_ name or a listed CI
-            # secret, so it is held in a variable, as the export tests hold
-            # theirs, and the name guard in names.Tests.ps1 passes it.
+            # A caller's own name, held in a variable as the export tests hold
+            # theirs.
             $script:Listed = 'EXAMPLE_TOKEN'
         }
 

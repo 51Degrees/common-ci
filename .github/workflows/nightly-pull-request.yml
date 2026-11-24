@@ -99,6 +99,7 @@ jobs:
           repo: ${{ inputs.repo-name }}
           secrets: ${{ toJSON(secrets) }}
           vars: ${{ toJSON(vars) }}
+          license-key: ${{ secrets.LICENSE_KEY_V4TAC_IPIV4ENTERPRISE }}
 
   BuildAndTest:
     needs: Configure
@@ -157,6 +158,9 @@ jobs:
           # Through env rather than inline, so the branch name is never
           # parsed as PowerShell.
           _51DEGREES_EXAMPLES_BRANCH: ${{ inputs.examples-branch }}
+          # The data file license, for the data file downloads and the data
+          # file update example tests that this step runs.
+          _51DEGREES_LICENSE_KEY: ${{ secrets.LICENSE_KEY_V4TAC_IPIV4ENTERPRISE }}
         run: |
           $DryRun = [bool]::Parse( "${{ inputs.dryrun }}" )
           $Options = $(ConvertFrom-Json -AsHashtable '${{ toJSON(matrix.options) }}')

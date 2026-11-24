@@ -5,6 +5,7 @@
 # name starts with _51DEGREES_ and the secrets that only CI uses, which
 # ci-secrets.psd1 lists, and nothing else. A name listed under Publish is
 # exported only with -Publish, and one listed under Sign only with -Sign. A
+# name listed under Data is never exported. A
 # name that is both a secret and a variable is an error. The tests run it in
 # this process, so each test clears the variables it set, and point GITHUB_ENV
 # at a file of their own.
@@ -30,6 +31,7 @@ BeforeAll {
         OTHER_TOKEN = 'value-other-token-3d4e'
         github_token = 'value-github-token-5f60'
         SOME_OTHER_NAME = 'value-other-name-7a8b'
+        LICENSE_KEY_V4TAC_IPIV4ENTERPRISE = 'value-data-license-1c3d'
     }
     $script:Json = $script:Given | ConvertTo-Json -Compress
     $script:Listed = @($script:Ci.Every) + @($script:Ci.Publish) + @($script:Ci.Sign)
@@ -322,6 +324,8 @@ Describe 'export-secrets.ps1' {
                 CALLER_ONLY_TOKEN = 'value-caller-token-1f5c'
             }
             $script:CallerJson = ([ordered]@{} + $script:Given + $script:CallerGiven) | ConvertTo-Json -Compress
+            # One of them, held in a variable as the other names here are.
+            $script:Token = 'CALLER_ONLY_TOKEN'
 
             # Writes a caller list holding the names given and returns its path.
             function New-CallerList ([string[]]$Names) {
@@ -385,6 +389,59 @@ Describe 'export-secrets.ps1' {
                     Test-Path -Path "Env:$name" | Should -BeFalse
                 } finally { Remove-Item -LiteralPath $list -ErrorAction SilentlyContinue }
             }
+        }
+
+        It 'refuses every name that ci-secrets.psd1 lists, in any class' {
+            $own = @($script:Ci.Values | ForEach-Object { $_ })
+            $own.Count | Should -BeGreaterThan 0
+            foreach ($name in $own) {
+                $list = New-CallerList @($name)
+                try {
+                    { & $script:Step -Secrets $script:CallerJson -Vars '{}' -Publish -Sign -CallerList $list *>&1 | Out-Null } |
+                        Should -Throw "*may list only*$name*" -Because "$name reaches a job by the rules of ci-secrets.psd1"
+                } finally { Remove-Item -LiteralPath $list -ErrorAction SilentlyContinue }
+            }
+        }
+
+        It 'refuses a name that is not in capitals, digits and underscores' {
+            foreach ($name in 'github_token', 'Caller_Only_Token', 'CALLER-ONLY-TOKEN', '1CALLER_TOKEN') {
+                $list = New-CallerList @($name)
+                try {
+                    { & $script:Step -Secrets $script:CallerJson -Vars '{}' -CallerList $list *>&1 | Out-Null } |
+                        Should -Throw "*may list only*$name*"
+                } finally { Remove-Item -LiteralPath $list -ErrorAction SilentlyContinue }
+            }
+        }
+
+        It 'takes a listed name from the secrets alone, so a variable of that name is missing' {
+            $list = New-CallerList @('CALLER_ONLY_TOKEN')
+            $vars = @{ CALLER_ONLY_TOKEN = 'value-caller-variable-8e2d' } | ConvertTo-Json -Compress
+            try {
+                { & $script:Step -Secrets '{}' -Vars $vars -CallerList $list *>&1 | Out-Null } |
+                    Should -Throw '*does not have*CALLER_ONLY_TOKEN*'
+                Test-Path -Path "Env:$script:Token" | Should -BeFalse
+            } finally { Remove-Item -LiteralPath $list -ErrorAction SilentlyContinue }
+        }
+
+        It 'fails naming a listed name that is both a secret and a variable, and exports nothing' {
+            $list = New-CallerList @('CALLER_ONLY_TOKEN')
+            $vars = @{ CALLER_ONLY_TOKEN = 'value-caller-variable-8e2d' } | ConvertTo-Json -Compress
+            try {
+                { & $script:Step -Secrets $script:CallerJson -Vars $vars -CallerList $list *>&1 | Out-Null } |
+                    Should -Throw '*Both a secret and a variable*CALLER_ONLY_TOKEN*'
+                Test-Path -Path "Env:$script:Token" | Should -BeFalse
+                (Get-Content -LiteralPath $script:GitHubEnv) | Should -BeNullOrEmpty
+            } finally { Remove-Item -LiteralPath $list -ErrorAction SilentlyContinue }
+        }
+
+        It 'exports a name listed twice once' {
+            $list = New-CallerList @('CALLER_ONLY_TOKEN', 'CALLER_ONLY_TOKEN')
+            try {
+                $output = & $script:Step -Secrets $script:CallerJson -Vars '{}' -CallerList $list *>&1 | Out-String
+                (Get-Item -Path "Env:$script:Token").Value | Should -Be $script:CallerGiven['CALLER_ONLY_TOKEN']
+                @(Get-Content -LiteralPath $script:GitHubEnv | Where-Object { $_ -cmatch '^CALLER_ONLY_TOKEN(<<|=)' }).Count | Should -Be 1
+                ([regex]::Matches($output, 'CALLER_ONLY_TOKEN')).Count | Should -Be 1
+            } finally { Remove-Item -LiteralPath $list -ErrorAction SilentlyContinue }
         }
 
         It 'writes only names to its output' {

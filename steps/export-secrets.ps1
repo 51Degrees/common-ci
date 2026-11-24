@@ -16,7 +16,9 @@
     These names are listed in ci-secrets.psd1, by the jobs that take them, so
     that a job receives only what it uses. The names under Every go to every
     job, those under Publish only to a job that publishes, and those under Sign
-    only to a job that signs.
+    only to a job that signs. The names under Data are never exported, because
+    the steps that download the data files set _51DEGREES_LICENSE_KEY from
+    them.
 
     Nothing is renamed, filled from another name or defaulted.
 
@@ -42,10 +44,11 @@
     scripts read, its ci/ci-secrets.psd1 as steps/get-caller-ci-secrets.ps1
     saved it, with the names under Scripts. Only the jobs that run the
     caller's build and test scripts pass it. When the file is not there, the
-    caller has no list and nothing more is exported. A listed name the job
-    does not have stops the step, as does a listed name that starts
-    _51DEGREES_ or that ci-secrets.psd1 lists under Publish or Sign, since
-    those reach a job by their own rules.
+    caller has no list and nothing more is exported. A listed name is a
+    secret, in capitals, digits and underscores, that does not start
+    _51DEGREES_ and that ci-secrets.psd1 does not list in any class. Any
+    other listed name stops the step, as does a listed name the job does not
+    have as a secret.
 #>
 param(
     [Parameter(Mandatory)][string]$Secrets,
@@ -63,8 +66,9 @@ $ci = Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot 'ci-secrets.psd1'
 $caller = @()
 if ($CallerList -and (Test-Path -LiteralPath $CallerList -PathType Leaf)) {
     $caller = @((Import-PowerShellDataFile -LiteralPath $CallerList).Scripts | Where-Object { $_ })
+    $own = @($ci.Values | ForEach-Object { $_ })
     $refused = @($caller | Where-Object {
-        $_.StartsWith($prefix, [StringComparison]::Ordinal) -or $_ -cin $ci.Publish -or $_ -cin $ci.Sign
+        $_ -cnotmatch '^[A-Z][A-Z0-9_]*$' -or $_.StartsWith($prefix, [StringComparison]::Ordinal) -or $_ -cin $own
     })
     if ($refused.Count -gt 0) {
         throw "The repository's ci/ci-secrets.psd1 may list only secrets that its own scripts read, not: $($refused -join ', ')"
@@ -103,9 +107,7 @@ if ($both.Count -gt 0) {
     throw "Both a secret and a variable, and a name holds one thing: $($both -join ', ')"
 }
 
-$missing = @($caller | Where-Object {
-    [string]::IsNullOrEmpty([string]$namedSecrets[$_]) -and [string]::IsNullOrEmpty([string]$namedVars[$_])
-} | Sort-Object)
+$missing = @($caller | Where-Object { [string]::IsNullOrEmpty([string]$namedSecrets[$_]) } | Sort-Object -Unique)
 if ($missing.Count -gt 0) {
     throw "The repository's ci/ci-secrets.psd1 lists secrets this job does not have: $($missing -join ', ')"
 }
