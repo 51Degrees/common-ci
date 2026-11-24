@@ -7,12 +7,16 @@ on:
   pull_request:
     paths:
       - 'steps/**'
-      - '.github/workflows/test-steps.yml'
+      - 'actions/**'
+      - '.github/actions/**'
+      - '.github/workflows/**'
   push:
     branches: [ main ]
     paths:
       - 'steps/**'
-      - '.github/workflows/test-steps.yml'
+      - 'actions/**'
+      - '.github/actions/**'
+      - '.github/workflows/**'
   workflow_dispatch:
 
 defaults:

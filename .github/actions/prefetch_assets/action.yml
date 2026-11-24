@@ -12,6 +12,12 @@ inputs:
     # the download step alone.
     required: false
     default: ''
+  save-free-data:
+    # Saves the free data files' cache entry. Set only by the workflows that
+    # run main's own scripts, so a pull request's script cannot write an
+    # entry that main's runs restore.
+    required: false
+    default: 'false'
 outputs:
   cache-key:
     value: ${{ steps.hash-assets.outputs.key }}
@@ -23,11 +29,10 @@ runs:
         shell: pwsh
         env:
           _51DEGREES_REPO: ${{ inputs.repo }}
-          _51DEGREES_LICENSE_KEY: ${{ inputs.license-key }}
         run: |
           $ErrorActionPreference = 'Stop'
           $key = & "${{ github.action_path }}/../../../steps/prefetch-cache-key.ps1" `
-              -FetchScript "$env:_51DEGREES_REPO/ci/fetch-assets.ps1" -LicenseKey $env:_51DEGREES_LICENSE_KEY
+              -FetchScript "$env:_51DEGREES_REPO/ci/fetch-assets.ps1"
           "key=$key" >> $env:GITHUB_OUTPUT
 
       - name: Check if cached
@@ -40,7 +45,7 @@ runs:
 
       # The free data files have a cache entry of their own, restored into
       # the data repository's clone before the repository's script runs, so
-      # a new day or a new license key does not download them again.
+      # a change to the repository's asset list does not download them again.
       - name: Hash the free data files
         id: hash-free-data
         shell: pwsh
@@ -58,7 +63,7 @@ runs:
         with:
           key: ${{ steps.hash-free-data.outputs.key }}
           path: |
-            ${{ runner.temp }}/51degrees-data
+            ${{ runner.temp }}/51degrees-data/*
             !${{ runner.temp }}/51degrees-data/.git
 
       # The secrets and variables go into the environment under
@@ -96,9 +101,10 @@ runs:
           path: assets
           enableCrossOsArchive: true
 
-      # Saved from main alone, so that a pull request reads main's entry.
+      # Saved from main, so that a pull request reads main's entry.
       - name: Cache the free data files
         if: >-
+          inputs.save-free-data == 'true' &&
           steps.prefetch-assets.conclusion == 'success' &&
           steps.restore-free-data.outputs.cache-hit != 'true' &&
           github.ref == 'refs/heads/main'
@@ -106,5 +112,5 @@ runs:
         with:
           key: ${{ steps.hash-free-data.outputs.key }}
           path: |
-            ${{ runner.temp }}/51degrees-data
+            ${{ runner.temp }}/51degrees-data/*
             !${{ runner.temp }}/51degrees-data/.git

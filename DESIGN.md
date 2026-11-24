@@ -231,8 +231,13 @@ flag to `true`, and make sure that the assets are located in the `${{ github.wor
 repository requires assets to be located in a different place, [symbolic links](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.management/new-item?view=powershell-7.2#example-7-create-a-symbolic-link-to-a-file-or-folder)
 or regular file copies may be used to put cached assets in the right places during build.
 
-The hash of the `asset-keys` secret, with current date prepended, is used as the cache key so that the cache gets
-invalidated daily, as well as when any of the asset keys change.
+The cache key is the current date and the hash of the repository's `ci/fetch-assets.ps1`, so the cache is
+invalidated daily, as well as when the list of assets changes. No secret takes part in the key.
+
+The free data files from the [data repository](https://github.com/51Degrees/data) have a cache entry of their own,
+restored into the job's clone of that repository before `ci/fetch-assets.ps1` runs. Its key is the current date and
+the hash of the files in the clone. Only the publishing workflows save it, from main, so a pull request reads main's
+entry. The data repository is cloned once per job.
 
 
 ## Entering Directories

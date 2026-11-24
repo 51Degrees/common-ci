@@ -80,6 +80,7 @@ jobs:
           secrets: ${{ toJSON(secrets) }}
           vars: ${{ toJSON(vars) }}
           license-key: ${{ secrets.LICENSE_KEY_V4TAC_IPIV4ENTERPRISE }}
+          save-free-data: true
 
   PreBuild:
     needs: Configure

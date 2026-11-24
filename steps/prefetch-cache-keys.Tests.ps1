@@ -28,45 +28,30 @@ AfterAll {
 Describe 'prefetch-cache-key.ps1' {
 
     It 'starts with the day' {
-        & $PrefetchKey -FetchScript $FetchScript -LicenseKey 'key' |
-            Should -BeLike "$(Get-Date -Format FileDate)-*"
+        & $PrefetchKey -FetchScript $FetchScript | Should -BeLike "$(Get-Date -Format FileDate)-*"
     }
 
-    It 'is the same for the same license key and asset list' {
-        & $PrefetchKey -FetchScript $FetchScript -LicenseKey 'key' |
-            Should -Be (& $PrefetchKey -FetchScript $FetchScript -LicenseKey 'key')
-    }
-
-    It 'changes with the license key' {
-        & $PrefetchKey -FetchScript $FetchScript -LicenseKey 'key' |
-            Should -Not -Be (& $PrefetchKey -FetchScript $FetchScript -LicenseKey 'other')
+    It 'is the same for the same asset list' {
+        & $PrefetchKey -FetchScript $FetchScript | Should -Be (& $PrefetchKey -FetchScript $FetchScript)
     }
 
     It 'changes with the asset list' {
         $other = Join-Path $Work 'other-fetch-assets.ps1'
         Set-Content -Path $other -Value "./steps/fetch-assets.ps1 -Assets '51Degrees.csv'"
-        & $PrefetchKey -FetchScript $FetchScript -LicenseKey 'key' |
-            Should -Not -Be (& $PrefetchKey -FetchScript $other -LicenseKey 'key')
+        & $PrefetchKey -FetchScript $FetchScript | Should -Not -Be (& $PrefetchKey -FetchScript $other)
     }
 
-    It 'does not hold the license key' {
-        & $PrefetchKey -FetchScript $FetchScript -LicenseKey 'license-key-value' |
-            Should -Not -BeLike '*license-key-value*'
-    }
-
-    It 'is all the action passes to the key, with no other secret' {
+    It 'is all the action hashes, with no secret' {
         $hash = (Get-Content -Raw $Action) -split '- name: Check if cached' | Select-Object -First 1
         $hash | Should -Match 'prefetch-cache-key\.ps1'
-        $hash | Should -Not -Match 'inputs\.secrets'
+        $hash | Should -Not -Match 'inputs\.secrets|inputs\.license-key'
     }
 }
 
 Describe 'free-data-cache-key.ps1' {
 
-    It 'starts with the week' {
-        $today = Get-Date
-        $week = '{0}W{1:00}' -f [Globalization.ISOWeek]::GetYear($today), [Globalization.ISOWeek]::GetWeekOfYear($today)
-        & $FreeDataKey -Repository (New-Clone) | Should -BeLike "free-data-$week-*"
+    It 'starts with the day' {
+        & $FreeDataKey -Repository (New-Clone) | Should -BeLike "free-data-$(Get-Date -Format FileDate)-*"
     }
 
     It 'is the same for two clones of the same files' {
@@ -89,5 +74,39 @@ Describe 'free-data-cache-key.ps1' {
         $clone = New-Clone
         Set-Content -Path "$clone/.git/HEAD" -Value 'changed'
         & $FreeDataKey -Repository $clone | Should -Be (& $FreeDataKey -Repository (New-Clone))
+    }
+}
+
+Describe 'The free data files in prefetch_assets' {
+
+    BeforeAll {
+        $script:Text = Get-Content -Raw $Action
+        function Get-Step ([string]$Name) {
+            ($script:Text -split '(?m)^\s*- name: ') | Where-Object { $_.StartsWith($Name) }
+        }
+        function Get-CachePath ([string]$Step) {
+            ($Step -split '(?m)^\s*path: \|\s*$', 2)[1] -split '\r?\n' |
+                ForEach-Object { $_.Trim() } | Where-Object { $_ } | Select-Object -First 2
+        }
+    }
+
+    It 'restores and saves the same paths, without the clone''s .git folder' {
+        $restore = Get-CachePath (Get-Step 'Restore the free data files')
+        $save = Get-CachePath (Get-Step 'Cache the free data files')
+        $restore | Should -Be $save
+        $restore | Should -Be @('${{ runner.temp }}/51degrees-data/*', '!${{ runner.temp }}/51degrees-data/.git')
+    }
+
+    It 'saves only when the caller asks, from main' {
+        $save = Get-Step 'Cache the free data files'
+        $save | Should -Match "inputs\.save-free-data == 'true'"
+        $save | Should -Match "github\.ref == 'refs/heads/main'"
+    }
+
+    It 'is saved by the publishing workflows alone' {
+        $workflows = Get-ChildItem (Join-Path $PSScriptRoot '../.github/workflows') -Filter '*.yml'
+        $saving = $workflows | Where-Object { (Get-Content -Raw $_.FullName) -match 'save-free-data:\s*true' } |
+            ForEach-Object Name | Sort-Object
+        $saving | Should -Be @('nightly-publish-main.yml', 'nightly-publish.yml')
     }
 }
