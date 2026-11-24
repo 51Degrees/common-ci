@@ -18,7 +18,8 @@
     job, those under Publish only to a job that publishes, and those under Sign
     only to a job that signs. The names under Data are never exported, because
     the steps that download the data files set _51DEGREES_LICENSE_KEY from
-    them.
+    them. Nor are the names under Cache, which only the steps that encrypt and
+    decrypt the asset cache take.
 
     Nothing is renamed, filled from another name or defaulted.
 

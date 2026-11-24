@@ -100,6 +100,7 @@ jobs:
           secrets: ${{ toJSON(secrets) }}
           vars: ${{ toJSON(vars) }}
           license-key: ${{ secrets.LICENSE_KEY_V4TAC_IPIV4ENTERPRISE }}
+          encryption-key: ${{ secrets.CACHE_ENCRYPTION_KEY }}
 
   BuildAndTest:
     needs: Configure
@@ -131,8 +132,16 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           key: ${{ needs.configure.outputs.asset_cache_key }}
-          path: assets
+          path: asset-cache
           enableCrossOsArchive: true
+
+      # The free files come out of the cache as they are, and every other
+      # file is decrypted with the key it was saved with.
+      - name: Decrypt Asset Cache
+        if: needs.configure.outputs.asset_cache_key
+        env:
+          CACHE_ENCRYPTION_KEY: ${{ secrets.CACHE_ENCRYPTION_KEY }}
+        run: ./steps/asset-cache.ps1 -Restore
 
       # The CI secrets the repository's own build and test scripts read, as
       # its ci/ci-secrets.psd1 lists them on the branch the pull request goes

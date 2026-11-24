@@ -6,6 +6,13 @@ inputs:
     required: false
   lazy: # don't actually fetch if the files are cached
     required: false
+  encryption-key:
+    # With cache, the key every asset that is not free is encrypted with in
+    # the cache, from the CACHE_ENCRYPTION_KEY secret. Without it, assets that
+    # are not all free are neither saved to nor restored from the cache. It
+    # takes no part in the cache key.
+    required: false
+    default: ''
 runs:
   using: "composite"
   steps:
@@ -14,10 +21,11 @@ runs:
       if: ${{ inputs.cache == 'true' }}
       shell: pwsh
       env:
-        _51DEGREES_INPUTS: ${{ toJSON(inputs) }}
+        _51DEGREES_ASSETS: ${{ inputs.assets }}
+        _51DEGREES_CACHE: ${{ inputs.cache }}
       run: |
         $sha1 = [Security.Cryptography.SHA1Managed]::new()
-        $key = ($env:_51DEGREES_INPUTS | ConvertFrom-Json -AsHashtable).GetEnumerator().Where({$_.Key -ne 'lazy' -and $_.Value}).ForEach({$_.Value}) | Sort-Object | Join-String -Separator `n
+        $key = @($env:_51DEGREES_ASSETS, $env:_51DEGREES_CACHE).Where({$_}) | Sort-Object | Join-String -Separator `n
         $hash = [Convert]::ToHexString($sha1.ComputeHash([Text.Encoding]::Utf8.GetBytes($key)))
         "key=$(Get-Date -Format FileDate)-$hash" >> $env:GITHUB_OUTPUT
 
@@ -27,9 +35,19 @@ runs:
       uses: actions/cache/restore@v5
       with:
         key: ${{ steps.hash-inputs.outputs.key }}
-        path: assets
+        path: asset-cache
         enableCrossOsArchive: true
         lookup-only: ${{ inputs.lazy == 'true' }}
+
+    # The free files come out of the cache as they are, and every other file
+    # is decrypted.
+    - name: Decrypt assets
+      if: ${{ inputs.cache == 'true' && inputs.lazy != 'true' && steps.cache-restore.outputs.cache-hit == 'true' }}
+      shell: pwsh
+      env:
+        CACHE_ENCRYPTION_KEY: ${{ inputs.encryption-key }}
+      run: |
+        & "${{ github.action_path }}/../../steps/asset-cache.ps1" -Restore
 
     # The licensed files come from the Distributor with _51DEGREES_LICENSE_KEY,
     # which the calling step sets from the source secret that carries the
@@ -42,10 +60,27 @@ runs:
       run: |
         & "${{ github.action_path }}/../../steps/fetch-assets.ps1" -Assets ($env:_51DEGREES_ASSETS.Trim() -split "`n")
 
-    - name: Save cache
+    - name: Encrypt assets
+      id: encrypt-assets
       if: ${{ inputs.cache == 'true' && steps.cache-restore.outputs.cache-hit != 'true' }}
+      shell: pwsh
+      env:
+        CACHE_ENCRYPTION_KEY: ${{ inputs.encryption-key }}
+      run: |
+        $ready = & "${{ github.action_path }}/../../steps/asset-cache.ps1" -Save
+        "ready=$("$ready".ToLower())" >> $env:GITHUB_OUTPUT
+
+    - name: Save cache
+      if: ${{ steps.encrypt-assets.outputs.ready == 'true' }}
       uses: actions/cache/save@v5
       with:
         key: ${{ steps.hash-inputs.outputs.key }}
-        path: assets
+        path: asset-cache
         enableCrossOsArchive: true
+
+    # The copy the cache saved is not needed by the rest of the job.
+    - name: Remove the cache folder
+      if: ${{ always() && steps.encrypt-assets.outputs.ready == 'true' }}
+      shell: pwsh
+      run: |
+        Remove-Item -Recurse -Force asset-cache -ErrorAction SilentlyContinue

@@ -1,5 +1,5 @@
 # The organization secrets that only CI uses, by the jobs that take them.
-# steps/export-secrets.ps1 exports them, apart from those under Data, and the
+# steps/export-secrets.ps1 exports them, apart from those under Data and Cache, and the
 # tests check the names against these lists. A secret that only CI uses has no _51DEGREES_ prefix, and its
 # name says what it does.
 @{
@@ -36,5 +36,13 @@
     # carries them in its environment.
     Data = @(
         'LICENSE_KEY_V4TAC_IPIV4ENTERPRISE'
+    )
+
+    # Only the steps that encrypt the assets before the asset cache is saved
+    # and decrypt them after it is restored, with steps/asset-cache.ps1. The
+    # export never takes these names, so no job, and no script of the calling
+    # repository, carries them in its environment.
+    Cache = @(
+        'CACHE_ENCRYPTION_KEY'
     )
 }

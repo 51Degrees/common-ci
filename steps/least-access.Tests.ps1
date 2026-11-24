@@ -59,6 +59,10 @@ BeforeAll {
     # The data file license, which only the steps that download the data files
     # take.
     $script:Data = @((Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot 'ci-secrets.psd1')).Data)
+
+    # The asset cache encryption key, which only the steps that encrypt and
+    # decrypt the asset cache take.
+    $script:Cache = @((Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot 'ci-secrets.psd1')).Cache)
 }
 
 Describe 'Secrets in <_.Name>' -ForEach $Workflows {
@@ -136,10 +140,11 @@ Describe 'Secrets in <_.Name>' -ForEach $Workflows {
     }
 
     # The automation token, CI_ACCESS_TOKEN, in a workflow that publishes
-    # the publishing token, PUBLISH_ACCESS_TOKEN, and the data file license.
-    It 'reads by name only the automation token, the publishing token where it publishes, and the data file license' {
+    # the publishing token, PUBLISH_ACCESS_TOKEN, the data file license, and
+    # the asset cache encryption key.
+    It 'reads by name only the automation token, the publishing token where it publishes, the data file license, and the cache key' {
         $text = Get-Content -Raw -LiteralPath $_.FullName
-        $tokens = @('CI_ACCESS_TOKEN') + $script:Data
+        $tokens = @('CI_ACCESS_TOKEN') + $script:Data + $script:Cache
         if ($_.Name -clike 'nightly-publish*.yml') { $tokens += 'PUBLISH_ACCESS_TOKEN' }
         foreach ($match in [regex]::Matches($text, '(?<![\w-])secrets\.([A-Za-z0-9_.-]+)')) {
             $match.Groups[1].Value | Should -BeIn $tokens -Because "$($match.Value) is not a token $($_.Name) reads by name"
@@ -208,6 +213,65 @@ Describe 'The data file license in <_.Name>' -ForEach $Workflows {
     }
 }
 
+Describe 'The asset cache in <_.Name>' -ForEach $Workflows {
+
+    BeforeAll {
+        $script:Jobs = Get-Jobs $_.FullName
+    }
+
+    # The asset prefetch takes it as its encryption-key input, and the step
+    # that decrypts the restored cache sets it in its own env. No job takes
+    # it in its env, and no export step takes it.
+    It 'hands the cache key only to the asset prefetch and the steps that decrypt the cache' {
+        foreach ($name in $script:Jobs.Keys) {
+            $inSteps = 0
+            foreach ($step in Get-Steps $script:Jobs[$name]) {
+                $count = 0
+                foreach ($key in $script:Cache) {
+                    $count += [regex]::Matches($step, "secrets\.$([regex]::Escape($key))\b").Count
+                }
+                if ($count -eq 0) { continue }
+                $inSteps += $count
+                if ($step -cmatch 'prefetch_assets') {
+                    $step | Should -Match 'encryption-key: \$\{\{ secrets\.CACHE_ENCRYPTION_KEY \}\}'
+                } else {
+                    $step | Should -Match 'asset-cache\.ps1 -Restore' -Because "only the steps of $name that decrypt the cache take the key"
+                    $step | Should -Match 'CACHE_ENCRYPTION_KEY: \$\{\{ secrets\.CACHE_ENCRYPTION_KEY \}\}'
+                }
+            }
+            $inJob = 0
+            foreach ($key in $script:Cache) {
+                $inJob += [regex]::Matches($script:Jobs[$name], "secrets\.$([regex]::Escape($key))\b").Count
+            }
+            $inSteps | Should -Be $inJob -Because "$name takes the cache key in no env of its own"
+        }
+    }
+
+    # The cache holds the asset-cache folder, never the assets folder, and
+    # each restore of it is followed straight away by the step that decrypts it.
+    It 'restores the asset-cache folder and decrypts it in the next step' {
+        foreach ($name in $script:Jobs.Keys) {
+            $steps = @(Get-Steps $script:Jobs[$name])
+            for ($i = 0; $i -lt $steps.Count; $i++) {
+                if ($steps[$i] -cnotmatch 'asset_cache_key') { continue }
+                if ($steps[$i] -cnotmatch 'uses: actions/cache/restore@') { continue }
+                $steps[$i] | Should -Match '(?m)^\s+path: asset-cache\s*$' -Because "$name restores the folder the prefetch saves"
+                $steps[$i + 1] | Should -Match 'asset-cache\.ps1 -Restore' -Because "$name decrypts the cache straight after restoring it"
+            }
+        }
+    }
+
+    It 'gives the prefetch the cache key wherever it runs' {
+        foreach ($name in $script:Jobs.Keys) {
+            foreach ($step in Get-Steps $script:Jobs[$name]) {
+                if ($step -cmatch 'prefetch_assets') {
+                    $step | Should -Match 'encryption-key: \$\{\{ secrets\.CACHE_ENCRYPTION_KEY \}\}'
+                }
+            }
+        }
+    }
+}
+
 Describe 'Secrets in the composite actions' {
 
     # An action that runs a caller's script with the secrets exports them
@@ -245,6 +309,18 @@ Describe 'Secrets in the composite actions' {
         foreach ($step in Get-Steps $text) {
             if ($step -cnotmatch 'inputs\.license-key') { continue }
             $step | Should -Match '&\s*"[^"]*ci/fetch-assets\.ps1"' -Because 'only the step that runs the caller''s script takes the data file license'
+        }
+    }
+
+    # The cache key reaches the steps that encrypt or decrypt the asset cache
+    # and no other step of the action, the step that runs the caller's script
+    # among them.
+    It '<_.Directory.Name> hands its encryption-key input only to the steps that encrypt or decrypt the cache' -ForEach $Actions {
+        $text = Get-Content -Raw -LiteralPath $_.FullName
+        foreach ($step in Get-Steps $text) {
+            if ($step -cnotmatch 'inputs\.encryption-key') { continue }
+            $step | Should -Match 'asset-cache\.ps1" -(Save|Restore)' -Because 'only the steps that encrypt or decrypt the cache take the key'
+            $step | Should -Not -Match 'ci/fetch-assets\.ps1'
         }
     }
 

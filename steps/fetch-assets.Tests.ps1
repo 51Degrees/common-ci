@@ -246,8 +246,29 @@ Describe 'actions/fetch-assets' {
         $script:Action = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '..' 'actions' 'fetch-assets' 'action.yml')
     }
 
-    It 'takes no key or address as an input' {
-        $script:Action | Should -Not -Match '-(key|url):' -Because 'the license comes from the job environment as _51DEGREES_LICENSE_KEY'
+    It 'takes no key or address as an input, apart from the cache encryption key' {
+        $script:Action -replace '(?m)^  encryption-key:', '' |
+            Should -Not -Match '-(key|url):' -Because 'the license comes from the job environment as _51DEGREES_LICENSE_KEY'
+    }
+
+    It 'keys the cache on the assets and the cache input alone, never on the encryption key' {
+        $hash = ($script:Action -split '- name: Restore cache')[0]
+        $hash | Should -Not -Match 'toJSON\(inputs\)|inputs\.encryption-key'
+    }
+
+    It 'hands the encryption key only to the steps that encrypt and decrypt the cache' {
+        foreach ($step in $script:Action -split '(?m)^    - name: ') {
+            if ($step -notmatch 'inputs\.encryption-key') { continue }
+            $step | Should -Match 'asset-cache\.ps1" -(Save|Restore)'
+            $step | Should -Match 'CACHE_ENCRYPTION_KEY: \$\{\{ inputs\.encryption-key \}\}'
+        }
+    }
+
+    It 'saves and restores the asset-cache folder, after it is encrypted' {
+        $script:Action | Should -Not -Match '(?m)^\s+path: assets\s*$'
+        @([regex]::Matches($script:Action, '(?m)^\s+path: asset-cache\s*$')).Count | Should -Be 2
+        $script:Action | Should -Match "(?s)- name: Encrypt assets.*- name: Save cache\s+if: \$\{\{ steps\.encrypt-assets\.outputs\.ready == 'true' \}\}"
+        $script:Action | Should -Match '(?s)- name: Restore cache.*- name: Decrypt assets.*- name: Fetch assets'
     }
 
     It 'passes the step only the assets' {

@@ -234,6 +234,15 @@ or regular file copies may be used to put cached assets in the right places duri
 The cache key is the current date and the hash of the repository's `ci/fetch-assets.ps1`, so the cache is
 invalidated daily, as well as when the list of assets changes. No secret takes part in the key.
 
+The cache holds the `asset-cache` folder, never `assets` itself. Before the save,
+[steps/asset-cache.ps1](steps/asset-cache.ps1) `-Save` copies the free files, those named in
+[steps/free-assets.psd1](steps/free-assets.psd1), into it as they are, and encrypts every other file into it with
+`openssl enc -aes-256-cbc -pbkdf2`, using the `CACHE_ENCRYPTION_KEY` organization secret. After the restore,
+`-Restore` moves the free files into `assets` and decrypts the others, checking each against the SHA-256 it was saved
+with. Without the secret, assets that are not all free are not saved, and a restore that holds encrypted files fails,
+naming them, and leaves only the free files in `assets`. openssl reads the key from the environment, and only the
+steps that encrypt or decrypt the cache take it.
+
 The free data files from the [data repository](https://github.com/51Degrees/data) have a cache entry of their own,
 restored into the job's clone of that repository before `ci/fetch-assets.ps1` runs. Its key is the current date and
 the hash of the files in the clone. Only the publishing workflows save it, from main, so a pull request reads main's

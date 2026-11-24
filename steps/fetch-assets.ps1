@@ -41,16 +41,10 @@ $curlFlags = @(
 )
 
 # The free data files and test evidence come from the data repository,
-# https://github.com/51Degrees/data, keyed here by asset name. A file stored
-# there as a .link is downloaded by that repository's own script, which follows
-# the link, so the download rules live in one place.
-$dataFiles = @{
-    '51Degrees-LiteV4.1.hash' = 'device-detection/51Degrees-LiteV4.1.hash'
-    '20000 Evidence Records.yml' = 'device-detection/20000 Evidence Records.yml'
-    '51Degrees-LiteIpiV41.ipi' = 'ip-intelligence/51Degrees-LiteV41.ipi'
-    '51Degrees-IPIV4AsnIpiV41.ipi' = 'ip-intelligence/51Degrees-IPIV4AsnIpiV41.ipi'
-    'ip-intelligence-evidence.yml' = 'ip-intelligence/evidence.yml'
-}
+# https://github.com/51Degrees/data, keyed in free-assets.psd1 by asset name.
+# A file stored there as a .link is downloaded by that repository's own
+# script, which follows the link, so the download rules live in one place.
+$dataFiles = Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot 'free-assets.psd1')
 $dataRepository = $null
 # Downloads are tried again after a reset connection, as the curl flags above
 # do for the other assets.

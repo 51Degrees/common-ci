@@ -12,6 +12,13 @@ inputs:
     # the download step alone.
     required: false
     default: ''
+  encryption-key:
+    # The key the assets that are not free are encrypted with before they are
+    # saved to the asset cache, from the CACHE_ENCRYPTION_KEY secret. Set as
+    # CACHE_ENCRYPTION_KEY for the encrypting step alone. Without it, assets
+    # that are not all free are not saved.
+    required: false
+    default: ''
   save-free-data:
     # Saves the free data files' cache entry. Set only by the workflows that
     # run main's own scripts, so a pull request's script cannot write an
@@ -40,7 +47,8 @@ runs:
         uses: actions/cache/restore@v5
         with:
           key: ${{ steps.hash-assets.outputs.key }}
-          path: assets
+          path: asset-cache
+          enableCrossOsArchive: true
           lookup-only: true
 
       # The free data files have a cache entry of their own, restored into
@@ -93,12 +101,25 @@ runs:
           $ErrorActionPreference = 'Stop'
           & "$env:_51DEGREES_REPO/ci/fetch-assets.ps1"
 
-      - name: Cache assets
+      # The cache holds the free files as they are and every other file
+      # encrypted. The build jobs decrypt them after the restore.
+      - name: Encrypt assets
+        id: encrypt-assets
+        shell: pwsh
         if: steps.prefetch-assets.conclusion == 'success'
+        env:
+          CACHE_ENCRYPTION_KEY: ${{ inputs.encryption-key }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $ready = & "${{ github.action_path }}/../../../steps/asset-cache.ps1" -Save
+          "ready=$("$ready".ToLower())" >> $env:GITHUB_OUTPUT
+
+      - name: Cache assets
+        if: steps.encrypt-assets.outputs.ready == 'true'
         uses: actions/cache/save@v5
         with:
           key: ${{ steps.hash-assets.outputs.key }}
-          path: assets
+          path: asset-cache
           enableCrossOsArchive: true
 
       # Saved from main, so that a pull request reads main's entry.
