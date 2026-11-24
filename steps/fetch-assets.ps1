@@ -4,9 +4,10 @@ param (
 )
 $ErrorActionPreference = "Stop"
 
-# The licensed files come from the Distributor with the data license key,
-# which the shared workflows export as _51DEGREES_LICENSE_KEY. Without it,
-# the step fails naming the variable, rather than with the service's refusal.
+# The licensed files come from the Distributor with the license key in
+# _51DEGREES_LICENSE_KEY, which the step that downloads sets from the source
+# secret that carries the products. Without it, the step fails naming the
+# variable, rather than with the service's refusal.
 $licensed = @('TAC-HashV41.hash', '51Degrees-EnterpriseIpiV41.ipi', '51Degrees.csv',
     '51Degrees-Tac.zip')
 function Test-Licensed ([string]$Asset) {
@@ -16,23 +17,6 @@ function Test-Licensed ([string]$Asset) {
 $PSNativeCommandUseErrorActionPreference = $true
 
 $cache = New-Item -ItemType Directory -Path assets -Force
-
-# --retry alone is not enough: a connection reset (curl 35) and a receive
-# timeout (curl 56) are not in curl's default retry set, and those are what
-# these downloads keep failing on. No --retry-delay on purpose - curl's default
-# exponential backoff staggers matrix jobs that were all reset at the same
-# moment, whereas a fixed delay retries them in lockstep. --speed-limit and
-# --speed-time abort an attempt that has trickled below 1KB/s for a minute so
-# that it is retried rather than hanging until the job is cancelled, and
-# --max-time caps one that stays just above that floor. These assets are all
-# well under 100MB - download-data-file.ps1 keeps its own set because the data
-# files it fetches are several GB.
-$curlFlags = @(
-    '--retry', 5, '--retry-all-errors',
-    '--connect-timeout', 30,
-    '--speed-limit', 1024, '--speed-time', 60,
-    '--max-time', 600
-)
 
 # The free data files and test evidence come from the data repository,
 # https://github.com/51Degrees/data, keyed here by asset name. A file stored
@@ -46,8 +30,7 @@ $dataFiles = @{
     'ip-intelligence-evidence.yml' = 'ip-intelligence/evidence.yml'
 }
 $dataRepository = $null
-# Downloads are tried again after a reset connection, as the curl flags above
-# do for the other assets.
+# Downloads are tried again after a reset connection.
 $DataAttempts = 3
 $DataRetrySeconds = 30
 
@@ -84,7 +67,7 @@ foreach ($asset in $Assets) {
         continue
     }
     if (-not (Test-Licensed $asset)) {
-        throw "'$asset' needs the data license key, and _51DEGREES_LICENSE_KEY is not set. It is an organization secret, which the calling workflow passes with 'secrets: inherit'."
+        throw "'$asset' needs the data license key, and _51DEGREES_LICENSE_KEY is not set. The step that downloads sets it from the source secret that carries the products, which for the data files is LICENSE_KEY_V4TAC_IPIV4ENTERPRISE."
     }
     Write-Host "Fetching '$asset'"
     try {

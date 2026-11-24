@@ -1,6 +1,6 @@
 # The organization secrets that only CI uses, by the jobs that take them.
-# steps/export-secrets.ps1 exports them and the tests check the names against
-# these lists. A secret that only CI uses has no _51DEGREES_ prefix, and its
+# steps/export-secrets.ps1 exports them, apart from those under Data, and the
+# tests check the names against these lists. A secret that only CI uses has no _51DEGREES_ prefix, and its
 # name says what it does.
 @{
     # Every job that exports its secrets.
@@ -29,5 +29,12 @@
         'JAVA_GPG_KEY_PASSPHRASE'
         'JAVA_KEY_PGP_FILE'
         'STRONG_NAME_KEY_BASE64'
+    )
+
+    # Only the steps that download the data files, which set it as
+    # _51DEGREES_LICENSE_KEY. The export never takes these names, so no job
+    # carries them in its environment.
+    Data = @(
+        'LICENSE_KEY_V4TAC_IPIV4ENTERPRISE'
     )
 }
