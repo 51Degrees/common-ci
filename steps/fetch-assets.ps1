@@ -62,10 +62,8 @@ function Get-FromData {
         [Parameter(Mandatory)][string]$Asset,
         [Parameter(Mandatory)][string]$Path
     )
-    # One shallow clone serves every asset in this run.
     if (-not $script:dataRepository) {
-        $script:dataRepository = Join-Path ([IO.Path]::GetTempPath()) "data-$PID"
-        git clone --quiet --depth 1 https://github.com/51Degrees/data.git $script:dataRepository
+        $script:dataRepository = & $PSScriptRoot/data-repository.ps1
     }
     $file = Join-Path $script:dataRepository $Path
     if (Test-Path -LiteralPath "$file.link") {
@@ -177,6 +175,7 @@ foreach ($asset in $Assets) {
     }
 }
 
-if ($dataRepository) {
+# In GitHub Actions the clone stays for the rest of the job.
+if ($dataRepository -and -not $env:RUNNER_TEMP) {
     Remove-Item -Recurse -Force -LiteralPath $dataRepository
 }

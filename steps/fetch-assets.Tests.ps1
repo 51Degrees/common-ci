@@ -19,7 +19,9 @@ $test = $global:FetchAssetsTest
 $test.Calls++
 if ($test.Calls -le $test.Failures) { exit 1 }
 foreach ($file in $Name) {
-    Set-Content -Path (Join-Path $PSScriptRoot "device-detection/$file") -Value 'downloaded'
+    # A file that is already there is kept, as the real script keeps it.
+    $path = Join-Path $PSScriptRoot "device-detection/$file"
+    if (-not (Test-Path -LiteralPath $path)) { Set-Content -Path $path -Value 'downloaded' }
 }
 '@
 
@@ -27,27 +29,36 @@ foreach ($file in $Name) {
     # own script scope.
     $global:FetchAssetsTest = @{ Repository = $repository }
 
-    # Refuses a folder that is already there, as git does.
+    # Refuses a folder that is already there, as git does, and counts clones.
     function git {
         if ($args[0] -ne 'clone') { throw "Unexpected call: git $args" }
         if (Test-Path -LiteralPath $args[-1]) { throw "git clone: $($args[-1]) already exists" }
         Copy-Item -Recurse -Path $global:FetchAssetsTest.Repository -Destination $args[-1]
+        New-Item -ItemType Directory -Path (Join-Path $args[-1] '.git') | Out-Null
+        $global:FetchAssetsTest.Clones++
     }
 
     function Start-Sleep {}
 
-    # Runs the step in a new folder, which the test reads afterwards even when
-    # the step throws.
-    function Invoke-Step ([string]$Asset, [int]$Failures) {
+    # Runs the step in a new folder, as a new GitHub Actions job whose
+    # temporary folder is inside it, unless -SameJob runs it again in the last
+    # one. The test reads the folder afterwards even when the step throws.
+    function Invoke-Step ([string]$Asset, [int]$Failures, [switch]$SameJob) {
         $test = $global:FetchAssetsTest
         $test.Calls = 0
         $test.Failures = $Failures
-        $test.Work = Join-Path ([IO.Path]::GetTempPath()) "fetch-assets-work-$(New-Guid)"
-        New-Item -ItemType Directory -Path $test.Work | Out-Null
+        if (-not $SameJob) {
+            $test.Clones = 0
+            $test.Work = Join-Path ([IO.Path]::GetTempPath()) "fetch-assets-work-$(New-Guid)"
+            New-Item -ItemType Directory -Path "$($test.Work)/runner-temp" | Out-Null
+        }
         Push-Location $test.Work
+        $runnerTemp = $env:RUNNER_TEMP
+        $env:RUNNER_TEMP = "$($test.Work)/runner-temp"
         try {
             & $script:Step -Assets $Asset
         } finally {
+            $env:RUNNER_TEMP = $runnerTemp
             Pop-Location
         }
     }
@@ -87,6 +98,40 @@ Describe 'fetch-assets.ps1 with the data repository' {
             Should -Throw -ExpectedMessage '*did not download device-detection/51Degrees-LiteV4.1.hash*'
         $global:FetchAssetsTest.Calls | Should -Be 3
         "$($global:FetchAssetsTest.Work)/assets/51Degrees-LiteV4.1.hash" | Should -Not -Exist
+    }
+
+    It 'clones the data repository once in a job' {
+        Invoke-Step -Asset '51Degrees-LiteV4.1.hash' -Failures 0
+        Invoke-Step -Asset 'ip-intelligence-evidence.yml' -Failures 0 -SameJob
+        $global:FetchAssetsTest.Clones | Should -Be 1
+        "$($global:FetchAssetsTest.Work)/assets/ip-intelligence-evidence.yml" | Should -Exist
+    }
+
+    It 'keeps a file restored into the job''s clone' {
+        Invoke-Step -Asset 'ip-intelligence-evidence.yml' -Failures 0
+        $work = $global:FetchAssetsTest.Work
+        Set-Content -Path "$work/runner-temp/51degrees-data/device-detection/51Degrees-LiteV4.1.hash" -Value 'restored'
+        Invoke-Step -Asset '51Degrees-LiteV4.1.hash' -Failures 0 -SameJob
+        Get-Content "$work/assets/51Degrees-LiteV4.1.hash" | Should -Be 'restored'
+    }
+
+    It 'removes its clone outside GitHub Actions' {
+        $runnerTemp = $env:RUNNER_TEMP
+        $env:RUNNER_TEMP = $null
+        $work = Join-Path ([IO.Path]::GetTempPath()) "fetch-assets-work-$(New-Guid)"
+        $global:FetchAssetsTest.Work = $work
+        $global:FetchAssetsTest.Calls = 0
+        $global:FetchAssetsTest.Failures = 0
+        New-Item -ItemType Directory -Path $work | Out-Null
+        Push-Location $work
+        try {
+            & $script:Step -Assets 'ip-intelligence-evidence.yml'
+        } finally {
+            Pop-Location
+            $env:RUNNER_TEMP = $runnerTemp
+        }
+        "$work/assets/ip-intelligence-evidence.yml" | Should -Exist
+        Join-Path ([IO.Path]::GetTempPath()) "data-$PID" | Should -Not -Exist
     }
 
     It 'copies a file the repository holds without downloading' {
