@@ -64,7 +64,7 @@ Configures the default Git behavior in the following ways:
 ## Download Data File
 **Script: `download-data-file.ps1`**
 
-Downloads a data file of the given type and product from the 51Degrees Distributor service, with the data license key read from `_51DEGREES_LICENSE_KEY`, which the step that downloads sets from `LICENSE_KEY_V4TAC_IPIV4ENTERPRISE`. Fails naming that variable when it is not set.
+Downloads a data file of the given type and product from the 51Degrees Distributor service, with the data license key read from `_51DEGREES_LICENSE_KEY`, which the step that downloads sets from the source secret that carries the products, `LICENSE_KEY_V4TAC_IPIV4ENTERPRISE` in the shared workflows. Fails naming that variable when it is not set.
 
 ## Fetch Hash Assets
 **Script: `fetch-hash-assets.ps1`**

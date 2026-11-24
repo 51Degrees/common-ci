@@ -36,13 +36,35 @@ BeforeAll {
         return $jobs
     }
 
-    # The steps of a job as a list of texts. A step starts at '- name:' or
-    # '- uses:' at the steps indentation.
+    # The steps of a job or an action as a list of texts. A step starts at a
+    # '- ' at the indentation of the first item under 'steps:', and the list
+    # ends at the first line, other than a comment, indented less than that.
     function Get-Steps ([string]$JobText) {
         $steps = @()
         $current = $null
+        $inSteps = $false
+        $indent = $null
         foreach ($line in $JobText -split "`n") {
-            if ($line -cmatch '^      - (name|uses|id|if|run|env|with|shell):') {
+            if (-not $inSteps) {
+                if ($line -cmatch '^\s*steps:\s*$') { $inSteps = $true; $indent = $null }
+                continue
+            }
+            if ($line -match '^\s*(#.*)?$') {
+                if ($null -ne $current) { $current += "$line`n" }
+                continue
+            }
+            $width = $line.Length - $line.TrimStart().Length
+            if ($null -eq $indent) {
+                if ($line -cnotmatch '^\s*- ') { $inSteps = $false; continue }
+                $indent = $width
+            }
+            if ($width -lt $indent) {
+                if ($null -ne $current) { $steps += $current }
+                $current = $null
+                $inSteps = $false
+                continue
+            }
+            if ($width -eq $indent -and $line -cmatch '^\s*- ') {
                 if ($null -ne $current) { $steps += $current }
                 $current = ''
             }
@@ -50,6 +72,12 @@ BeforeAll {
         }
         if ($null -ne $current) { $steps += $current }
         return $steps
+    }
+
+    # A step's text without its comment lines, so that a comment does not
+    # decide what the step runs.
+    function Get-Code ([string]$Step) {
+        return (($Step -split "`n") | Where-Object { $_ -notmatch '^\s*#' }) -join "`n"
     }
 
     # The jobs that run a caller's build, test or publish scripts, and so need
@@ -129,10 +157,12 @@ Describe 'The data file license in <_.Name>' -ForEach $Workflows {
                 }
                 if ($count -eq 0) { continue }
                 $inSteps += $count
+                $code = Get-Code $step
                 $step | Should -Not -Match 'export-secrets\.ps1' -Because "an export step of $name takes no data file license"
-                ($step -cmatch 'prefetch_assets' -or
-                    $step -cmatch 'nightly-pull-request\.build-and-test\.ps1|nightly-publish\.test\.ps1') |
+                ($code -cmatch 'prefetch_assets' -or
+                    $code -cmatch 'nightly-pull-request\.build-and-test\.ps1|nightly-publish\.test\.ps1') |
                     Should -BeTrue -Because "only the steps of $name that download the data files take the data file license"
+                $step | Should -Not -Match 'GITHUB_ENV' -Because "a step of $name that takes the data file license keeps it to itself"
             }
             $inJob = 0
             foreach ($license in $script:Data) {
@@ -204,12 +234,62 @@ Describe 'Secrets in the composite actions' {
     It '<_.Directory.Name> hands its license-key input only to the step that runs the caller''s script' -ForEach $Actions {
         $text = Get-Content -Raw -LiteralPath $_.FullName
         foreach ($step in Get-Steps $text) {
-            if ($step -cnotmatch 'inputs\.license-key') { continue }
-            $step | Should -Match '&\s*"[^"]*ci/fetch-assets\.ps1"' -Because 'only the step that runs the caller''s script takes the data file license'
+            if ($step -cnotmatch 'inputs\s*(\.|\[\s*[''"])license-key') { continue }
+            Get-Code $step | Should -Match '&\s*"[^"]*ci/fetch-assets\.ps1"' -Because 'only the step that runs the caller''s script takes the data file license'
+            $step | Should -Not -Match 'GITHUB_ENV' -Because 'the step that runs the caller''s script keeps the data file license to itself'
         }
     }
 
     It '<_.Directory.Name> takes no publishing or signing name' -ForEach $Actions {
         (Get-Content -Raw -LiteralPath $_.FullName) | Should -Not -Match ' -(Publish|Sign)\b'
+    }
+}
+
+Describe 'How these checks read the steps' {
+
+    # A job level env written after the steps belongs to no step, so the
+    # checks above count it as the job's own.
+    It 'ends the steps at a job key that follows them' {
+        $job = @(
+            '    runs-on: ubuntu-latest'
+            '    steps:'
+            '      - name: First'
+            '        run: ./first.ps1'
+            ''
+            '      # A comment between the steps.'
+            '      - name: Last'
+            '        uses: ./.github/actions/example'
+            '    env:'
+            '      _51DEGREES_EXAMPLE: ${{ secrets.EXAMPLE }}'
+        ) -join "`n"
+        $steps = @(Get-Steps $job)
+        $steps.Count | Should -Be 2
+        $steps[0] | Should -Match 'first\.ps1'
+        $steps[1] | Should -Match 'actions/example'
+        $steps | Should -Not -Match '_51DEGREES_EXAMPLE'
+    }
+
+    It 'reads the steps of an action at whatever indentation they have' {
+        $action = @(
+            'runs:'
+            '  using: "composite"'
+            '  steps:'
+            '    - name: First'
+            '      shell: pwsh'
+            '      run: ./first.ps1'
+            '    - uses: ./example'
+            '      with:'
+            '        list:'
+            '          - one'
+        ) -join "`n"
+        $steps = @(Get-Steps $action)
+        $steps.Count | Should -Be 2
+        $steps[1] | Should -Match '- one'
+    }
+
+    It 'leaves the comments out of what a step runs' {
+        $code = Get-Code "      - name: Build`n        # ./nightly-publish.test.ps1`n        run: ./build.ps1`n"
+        $code | Should -Not -Match 'nightly-publish\.test\.ps1'
+        $code | Should -Match 'build\.ps1'
     }
 }
