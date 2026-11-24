@@ -322,8 +322,7 @@ Describe 'export-secrets.ps1' {
 }
 
 # The lists decide which job receives a secret, so they are pinned here by
-# name. Moving a publishing or signing secret into Every would hand it to
-# every job, the pull request builds included.
+# name.
 Describe 'ci-secrets.psd1' {
 
     BeforeAll {
