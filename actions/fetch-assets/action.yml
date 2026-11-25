@@ -14,12 +14,24 @@ inputs:
     # rest. It takes no part in the cache key.
     required: false
     default: ''
+  cache-key:
+    # With cache, the key of the entry to restore, being the cache-key output
+    # of a fetch-assets step in an earlier job of the run. The step then takes
+    # every asset from that entry, downloads none and saves nothing, and fails
+    # naming any asset the entry lacks. lazy has no effect with it.
+    required: false
+    default: ''
+outputs:
+  cache-key:
+    # With cache, the key of the entry the assets are cached under, for a
+    # later job to pass back as the cache-key input.
+    value: ${{ inputs.cache-key || steps.hash-inputs.outputs.key }}
 runs:
   using: "composite"
   steps:
     - name: Hash inputs
       id: hash-inputs
-      if: ${{ inputs.cache == 'true' }}
+      if: ${{ inputs.cache == 'true' && inputs.cache-key == '' }}
       shell: pwsh
       env:
         _51DEGREES_ASSETS: ${{ inputs.assets }}
@@ -35,26 +47,41 @@ runs:
       if: ${{ inputs.cache == 'true' }}
       uses: actions/cache/restore@v5
       with:
-        key: ${{ steps.hash-inputs.outputs.key }}
+        key: ${{ inputs.cache-key || steps.hash-inputs.outputs.key }}
         path: asset-cache
         enableCrossOsArchive: true
-        lookup-only: ${{ inputs.lazy == 'true' }}
+        lookup-only: ${{ inputs.lazy == 'true' && inputs.cache-key == '' }}
+        fail-on-cache-miss: ${{ inputs.cache-key != '' }}
 
     # The free files come out of the cache as they are, and every other file
     # is decrypted.
     - name: Decrypt assets
-      if: ${{ inputs.cache == 'true' && inputs.lazy != 'true' && steps.cache-restore.outputs.cache-hit == 'true' }}
+      if: ${{ inputs.cache == 'true' && (inputs.lazy != 'true' || inputs.cache-key != '') && steps.cache-restore.outputs.cache-hit == 'true' }}
       shell: pwsh
       env:
         CACHE_ENCRYPTION_KEY: ${{ inputs.encryption-key }}
       run: |
         & "${{ github.action_path }}/../../steps/asset-cache.ps1" -Restore
 
+    # Given the key of an entry, every asset comes from that entry, so one
+    # that is missing fails the step rather than being downloaded.
+    - name: Check the restored assets
+      if: ${{ inputs.cache-key != '' }}
+      shell: pwsh
+      env:
+        _51DEGREES_ASSETS: ${{ inputs.assets }}
+      run: |
+        $missing = @($env:_51DEGREES_ASSETS.Trim() -split "`n" | ForEach-Object { $_.Trim() } |
+            Where-Object { $_ -and -not (Test-Path -LiteralPath "assets/$_" -PathType Leaf) })
+        if ($missing) {
+            throw "The asset cache entry does not hold $($missing -join ', '), and a step given cache-key never downloads an asset."
+        }
+
     # The licensed files come from the Distributor with _51DEGREES_LICENSE_KEY,
     # which the calling step sets from the source secret that carries the
     # products it downloads, LICENSE_KEY_V4TAC_IPIV4ENTERPRISE for the data files.
     - name: Fetch assets
-      if: ${{ !inputs.lazy || steps.cache-restore.outputs.cache-hit != 'true' }}
+      if: ${{ inputs.cache-key == '' && (!inputs.lazy || steps.cache-restore.outputs.cache-hit != 'true') }}
       shell: pwsh
       env:
         _51DEGREES_ASSETS: ${{ inputs.assets }}
@@ -63,7 +90,7 @@ runs:
 
     - name: Encrypt assets
       id: encrypt-assets
-      if: ${{ inputs.cache == 'true' && steps.cache-restore.outputs.cache-hit != 'true' }}
+      if: ${{ inputs.cache == 'true' && inputs.cache-key == '' && steps.cache-restore.outputs.cache-hit != 'true' }}
       shell: pwsh
       env:
         CACHE_ENCRYPTION_KEY: ${{ inputs.encryption-key }}

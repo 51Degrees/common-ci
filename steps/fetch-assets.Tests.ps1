@@ -247,9 +247,32 @@ Describe 'actions/fetch-assets' {
         $script:Action = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '..' 'actions' 'fetch-assets' 'action.yml')
     }
 
-    It 'takes no key or address as an input, apart from the cache encryption key' {
-        $script:Action -replace '(?m)^  encryption-key:', '' |
+    It 'takes no key or address as an input, apart from the cache encryption key and the key of a cache entry' {
+        $script:Action -replace '(?m)^  (encryption|cache)-key:', '' |
             Should -Not -Match '-(key|url):' -Because 'the license comes from the job environment as _51DEGREES_LICENSE_KEY'
+    }
+
+    It 'gives the key of its cache entry as an output, being the key it was given or the one it worked out' {
+        $script:Action | Should -Match '(?m)^outputs:\r?\n  cache-key:\r?\n(    #.*\r?\n)*    value: \$\{\{ inputs\.cache-key \|\| steps\.hash-inputs\.outputs\.key \}\}\r?$'
+    }
+
+    # A later job passes an earlier job's cache-key output back in, and then
+    # takes every asset from that entry and downloads none.
+    It 'given the key of a cache entry, restores that entry or fails, and never fetches or saves' {
+        $steps = @{}
+        foreach ($step in $script:Action -split '(?m)^    - name: ') {
+            $steps[($step -split '\r?\n')[0].Trim()] = $step
+        }
+        $steps['Hash inputs'] | Should -Match "if: \$\{\{ inputs\.cache == 'true' && inputs\.cache-key == '' \}\}"
+        $steps['Restore cache'] | Should -Match 'key: \$\{\{ inputs\.cache-key \|\| steps\.hash-inputs\.outputs\.key \}\}'
+        $steps['Restore cache'] | Should -Match "lookup-only: \$\{\{ inputs\.lazy == 'true' && inputs\.cache-key == '' \}\}"
+        $steps['Restore cache'] | Should -Match "fail-on-cache-miss: \$\{\{ inputs\.cache-key != '' \}\}"
+        $steps['Decrypt assets'] | Should -Match "inputs\.cache-key != ''"
+        $steps['Check the restored assets'] | Should -Match "if: \$\{\{ inputs\.cache-key != '' \}\}"
+        $steps['Check the restored assets'] | Should -Match 'throw '
+        $steps['Fetch assets'] | Should -Match "if: \$\{\{ inputs\.cache-key == '' && "
+        $steps['Encrypt assets'] | Should -Match "inputs\.cache-key == '' && "
+        $script:Action | Should -Match '(?s)- name: Decrypt assets.*- name: Check the restored assets.*- name: Fetch assets'
     }
 
     It 'keys the cache on the assets and the cache input alone, never on the encryption key' {
