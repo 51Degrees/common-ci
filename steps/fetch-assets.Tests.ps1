@@ -207,10 +207,17 @@ Describe 'actions/fetch-assets' {
     }
 
     It 'takes no key or address as an input' {
-        $script:Action | Should -Not -Match '-(key|url):' -Because 'the license comes from the job environment as _51DEGREES_LICENSE_KEY'
+        $inputs = [regex]::Match($script:Action, '(?ms)^inputs:\r?\n(.*?)^\S').Groups[1].Value
+        $inputs | Should -Match 'assets:' -Because 'the inputs are read up to the next top level entry'
+        $inputs | Should -Not -Match '-(key|url):' -Because 'the license comes from the job environment as _51DEGREES_LICENSE_KEY'
     }
 
     It 'passes the step only the assets' {
         $script:Action | Should -Match 'fetch-assets\.ps1" -Assets \(\$env:_51DEGREES_ASSETS\.Trim\(\) -split "`n"\)\r?\n'
+    }
+
+    It 'gives the key the assets are cached under as an output' {
+        $script:Action | Should -Match '(?m)^outputs:\r?\n(  #.*\r?\n)*  cache-key:\r?\n    value: \$\{\{ steps\.hash-inputs\.outputs\.key \}\}\r?$'
+        $script:Action | Should -Match '(?m)^      id: hash-inputs\r?$' -Because 'the output reads the key from that step'
     }
 }

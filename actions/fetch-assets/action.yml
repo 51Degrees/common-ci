@@ -6,6 +6,12 @@ inputs:
     required: false
   lazy: # don't actually fetch if the files are cached
     required: false
+outputs:
+  # The key the assets folder is cached under, when cache is true. A later
+  # job restores the folder under this key, with the path assets, so it
+  # takes the files without downloading them.
+  cache-key:
+    value: ${{ steps.hash-inputs.outputs.key }}
 runs:
   using: "composite"
   steps:
