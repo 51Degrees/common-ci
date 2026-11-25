@@ -243,7 +243,10 @@ A check that needs assets and must never download them uses
 [actions/fetch-assets](actions/fetch-assets/action.yml) in two jobs. The first runs it with `cache` and `lazy`, which
 downloads and saves the assets only when the day's entry is missing, and gives the entry's key as `cache-key`. The
 check's job passes that key back as the `cache-key` input, so the action takes every asset from that entry, downloads
-none, and fails naming any asset the entry lacks.
+none, and fails naming any asset the entry lacks or holds encrypted but could not decrypt. When any asset is not free,
+both jobs pass `encryption-key`. The first job gives no key when no entry exists, as when such an asset was not saved
+for want of `encryption-key`, and the check's job then stops before the action, because without a key the action works
+out its own and could download.
 
 The cache holds the `asset-cache` folder, never `assets` itself. Before the save,
 [steps/asset-cache.ps1](steps/asset-cache.ps1) `-Save` copies the free files, those named in

@@ -93,12 +93,12 @@ jobs:
 
       # A pull request's own run, such as the release pull request's, fills
       # the asset cache when the day's entry is missing, with the data file
-      # license and the cache key the run already has. The entry is saved
-      # where only that pull request's runs read it. A run on a branch, such
-      # as the nightly's, builds pull request code where the branch's own
-      # runs read, so it saves nothing. It works out the key the publishing
-      # workflows save with, and its build jobs download any asset that entry
-      # lacks.
+      # license and the cache encryption key the run already has. The entry
+      # is saved where only that pull request's runs read it. A run on a
+      # branch, such as the nightly's, builds pull request code where the
+      # branch's own runs read, so it saves nothing. It works out the key the
+      # publishing workflows save with, and its build jobs download any asset
+      # that entry lacks.
       - name: Prefetch assets
         id: prefetch-assets
         if: inputs.cache-assets && github.event_name == 'pull_request'

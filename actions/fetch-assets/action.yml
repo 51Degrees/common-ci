@@ -18,14 +18,18 @@ inputs:
     # With cache, the key of the entry to restore, being the cache-key output
     # of a fetch-assets step in an earlier job of the run. The step then takes
     # every asset from that entry, downloads none and saves nothing, and fails
-    # naming any asset the entry lacks. lazy has no effect with it.
+    # naming any asset the entry lacks. Assets that are not free need the
+    # same encryption-key the entry was saved with. lazy has no effect with
+    # it, and it needs cache.
     required: false
     default: ''
 outputs:
   cache-key:
     # With cache, the key of the entry the assets are cached under, for a
-    # later job to pass back as the cache-key input.
-    value: ${{ inputs.cache-key || steps.hash-inputs.outputs.key }}
+    # later job to pass back as the cache-key input. It is empty when no
+    # entry exists, as when assets that are not free were not saved for want
+    # of an encryption-key.
+    value: ${{ inputs.cache-key || ((steps.cache-restore.outputs.cache-hit == 'true' || steps.encrypt-assets.outputs.ready == 'true') && steps.hash-inputs.outputs.key) || '' }}
 runs:
   using: "composite"
   steps:
@@ -53,6 +57,22 @@ runs:
         lookup-only: ${{ inputs.lazy == 'true' && inputs.cache-key == '' }}
         fail-on-cache-miss: ${{ inputs.cache-key != '' }}
 
+    # Given the key of an entry, the names of the files the entry holds, so
+    # that a missing asset is told apart from one held but not decrypted.
+    - name: List the cache entry
+      id: list-entry
+      if: ${{ inputs.cache-key != '' && steps.cache-restore.outputs.cache-hit == 'true' }}
+      shell: pwsh
+      run: |
+        $held = @(Get-ChildItem -LiteralPath asset-cache -File -Force |
+            Where-Object { $_.Name -ne 'encrypted.json' -and $_.Extension -ne '.enc' } |
+            ForEach-Object Name)
+        $manifest = Join-Path asset-cache encrypted.json
+        if (Test-Path -LiteralPath $manifest) {
+            $held += @((Get-Content -Raw -LiteralPath $manifest | ConvertFrom-Json -AsHashtable).Keys)
+        }
+        "held=$(ConvertTo-Json -Compress -InputObject @($held | Sort-Object -Unique))" >> $env:GITHUB_OUTPUT
+
     # The free files come out of the cache as they are, and every other file
     # is decrypted.
     - name: Decrypt assets
@@ -64,17 +84,32 @@ runs:
         & "${{ github.action_path }}/../../steps/asset-cache.ps1" -Restore
 
     # Given the key of an entry, every asset comes from that entry, so one
-    # that is missing fails the step rather than being downloaded.
+    # that is missing fails the step rather than being downloaded. The
+    # message says whether the entry lacks it or holds it encrypted.
     - name: Check the restored assets
       if: ${{ inputs.cache-key != '' }}
       shell: pwsh
       env:
         _51DEGREES_ASSETS: ${{ inputs.assets }}
+        _51DEGREES_CACHE: ${{ inputs.cache }}
+        _51DEGREES_ENTRY: ${{ steps.list-entry.outputs.held }}
       run: |
+        if ($env:_51DEGREES_CACHE -ne 'true') {
+            throw "cache-key needs cache set to true, and a step given cache-key never downloads an asset."
+        }
+        $held = @($env:_51DEGREES_ENTRY ? ($env:_51DEGREES_ENTRY | ConvertFrom-Json) : @())
         $missing = @($env:_51DEGREES_ASSETS.Trim() -split "`n" | ForEach-Object { $_.Trim() } |
             Where-Object { $_ -and -not (Test-Path -LiteralPath "assets/$_" -PathType Leaf) })
+        $encrypted = @($missing | Where-Object { $_ -cin $held })
+        $absent = @($missing | Where-Object { $_ -cnotin $held })
+        if ($encrypted) {
+            Write-Output "::error::The asset cache entry holds $($encrypted -join ', ') encrypted, and they were not decrypted, because encryption-key was not given or is not the key the entry was saved with. The warning above says which."
+        }
+        if ($absent) {
+            Write-Output "::error::The asset cache entry does not hold $($absent -join ', ')."
+        }
         if ($missing) {
-            throw "The asset cache entry does not hold $($missing -join ', '), and a step given cache-key never downloads an asset."
+            throw "A step given cache-key never downloads an asset, so the assets missing from the entry fail it: $($missing -join ', ')"
         }
 
     # The licensed files come from the Distributor with _51DEGREES_LICENSE_KEY,
