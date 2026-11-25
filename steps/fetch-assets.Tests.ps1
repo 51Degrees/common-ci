@@ -152,6 +152,7 @@ Describe 'fetch-assets.ps1 and the license key' {
         $script:Folder = Join-Path ([IO.Path]::GetTempPath()) "fetch-assets-key-$(New-Guid)"
         New-Item -ItemType Directory -Path $script:Folder | Out-Null
         Copy-Item -LiteralPath $script:Step -Destination $script:Folder
+        Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'free-assets.psd1') -Destination $script:Folder
         Set-Content -Path (Join-Path $script:Folder 'fetch-hash-assets.ps1') -Value @'
 param([string]$RepoName, [string]$DataType = 'HashV41', [string]$Product = 'V4TAC',
     [string]$ArchiveName = 'TAC-HashV41.hash.gz')

@@ -9,8 +9,9 @@ inputs:
   encryption-key:
     # With cache, the key every asset that is not free is encrypted with in
     # the cache, from the CACHE_ENCRYPTION_KEY secret. Without it, assets that
-    # are not all free are neither saved to nor restored from the cache. It
-    # takes no part in the cache key.
+    # are not all free are not saved to the cache, and a restore brings back
+    # the free files alone, with a warning, and the fetch step downloads the
+    # rest. It takes no part in the cache key.
     required: false
     default: ''
 runs:

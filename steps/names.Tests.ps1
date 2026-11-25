@@ -191,3 +191,17 @@ Describe 'A script reads a publishing or signing secret only where it publishes 
         }
     }
 }
+
+Describe 'The scripts the step data files name' {
+
+    It 'names only scripts that exist' {
+        $data = @($script:Files | Where-Object { $_ -like 'steps/*.psd1' })
+        $data.Count | Should -BeGreaterThan 0
+        foreach ($path in $data) {
+            $text = Get-Content -Raw -LiteralPath (Join-Path $script:Root $path)
+            foreach ($match in [regex]::Matches($text, 'steps/[\w.-]+\.ps1')) {
+                Join-Path $script:Root $match.Value | Should -Exist -Because "$path names $($match.Value)"
+            }
+        }
+    }
+}

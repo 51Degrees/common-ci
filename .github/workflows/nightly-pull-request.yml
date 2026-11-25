@@ -67,7 +67,7 @@ jobs:
     outputs:
       options: ${{ steps.configure.outputs.options }}
       build: ${{ steps.configure.outputs.build }}
-      asset_cache_key: ${{ steps.prefetch-assets.outputs.cache-key }}
+      asset_cache_key: ${{ steps.hash-assets.outputs.key }}
     steps:
       - name: Checkout Common
         uses: actions/checkout@v6
@@ -91,16 +91,17 @@ jobs:
           -GitHubEmail ${{ inputs.email }} `
           -FullMatrix $FullMatrix
 
-      - name: Prefetch assets
-        id: prefetch-assets
+      # The publishing workflows save the asset cache entry. The build jobs
+      # restore it under the same key, the day and the hash of the
+      # repository's ci/fetch-assets.ps1, and download any asset it lacks.
+      - name: Hash assets
+        id: hash-assets
         if: inputs.cache-assets
-        uses: ./.github/actions/prefetch_assets
-        with:
-          repo: ${{ inputs.repo-name }}
-          secrets: ${{ toJSON(secrets) }}
-          vars: ${{ toJSON(vars) }}
-          license-key: ${{ secrets.LICENSE_KEY_V4TAC_IPIV4ENTERPRISE }}
-          encryption-key: ${{ secrets.CACHE_ENCRYPTION_KEY }}
+        env:
+          _51DEGREES_REPO: ${{ inputs.repo-name }}
+        run: |
+          $key = ./steps/prefetch-cache-key.ps1 -FetchScript "$env:_51DEGREES_REPO/ci/fetch-assets.ps1"
+          "key=$key" >> $env:GITHUB_OUTPUT
 
   BuildAndTest:
     needs: Configure

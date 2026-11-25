@@ -110,3 +110,29 @@ Describe 'The free data files in prefetch_assets' {
         $saving | Should -Be @('nightly-publish-main.yml', 'nightly-publish.yml')
     }
 }
+
+Describe 'The asset cache entry' {
+
+    BeforeAll {
+        $script:Workflows = Get-ChildItem (Join-Path $PSScriptRoot '../.github/workflows') -Filter '*.yml'
+        $script:PullRequest = Get-Content -Raw (Join-Path $PSScriptRoot '../.github/workflows/nightly-pull-request.yml')
+        $script:Configure = ($script:PullRequest -split '(?m)^  BuildAndTest:', 2)[0]
+    }
+
+    # The prefetch saves the entry, so only the publishing workflows run it.
+    It 'is saved by the publishing workflows alone' {
+        $saving = $script:Workflows | Where-Object { (Get-Content -Raw $_.FullName) -match 'prefetch_assets' } |
+            ForEach-Object Name | Sort-Object
+        $saving | Should -Be @('nightly-publish-main.yml', 'nightly-publish.yml')
+    }
+
+    # A pull request build works out the key the publishing workflows save
+    # with and restores that entry. Its Configure job takes neither the cache
+    # key nor the data file license.
+    It 'is restored by the pull request build under the key the prefetch saves with' {
+        $script:Configure | Should -Match 'steps/prefetch-cache-key\.ps1'
+        $script:Configure | Should -Match 'ci/fetch-assets\.ps1'
+        $script:Configure | Should -Match 'asset_cache_key: \$\{\{ steps\.hash-assets\.outputs\.key \}\}'
+        $script:Configure | Should -Not -Match 'CACHE_ENCRYPTION_KEY|LICENSE_KEY_V4TAC_IPIV4ENTERPRISE|toJSON\(secrets\)'
+    }
+}

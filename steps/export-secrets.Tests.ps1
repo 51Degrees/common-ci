@@ -5,7 +5,7 @@
 # name starts with _51DEGREES_ and the secrets that only CI uses, which
 # ci-secrets.psd1 lists, and nothing else. A name listed under Publish is
 # exported only with -Publish, and one listed under Sign only with -Sign. A
-# name listed under Data is never exported. A
+# name listed under Data or Cache is never exported. A
 # name that is both a secret and a variable is an error. The tests run it in
 # this process, so each test clears the variables it set, and point GITHUB_ENV
 # at a file of their own.
@@ -123,6 +123,18 @@ Describe 'export-secrets.ps1' {
         foreach ($name in $script:Given.Keys) {
             if ($name -cin $script:Exported) { continue }
             Test-Path -Path "Env:$name" | Should -BeFalse -Because "$name is neither a _51DEGREES_ secret nor a listed CI secret"
+        }
+    }
+
+    It 'never exports the asset cache key, even to a job that publishes and signs' {
+        $given = [ordered]@{} + $script:Given
+        $given['CACHE_ENCRYPTION_KEY'] = 'value-cache-key-5e2d'
+        try {
+            Invoke-Step -Json ($given | ConvertTo-Json -Compress) | Out-Null
+            Test-Path -Path 'Env:CACHE_ENCRYPTION_KEY' | Should -BeFalse
+            Get-Content -Raw -LiteralPath $script:GitHubEnv | Should -Not -Match 'CACHE_ENCRYPTION_KEY|value-cache-key-5e2d'
+        } finally {
+            Remove-Item -Path 'Env:CACHE_ENCRYPTION_KEY' -ErrorAction SilentlyContinue
         }
     }
 
@@ -498,8 +510,12 @@ Describe 'ci-secrets.psd1' {
         @($script:Lists.Data) | Should -Be @('LICENSE_KEY_V4TAC_IPIV4ENTERPRISE')
     }
 
-    It 'has no class other than Every, Publish, Sign and Data' {
-        @($script:Lists.Keys | Sort-Object) | Should -Be @('Data', 'Every', 'Publish', 'Sign')
+    It 'holds exactly the asset cache key under Cache' {
+        @($script:Lists.Cache) | Should -Be @('CACHE_ENCRYPTION_KEY')
+    }
+
+    It 'has no class other than Every, Publish, Sign, Data and Cache' {
+        @($script:Lists.Keys | Sort-Object) | Should -Be @('Cache', 'Data', 'Every', 'Publish', 'Sign')
     }
 }
 

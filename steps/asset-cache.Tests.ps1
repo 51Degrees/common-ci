@@ -27,6 +27,11 @@ BeforeAll {
         $hashes
     }
 
+    # The names of the files in the work folder's assets, in order.
+    function Get-Restored {
+        @((Get-Hashes (Join-Path $script:Work 'assets')).Keys | Sort-Object)
+    }
+
     # Moves the saved cache folder alone into a new work folder, as a new job
     # that restores the cache.
     function Copy-ToNewJob {
@@ -37,16 +42,45 @@ BeforeAll {
         $script:Work = $job
     }
 
-    # Runs the step in its own work folder with the key set, or without it.
-    function Invoke-Step ([string]$Work, [string]$Key, [switch]$Save, [switch]$Restore) {
+    # A folder whose openssl fails every time, for -Openssl failing.
+    function New-FailingOpenssl {
+        $folder = Join-Path ([IO.Path]::GetTempPath()) "asset-cache-openssl-$(New-Guid)"
+        New-Item -ItemType Directory -Path $folder | Out-Null
+        if ($IsWindows) {
+            Set-Content -Path (Join-Path $folder 'openssl.cmd') -Value '@exit /b 1'
+        } else {
+            $file = Join-Path $folder 'openssl'
+            Set-Content -Path $file -Value "#!/bin/sh`nexit 1"
+            chmod +x $file
+        }
+        $folder
+    }
+
+    # Runs the step in its own work folder with the key set, or without it,
+    # and keeps its warnings in $script:Warnings. With -Openssl missing, the
+    # PATH holds no openssl, and with -Openssl failing, an openssl that fails.
+    function Invoke-Step ([string]$Work, [string]$Key, [switch]$Save, [switch]$Restore,
+        [ValidateSet('', 'missing', 'failing')][string]$Openssl = '') {
         $before = $env:CACHE_ENCRYPTION_KEY
+        $path = $env:PATH
         $env:CACHE_ENCRYPTION_KEY = $Key
+        $fake = $null
+        if ($Openssl -eq 'missing') { $env:PATH = $Work }
+        if ($Openssl -eq 'failing') { $fake = New-FailingOpenssl; $env:PATH = $fake }
+        $stepWarnings = $null
         Push-Location $Work
         try {
-            if ($Save) { & $script:Step -Save 3>$null } else { & $script:Step -Restore }
+            if ($Save) {
+                & $script:Step -Save -WarningVariable stepWarnings 3>$null
+            } else {
+                & $script:Step -Restore -WarningVariable stepWarnings 3>$null
+            }
         } finally {
             Pop-Location
             $env:CACHE_ENCRYPTION_KEY = $before
+            $env:PATH = $path
+            if ($fake) { Remove-Item -Recurse -Force $fake }
+            $script:Warnings = (@($stepWarnings) | ForEach-Object { "$_" }) -join "`n"
         }
     }
 }
@@ -90,39 +124,87 @@ Describe 'asset-cache.ps1' {
         foreach ($name in $script:Original.Keys) {
             $restored[$name] | Should -Be $script:Original[$name] -Because "$name comes back with the bytes it was saved with"
         }
+        $script:Warnings | Should -BeNullOrEmpty
         Join-Path $script:Work 'asset-cache' | Should -Not -Exist
     }
 
-    It 'restores, without the key, no file that is not free, and fails naming what is missing' {
+    It 'restores, without the key, the free files alone, and warns naming the others' {
         Invoke-Step $script:Work $script:Key -Save | Out-Null
         Copy-ToNewJob
-        $failure = $null
-        try { Invoke-Step $script:Work '' -Restore } catch { $failure = $_.Exception.Message }
-        $failure | Should -Match 'CACHE_ENCRYPTION_KEY is not set'
+        { Invoke-Step $script:Work '' -Restore } | Should -Not -Throw
+        $script:Warnings | Should -Match 'CACHE_ENCRYPTION_KEY is not set'
         foreach ($name in $script:Licensed) {
-            $failure | Should -Match ([regex]::Escape($name))
+            $script:Warnings | Should -Match ([regex]::Escape($name))
         }
-        $failure | Should -Not -Match ([regex]::Escape($script:Key))
-        $restored = Get-Hashes (Join-Path $script:Work 'assets')
-        @($restored.Keys | Sort-Object) | Should -Be @($script:Free | Sort-Object) -Because 'only the free files are restored'
+        $script:Warnings | Should -Not -Match ([regex]::Escape($script:Key))
+        Get-Restored | Should -Be @($script:Free | Sort-Object) -Because 'only the free files are restored'
         Join-Path $script:Work 'asset-cache' | Should -Not -Exist
     }
 
-    It 'restores, with another key, no file that is not free, and fails without printing either key' {
+    It 'restores, with another key, the free files alone, and warns without printing either key' {
         Invoke-Step $script:Work $script:Key -Save | Out-Null
         Copy-ToNewJob
         $other = [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
-        $failure = $null
-        try { Invoke-Step $script:Work $other -Restore } catch { $failure = $_.Exception.Message }
-        $failure | Should -Match 'did not decrypt'
-        $failure | Should -Not -Match ([regex]::Escape($script:Key))
-        $failure | Should -Not -Match ([regex]::Escape($other))
-        $restored = Get-Hashes (Join-Path $script:Work 'assets')
-        @($restored.Keys | Sort-Object) | Should -Be @($script:Free | Sort-Object)
+        { Invoke-Step $script:Work $other -Restore } | Should -Not -Throw
+        $script:Warnings | Should -Match 'did not decrypt'
+        $script:Warnings | Should -Not -Match ([regex]::Escape($script:Key))
+        $script:Warnings | Should -Not -Match ([regex]::Escape($other))
+        Get-Restored | Should -Be @($script:Free | Sort-Object)
+        Join-Path $script:Work 'asset-cache' | Should -Not -Exist
+    }
+
+    It 'restores every file that decrypts, and warns naming one that is cut short' {
+        Invoke-Step $script:Work $script:Key -Save | Out-Null
+        Copy-ToNewJob
+        $short = Join-Path $script:Work "asset-cache/$($script:Licensed[0]).enc"
+        $bytes = [IO.File]::ReadAllBytes($short)
+        [IO.File]::WriteAllBytes($short, $bytes[0..($bytes.Length - 40)])
+        { Invoke-Step $script:Work $script:Key -Restore } | Should -Not -Throw
+        $script:Warnings | Should -Match ([regex]::Escape($script:Licensed[0]))
+        Get-Restored | Should -Be @(($script:Free + $script:Licensed[1..2]) | Sort-Object)
+        Join-Path $script:Work "assets/$($script:Licensed[0]).partial" | Should -Not -Exist
+    }
+
+    It 'restores no encrypted file when the cache names one outside the assets folder, and warns naming it' {
+        Invoke-Step $script:Work $script:Key -Save | Out-Null
+        Copy-ToNewJob
+        $manifestPath = Join-Path $script:Work 'asset-cache/encrypted.json'
+        $manifest = Get-Content -Raw $manifestPath | ConvertFrom-Json -AsHashtable
+        $manifest['../outside.bin'] = $manifest[$script:Licensed[0]]
+        $manifest | ConvertTo-Json | Set-Content -LiteralPath $manifestPath
+        { Invoke-Step $script:Work $script:Key -Restore } | Should -Not -Throw
+        $script:Warnings | Should -Match ([regex]::Escape('../outside.bin'))
+        Get-Restored | Should -Be @($script:Free | Sort-Object)
+        Join-Path $script:Work 'outside.bin' | Should -Not -Exist
+        Join-Path $script:Work 'asset-cache' | Should -Not -Exist
+    }
+
+    It 'restores, without openssl, the free files alone, and warns' {
+        Invoke-Step $script:Work $script:Key -Save | Out-Null
+        Copy-ToNewJob
+        { Invoke-Step $script:Work $script:Key -Restore -Openssl missing } | Should -Not -Throw
+        $script:Warnings | Should -Match 'openssl'
+        Get-Restored | Should -Be @($script:Free | Sort-Object)
+        Join-Path $script:Work 'asset-cache' | Should -Not -Exist
     }
 
     It 'saves nothing without the key when a file is not free' {
         Invoke-Step $script:Work '' -Save | Should -BeFalse
+        Join-Path $script:Work 'asset-cache' | Should -Not -Exist
+    }
+
+    It 'saves nothing without openssl when a file is not free, and warns' {
+        { $script:Result = Invoke-Step $script:Work $script:Key -Save -Openssl missing } | Should -Not -Throw
+        $script:Result | Should -BeFalse
+        $script:Warnings | Should -Match 'openssl'
+        Join-Path $script:Work 'asset-cache' | Should -Not -Exist
+    }
+
+    It 'saves nothing when openssl fails, and warns naming the file' {
+        { $script:Result = Invoke-Step $script:Work $script:Key -Save -Openssl failing } | Should -Not -Throw
+        $script:Result | Should -BeFalse
+        $script:Warnings | Should -Match 'could not encrypt'
+        $script:Warnings | Should -Not -Match ([regex]::Escape($script:Key))
         Join-Path $script:Work 'asset-cache' | Should -Not -Exist
     }
 
