@@ -118,7 +118,6 @@ Describe 'Secrets in <_.Name>' -ForEach $Workflows {
         $refs = @(
             '${{ github.ref_name }}'
             '${{ inputs.branch != '''' && inputs.branch || github.ref_name }}'
-            '${{ inputs.ci-secrets-branch != '''' && inputs.ci-secrets-branch || (inputs.branch != '''' && inputs.branch || github.ref_name) }}'
         )
         foreach ($name in $script:Jobs.Keys) {
             $steps = @(Get-Steps $script:Jobs[$name])
@@ -132,6 +131,13 @@ Describe 'Secrets in <_.Name>' -ForEach $Workflows {
                 $read | Should -Match ' -Path caller-ci-secrets\.psd1\b' -Because "the read step of $name saves the file the export step reads"
                 $ref = [regex]::Match($read, '(?m)^\s*_51DEGREES_REF:\s*(.+?)\s*$').Groups[1].Value
                 $ref | Should -BeIn $refs -Because "the read step of $name reads at the branch the workflow works on"
+                # Where the head of the pull request may choose rc instead,
+                # the script decides from the event's own values.
+                if ($_.Name -ceq 'nightly-pull-request.yml' -or $read -cmatch ' -HeadRef\b') {
+                    $read | Should -Match ' -HeadRef \$env:_51DEGREES_HEAD_REF -HeadRepository \$env:_51DEGREES_HEAD_REPOSITORY\b'
+                    $read | Should -Match '(?m)^\s*_51DEGREES_HEAD_REF: \$\{\{ inputs\.ci-secrets-branch \}\}\s*$'
+                    $read | Should -Match '(?m)^\s*_51DEGREES_HEAD_REPOSITORY: \$\{\{ github\.event\.pull_request\.head\.repo\.full_name \}\}\s*$'
+                }
             }
         }
     }
