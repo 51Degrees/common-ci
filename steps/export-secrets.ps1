@@ -22,8 +22,9 @@
 
     Nothing is renamed, filled from another name or defaulted.
 
-    A name holds one thing. A name that is both a secret and a variable is an
-    error, so the step fails naming it and exports nothing.
+    A name holds one thing. A name this step exports that is both a secret
+    and a variable is an error, even in a class the job does not take, so the
+    step fails naming it and exports nothing.
 
     The log carries the names alone.
 
@@ -38,22 +39,48 @@
 
 .PARAMETER Sign
     The job signs, so it takes the names under Sign.
+
+.PARAMETER CallerList
+    The calling repository's own list of the CI secrets its build and test
+    scripts read, its ci/ci-secrets.psd1 as steps/get-caller-ci-secrets.ps1
+    saved it, with the names under Scripts. Only the jobs that run the
+    caller's build and test scripts pass it. When the file is not there, the
+    caller has no list and nothing more is exported. A listed name is a
+    secret, in capitals, digits and underscores, that does not start
+    _51DEGREES_ and that ci-secrets.psd1 does not list in any class. Any
+    other listed name stops the step, as does a listed name the job does not
+    have as a secret.
 #>
 param(
     [Parameter(Mandatory)][string]$Secrets,
     [Parameter(Mandatory)][string]$Vars,
     [switch]$Publish,
-    [switch]$Sign
+    [switch]$Sign,
+    [string]$CallerList
 )
 $ErrorActionPreference = "Stop"
 
 $prefix = '_51DEGREES_'
 $ci = Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot 'ci-secrets.psd1')
 
+# The names the calling repository lists for its own scripts.
+$caller = @()
+if ($CallerList -and (Test-Path -LiteralPath $CallerList -PathType Leaf)) {
+    $caller = @((Import-PowerShellDataFile -LiteralPath $CallerList).Scripts | Where-Object { $_ })
+    $own = @($ci.Values | ForEach-Object { $_ })
+    $refused = @($caller | Where-Object {
+        $_ -cnotmatch '^[A-Z][A-Z0-9_]*$' -or $_.StartsWith($prefix, [StringComparison]::Ordinal) -or $_ -cin $own
+    })
+    if ($refused.Count -gt 0) {
+        throw "The repository's ci/ci-secrets.psd1 may list only secrets that its own scripts read, not: $($refused -join ', ')"
+    }
+}
+
 # Whether this step knows a name at all.
 function Test-Known ([string]$Name) {
     return $Name.StartsWith($prefix, [StringComparison]::Ordinal) -or
-        $Name -cin $ci.Every -or $Name -cin $ci.Publish -or $Name -cin $ci.Sign
+        $Name -cin $ci.Every -or $Name -cin $ci.Publish -or $Name -cin $ci.Sign -or
+        $Name -cin $caller
 }
 
 # Whether this job takes a name it knows.
@@ -79,6 +106,11 @@ $namedVars = Get-Named $Vars
 $both = @($namedVars.Keys | Where-Object { $namedSecrets.ContainsKey($_) } | Sort-Object)
 if ($both.Count -gt 0) {
     throw "Both a secret and a variable, and a name holds one thing: $($both -join ', ')"
+}
+
+$missing = @($caller | Where-Object { [string]::IsNullOrEmpty([string]$namedSecrets[$_]) } | Sort-Object -Unique)
+if ($missing.Count -gt 0) {
+    throw "The repository's ci/ci-secrets.psd1 lists secrets this job does not have: $($missing -join ', ')"
 }
 
 function Export-Named ([hashtable]$Named) {

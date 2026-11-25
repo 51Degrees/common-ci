@@ -230,7 +230,7 @@ if ($env:_51DEGREES_ALLOW_EARLY_RELEASE -eq 'true') {
 }
 
 Write-Output ("::error title=Released less than a week ago::$facts An early " +
-    "release needs James Rosewell's permission. With it, $HowToAllow")
+    "release needs permission for that release. With it, $HowToAllow")
 Write-Output ""
 if ($lastDay -gt $today) {
     Write-Output ("The last release is dated after today, $(Format-Day $today), " +

@@ -239,9 +239,18 @@ Describe 'export-secrets.ps1' {
             }
         }
 
+        # The name is joined at run time, so that no file holds a publishing
+        # class under the prefix, which names.Tests.ps1 forbids.
         It 'takes the class from the lists alone, not from the start of the name' {
-            Invoke-Step -Json $script:Json -Publish $false -Sign $false | Out-Null
-            (Get-Item -Path 'Env:_51DEGREES_NOT_PUBLISH_OR_SIGN').Value | Should -Be $script:Given['_51DEGREES_NOT_PUBLISH_OR_SIGN']
+            $lookalike = '_51DEGREES_' + 'PUBLISH_' + 'LOOKALIKE'
+            $json = @{ $lookalike = 'value-lookalike-4b8e'; NUGET_API_KEY = 'value-nuget-key-8d2b' } | ConvertTo-Json -Compress
+            try {
+                Invoke-Step -Json $json -Publish $false -Sign $false | Out-Null
+                (Get-Item -Path "Env:$lookalike").Value | Should -Be 'value-lookalike-4b8e'
+                Test-Path -Path 'Env:NUGET_API_KEY' | Should -BeFalse
+            } finally {
+                Remove-Item -Path "Env:$lookalike" -ErrorAction SilentlyContinue
+            }
         }
 
         It 'treats a variable as it treats a secret' {
@@ -335,6 +344,186 @@ Describe 'export-secrets.ps1' {
             Test-Path -Path 'Env:_51DEGREES_CLOUD_ENDPOINT' | Should -BeFalse
             (Get-Item -Path 'Env:_51DEGREES_WEEKLY_RELEASES_FROM').Value | Should -Be 'value-weekly-from-3b5c'
         }
+    }
+
+    # The calling repository lists the CI secrets its own build and test
+    # scripts read in ci/ci-secrets.psd1. The jobs that run those scripts pass
+    # the list as -CallerList, and no other job does.
+    Context 'the calling repository''s list' {
+
+        BeforeAll {
+            $script:CallerGiven = [ordered]@{
+                CALLER_ONLY_KEY = "-----BEGIN KEY-----`nline-one-4b7d`n-----END KEY-----"
+                CALLER_ONLY_TOKEN = 'value-caller-token-1f5c'
+            }
+            $script:CallerJson = ([ordered]@{} + $script:Given + $script:CallerGiven) | ConvertTo-Json -Compress
+            # One of them, held in a variable as the other names here are.
+            $script:Token = 'CALLER_ONLY_TOKEN'
+
+            # Writes a caller list holding the names given and returns its path.
+            function New-CallerList ([string[]]$Names) {
+                $path = Join-Path ([IO.Path]::GetTempPath()) "caller-ci-secrets-$(New-Guid).psd1"
+                $quoted = ($Names | ForEach-Object { "        '$_'" }) -join "`n"
+                Set-Content -LiteralPath $path -Value "@{`n    Scripts = @(`n$quoted`n    )`n}"
+                return $path
+            }
+        }
+
+        AfterEach {
+            foreach ($name in $script:CallerGiven.Keys) { Remove-Item -Path "Env:$name" -ErrorAction SilentlyContinue }
+        }
+
+        It 'exports the names the list holds to a job that passes it' {
+            $list = New-CallerList @($script:CallerGiven.Keys)
+            try {
+                & $script:Step -Secrets $script:CallerJson -Vars '{}' -CallerList $list *>&1 | Out-Null
+                $written = Read-GitHubEnv $script:GitHubEnv
+                foreach ($name in $script:CallerGiven.Keys) {
+                    (Get-Item -Path "Env:$name").Value | Should -Be $script:CallerGiven[$name]
+                    $written[$name] | Should -Be $script:CallerGiven[$name] -Because 'a multi-line value arrives whole'
+                }
+            } finally { Remove-Item -LiteralPath $list -ErrorAction SilentlyContinue }
+        }
+
+        It 'exports none of them to a job that does not pass the list' {
+            & $script:Step -Secrets $script:CallerJson -Vars '{}' -Publish -Sign *>&1 | Out-Null
+            foreach ($name in $script:CallerGiven.Keys) {
+                Test-Path -Path "Env:$name" | Should -BeFalse -Because "$name is listed by the caller alone"
+            }
+        }
+
+        It 'exports nothing extra when the caller has no list' {
+            $missing = Join-Path ([IO.Path]::GetTempPath()) "no-caller-list-$(New-Guid).psd1"
+            & $script:Step -Secrets $script:CallerJson -Vars '{}' -CallerList $missing *>&1 | Out-Null
+            foreach ($name in $script:CallerGiven.Keys) {
+                Test-Path -Path "Env:$name" | Should -BeFalse
+            }
+            (Get-Item -Path 'Env:CI_ACCESS_TOKEN').Value | Should -Be $script:Given['CI_ACCESS_TOKEN']
+        }
+
+        It 'stops naming a listed secret that is missing, and exports nothing' {
+            $list = New-CallerList @('CALLER_ONLY_KEY', 'CALLER_NOT_SET')
+            try {
+                { & $script:Step -Secrets $script:CallerJson -Vars '{}' -CallerList $list *>&1 | Out-Null } |
+                    Should -Throw '*CALLER_NOT_SET*'
+                foreach ($name in $script:CallerGiven.Keys) {
+                    Test-Path -Path "Env:$name" | Should -BeFalse -Because 'nothing is exported when a listed name is missing'
+                }
+                (Get-Content -LiteralPath $script:GitHubEnv) | Should -BeNullOrEmpty
+            } finally { Remove-Item -LiteralPath $list -ErrorAction SilentlyContinue }
+        }
+
+        It 'refuses a publishing, signing or _51DEGREES_ name on the list' {
+            foreach ($name in 'NPM_AUTH_TOKEN', 'CODE_SIGNING_KEY_VAULT_URL', '_51DEGREES_LICENSE_KEY') {
+                $list = New-CallerList @($name)
+                try {
+                    { & $script:Step -Secrets $script:CallerJson -Vars '{}' -CallerList $list *>&1 | Out-Null } |
+                        Should -Throw "*$name*"
+                    Test-Path -Path "Env:$name" | Should -BeFalse
+                } finally { Remove-Item -LiteralPath $list -ErrorAction SilentlyContinue }
+            }
+        }
+
+        It 'refuses every name that ci-secrets.psd1 lists, in any class' {
+            $own = @($script:Ci.Values | ForEach-Object { $_ })
+            $own.Count | Should -BeGreaterThan 0
+            foreach ($name in $own) {
+                $list = New-CallerList @($name)
+                try {
+                    { & $script:Step -Secrets $script:CallerJson -Vars '{}' -Publish -Sign -CallerList $list *>&1 | Out-Null } |
+                        Should -Throw "*may list only*$name*" -Because "$name reaches a job by the rules of ci-secrets.psd1"
+                } finally { Remove-Item -LiteralPath $list -ErrorAction SilentlyContinue }
+            }
+        }
+
+        It 'refuses a name that is not in capitals, digits and underscores' {
+            foreach ($name in 'github_token', 'Caller_Only_Token', 'CALLER-ONLY-TOKEN', '1CALLER_TOKEN') {
+                $list = New-CallerList @($name)
+                try {
+                    { & $script:Step -Secrets $script:CallerJson -Vars '{}' -CallerList $list *>&1 | Out-Null } |
+                        Should -Throw "*may list only*$name*"
+                } finally { Remove-Item -LiteralPath $list -ErrorAction SilentlyContinue }
+            }
+        }
+
+        It 'takes a listed name from the secrets alone, so a variable of that name is missing' {
+            $list = New-CallerList @('CALLER_ONLY_TOKEN')
+            $vars = @{ CALLER_ONLY_TOKEN = 'value-caller-variable-8e2d' } | ConvertTo-Json -Compress
+            try {
+                { & $script:Step -Secrets '{}' -Vars $vars -CallerList $list *>&1 | Out-Null } |
+                    Should -Throw '*does not have*CALLER_ONLY_TOKEN*'
+                Test-Path -Path "Env:$script:Token" | Should -BeFalse
+            } finally { Remove-Item -LiteralPath $list -ErrorAction SilentlyContinue }
+        }
+
+        It 'fails naming a listed name that is both a secret and a variable, and exports nothing' {
+            $list = New-CallerList @('CALLER_ONLY_TOKEN')
+            $vars = @{ CALLER_ONLY_TOKEN = 'value-caller-variable-8e2d' } | ConvertTo-Json -Compress
+            try {
+                { & $script:Step -Secrets $script:CallerJson -Vars $vars -CallerList $list *>&1 | Out-Null } |
+                    Should -Throw '*Both a secret and a variable*CALLER_ONLY_TOKEN*'
+                Test-Path -Path "Env:$script:Token" | Should -BeFalse
+                (Get-Content -LiteralPath $script:GitHubEnv) | Should -BeNullOrEmpty
+            } finally { Remove-Item -LiteralPath $list -ErrorAction SilentlyContinue }
+        }
+
+        It 'exports a name listed twice once' {
+            $list = New-CallerList @('CALLER_ONLY_TOKEN', 'CALLER_ONLY_TOKEN')
+            try {
+                $output = & $script:Step -Secrets $script:CallerJson -Vars '{}' -CallerList $list *>&1 | Out-String
+                (Get-Item -Path "Env:$script:Token").Value | Should -Be $script:CallerGiven['CALLER_ONLY_TOKEN']
+                @(Get-Content -LiteralPath $script:GitHubEnv | Where-Object { $_ -cmatch '^CALLER_ONLY_TOKEN(<<|=)' }).Count | Should -Be 1
+                ([regex]::Matches($output, 'CALLER_ONLY_TOKEN')).Count | Should -Be 1
+            } finally { Remove-Item -LiteralPath $list -ErrorAction SilentlyContinue }
+        }
+
+        It 'writes only names to its output' {
+            $list = New-CallerList @($script:CallerGiven.Keys)
+            try {
+                $output = & $script:Step -Secrets $script:CallerJson -Vars '{}' -CallerList $list *>&1 | Out-String
+                foreach ($name in $script:CallerGiven.Keys) {
+                    foreach ($line in ($script:CallerGiven[$name] -split "`n")) {
+                        $output | Should -Not -Match ([regex]::Escape($line))
+                    }
+                    $output | Should -Match $name
+                }
+            } finally { Remove-Item -LiteralPath $list -ErrorAction SilentlyContinue }
+        }
+    }
+}
+
+# The lists decide which job receives a secret, so they are pinned here by
+# name.
+Describe 'ci-secrets.psd1' {
+
+    BeforeAll {
+        $script:Lists = Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot 'ci-secrets.psd1')
+    }
+
+    It 'gives every job the automation token alone' {
+        @($script:Lists.Every) | Should -Be @('CI_ACCESS_TOKEN')
+    }
+
+    It 'holds exactly the publishing secrets under Publish' {
+        @($script:Lists.Publish | Sort-Object) | Should -Be @(
+            'MAVEN_SETTINGS', 'NPM_AUTH_TOKEN', 'NUGET_API_KEY', 'PUBLISH_ACCESS_TOKEN', 'PYPI_TOKEN')
+    }
+
+    It 'holds exactly the signing secrets under Sign' {
+        @($script:Lists.Sign | Sort-Object) | Should -Be @(
+            'CODE_SIGNING_KEY_VAULT_CERTIFICATE_DATA', 'CODE_SIGNING_KEY_VAULT_CERTIFICATE_NAME',
+            'CODE_SIGNING_KEY_VAULT_CLIENT_ID', 'CODE_SIGNING_KEY_VAULT_CLIENT_SECRET',
+            'CODE_SIGNING_KEY_VAULT_NAME', 'CODE_SIGNING_KEY_VAULT_TENANT_ID',
+            'CODE_SIGNING_KEY_VAULT_URL', 'JAVA_GPG_KEY_PASSPHRASE', 'JAVA_KEY_PGP_FILE',
+            'STRONG_NAME_KEY_BASE64')
+    }
+
+    It 'holds exactly the data file license under Data' {
+        @($script:Lists.Data) | Should -Be @('LICENSE_KEY_V4TAC_IPIV4ENTERPRISE')
+    }
+
+    It 'has no class other than Every, Publish, Sign and Data' {
+        @($script:Lists.Keys | Sort-Object) | Should -Be @('Data', 'Every', 'Publish', 'Sign')
     }
 }
 
