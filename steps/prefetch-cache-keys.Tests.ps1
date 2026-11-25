@@ -117,22 +117,40 @@ Describe 'The asset cache entry' {
         $script:Workflows = Get-ChildItem (Join-Path $PSScriptRoot '../.github/workflows') -Filter '*.yml'
         $script:PullRequest = Get-Content -Raw (Join-Path $PSScriptRoot '../.github/workflows/nightly-pull-request.yml')
         $script:Configure = ($script:PullRequest -split '(?m)^  BuildAndTest:', 2)[0]
+        function Get-ConfigureStep ([string]$Name) {
+            ($script:Configure -split '(?m)^      - name: ') | Where-Object { $_.StartsWith($Name) }
+        }
     }
 
-    # The prefetch saves the entry, so only the publishing workflows run it.
-    It 'is saved by the publishing workflows alone' {
+    # The prefetch saves the entry, so it runs in the publishing workflows and
+    # in the pull request build.
+    It 'is saved by the publishing workflows and the pull request build alone' {
         $saving = $script:Workflows | Where-Object { (Get-Content -Raw $_.FullName) -match 'prefetch_assets' } |
             ForEach-Object Name | Sort-Object
-        $saving | Should -Be @('nightly-publish-main.yml', 'nightly-publish.yml')
+        $saving | Should -Be @('nightly-publish-main.yml', 'nightly-publish.yml', 'nightly-pull-request.yml')
     }
 
-    # A pull request build works out the key the publishing workflows save
-    # with and restores that entry. Its Configure job takes neither the cache
-    # key nor the data file license.
+    # A pull request's own run saves the entry where only that pull request
+    # reads it, so the pull request build prefetches for that event alone.
+    It 'is filled by a pull request''s own run when the day''s entry is missing' {
+        $prefetch = Get-ConfigureStep 'Prefetch assets'
+        $prefetch | Should -Match "if: inputs\.cache-assets && github\.event_name == 'pull_request'\r?\n"
+        $prefetch | Should -Match 'uses: \./\.github/actions/prefetch_assets'
+        $prefetch | Should -Match 'license-key: \$\{\{ secrets\.LICENSE_KEY_V4TAC_IPIV4ENTERPRISE \}\}'
+        $prefetch | Should -Match 'encryption-key: \$\{\{ secrets\.CACHE_ENCRYPTION_KEY \}\}'
+        $prefetch | Should -Not -Match 'save-free-data'
+    }
+
+    # Any other run of the pull request build, such as the nightly's on a
+    # branch, works out the key the publishing workflows save with and
+    # restores that entry, taking neither the cache key nor the data file
+    # license.
     It 'is restored by the pull request build under the key the prefetch saves with' {
-        $script:Configure | Should -Match 'steps/prefetch-cache-key\.ps1'
-        $script:Configure | Should -Match 'ci/fetch-assets\.ps1'
-        $script:Configure | Should -Match 'asset_cache_key: \$\{\{ steps\.hash-assets\.outputs\.key \}\}'
-        $script:Configure | Should -Not -Match 'CACHE_ENCRYPTION_KEY|LICENSE_KEY_V4TAC_IPIV4ENTERPRISE|toJSON\(secrets\)'
+        $hash = Get-ConfigureStep 'Hash assets'
+        $hash | Should -Match "if: inputs\.cache-assets && github\.event_name != 'pull_request'\r?\n"
+        $hash | Should -Match 'steps/prefetch-cache-key\.ps1'
+        $hash | Should -Match 'ci/fetch-assets\.ps1'
+        $hash | Should -Not -Match 'CACHE_ENCRYPTION_KEY|LICENSE_KEY_V4TAC_IPIV4ENTERPRISE|toJSON\(secrets\)'
+        $script:Configure | Should -Match 'asset_cache_key: \$\{\{ steps\.prefetch-assets\.outputs\.cache-key \|\| steps\.hash-assets\.outputs\.key \}\}'
     }
 }

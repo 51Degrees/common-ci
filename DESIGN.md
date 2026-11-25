@@ -232,9 +232,18 @@ repository requires assets to be located in a different place, [symbolic links](
 or regular file copies may be used to put cached assets in the right places during build.
 
 The cache key is the current date and the hash of the repository's `ci/fetch-assets.ps1`, so the cache is
-invalidated daily, as well as when the list of assets changes. No secret takes part in the key. Only the publishing
-workflows, `nightly-publish.yml` and `nightly-publish-main.yml`, run the prefetch and save the entry. A pull request
-build works out the same key and restores that entry, and its jobs download any asset it lacks.
+invalidated daily, as well as when the list of assets changes. No secret takes part in the key. The publishing
+workflows, `nightly-publish.yml` and `nightly-publish-main.yml`, run the prefetch and save the branch's entry. The pull
+request build runs the prefetch only for a pull request's own run, such as the release pull request's, which saves the
+entry where only that pull request's runs read it, so its checks never wait for a publishing run. Every other run of
+the pull request build, such as the nightly's, builds pull request code where the branch's own runs read, so it saves
+nothing. It works out the same key and restores the branch's entry, and its jobs download any asset it lacks.
+
+A check that needs assets and must never download them uses
+[actions/fetch-assets](actions/fetch-assets/action.yml) in two jobs. The first runs it with `cache` and `lazy`, which
+downloads and saves the assets only when the day's entry is missing, and gives the entry's key as `cache-key`. The
+check's job passes that key back as the `cache-key` input, so the action takes every asset from that entry, downloads
+none, and fails naming any asset the entry lacks.
 
 The cache holds the `asset-cache` folder, never `assets` itself. Before the save,
 [steps/asset-cache.ps1](steps/asset-cache.ps1) `-Save` copies the free files, those named in

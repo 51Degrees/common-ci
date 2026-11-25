@@ -67,7 +67,7 @@ jobs:
     outputs:
       options: ${{ steps.configure.outputs.options }}
       build: ${{ steps.configure.outputs.build }}
-      asset_cache_key: ${{ steps.hash-assets.outputs.key }}
+      asset_cache_key: ${{ steps.prefetch-assets.outputs.cache-key || steps.hash-assets.outputs.key }}
     steps:
       - name: Checkout Common
         uses: actions/checkout@v6
@@ -91,12 +91,28 @@ jobs:
           -GitHubEmail ${{ inputs.email }} `
           -FullMatrix $FullMatrix
 
-      # The publishing workflows save the asset cache entry. The build jobs
-      # restore it under the same key, the day and the hash of the
-      # repository's ci/fetch-assets.ps1, and download any asset it lacks.
+      # A pull request's own run, such as the release pull request's, fills
+      # the asset cache when the day's entry is missing, with the data file
+      # license and the cache key the run already has. The entry is saved
+      # where only that pull request's runs read it. A run on a branch, such
+      # as the nightly's, builds pull request code where the branch's own
+      # runs read, so it saves nothing. It works out the key the publishing
+      # workflows save with, and its build jobs download any asset that entry
+      # lacks.
+      - name: Prefetch assets
+        id: prefetch-assets
+        if: inputs.cache-assets && github.event_name == 'pull_request'
+        uses: ./.github/actions/prefetch_assets
+        with:
+          repo: ${{ inputs.repo-name }}
+          secrets: ${{ toJSON(secrets) }}
+          vars: ${{ toJSON(vars) }}
+          license-key: ${{ secrets.LICENSE_KEY_V4TAC_IPIV4ENTERPRISE }}
+          encryption-key: ${{ secrets.CACHE_ENCRYPTION_KEY }}
+
       - name: Hash assets
         id: hash-assets
-        if: inputs.cache-assets
+        if: inputs.cache-assets && github.event_name != 'pull_request'
         env:
           _51DEGREES_REPO: ${{ inputs.repo-name }}
         run: |
