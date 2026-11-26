@@ -141,11 +141,24 @@ Describe 'The asset cache entry' {
     # reads it, so the pull request build prefetches for that event alone.
     It 'is filled by a pull request''s own run when the day''s entry is missing' {
         $prefetch = Get-ConfigureStep 'Prefetch assets'
-        $prefetch | Should -Match "if: inputs\.cache-assets && github\.event_name == 'pull_request'\r?\n"
+        $prefetch | Should -Match "if: inputs\.cache-assets && inputs\.fill-asset-cache && github\.event_name == 'pull_request'\r?\n"
         $prefetch | Should -Match 'uses: \./\.github/actions/prefetch_assets'
         $prefetch | Should -Match 'license-key: \$\{\{ secrets\.LICENSE_KEY_V4TAC_IPIV4ENTERPRISE \}\}'
         $prefetch | Should -Match 'encryption-key: \$\{\{ secrets\.CACHE_ENCRYPTION_KEY \}\}'
         $prefetch | Should -Not -Match 'save-free-data'
+    }
+
+    # The pull request's ci/fetch-assets.ps1 runs before the step that takes
+    # the cache encryption key, so the fill is off unless the caller asks,
+    # and only the release pull request's workflow, which builds rc alone,
+    # asks.
+    It 'is filled only for a caller that asks, the release pull request''s workflow alone' {
+        $script:PullRequest | Should -Match '(?m)^      fill-asset-cache:\r?\n(.*\r?\n)?        default: false\r?\n'
+        $asking = $script:Workflows | Where-Object { (Get-Content -Raw $_.FullName) -match '(?m)^\s+fill-asset-cache: true' } |
+            ForEach-Object Name
+        $asking | Should -Be @('release-pull-request.yml')
+        Get-Content -Raw (Join-Path $PSScriptRoot '../.github/workflows/release-pull-request.yml') |
+            Should -Match "github\.head_ref == 'rc' &&"
     }
 
     # Any other run of the pull request build, such as the nightly's on a
@@ -154,7 +167,7 @@ Describe 'The asset cache entry' {
     # license.
     It 'is restored by the pull request build under the key the prefetch saves with' {
         $hash = Get-ConfigureStep 'Hash assets'
-        $hash | Should -Match "if: inputs\.cache-assets && github\.event_name != 'pull_request'\r?\n"
+        $hash | Should -Match "if: inputs\.cache-assets && !\(inputs\.fill-asset-cache && github\.event_name == 'pull_request'\)\r?\n"
         $hash | Should -Match 'steps/prefetch-cache-key\.ps1'
         $hash | Should -Match 'ci/fetch-assets\.ps1'
         $hash | Should -Not -Match 'CACHE_ENCRYPTION_KEY|LICENSE_KEY_V4TAC_IPIV4ENTERPRISE|toJSON\(secrets\)'

@@ -24,6 +24,10 @@ on:
       cache-assets:
         default: false
         type: boolean
+      fill-asset-cache:
+        description: 'In a pull request''s own run, download and save the assets when the day''s cache entry is missing. The pull request''s ci/fetch-assets.ps1 then runs in the job that takes the cache encryption key, so only a caller that builds reviewed branches alone sets it'
+        default: false
+        type: boolean
       common-ci-ref:
         type: string
         default: ''
@@ -96,17 +100,19 @@ jobs:
           -GitHubEmail ${{ inputs.email }} `
           -FullMatrix $FullMatrix
 
-      # A pull request's own run, such as the release pull request's, fills
-      # the asset cache when the day's entry is missing, with the data file
-      # license and the cache encryption key the run already has. The entry
-      # is saved where only that pull request's runs read it. A run on a
-      # branch, such as the nightly's, builds pull request code where the
-      # branch's own runs read, so it saves nothing. It works out the key the
-      # publishing workflows save with, and its build jobs download any asset
-      # that entry lacks.
+      # A pull request's own run fills the asset cache when the day's entry is
+      # missing, with the data file license and the cache encryption key the
+      # run already has, where the caller asks with fill-asset-cache. The
+      # pull request's ci/fetch-assets.ps1 runs before the step that takes
+      # the encryption key, so only the release pull request's workflow,
+      # which builds rc alone, asks. The entry is saved where only that pull
+      # request's runs read it. Every other run, such as the nightly's on a
+      # branch, builds pull request code where the branch's own runs read, so
+      # it saves nothing. It works out the key the publishing workflows save
+      # with, and its build jobs download any asset that entry lacks.
       - name: Prefetch assets
         id: prefetch-assets
-        if: inputs.cache-assets && github.event_name == 'pull_request'
+        if: inputs.cache-assets && inputs.fill-asset-cache && github.event_name == 'pull_request'
         uses: ./.github/actions/prefetch_assets
         with:
           repo: ${{ inputs.repo-name }}
@@ -117,7 +123,7 @@ jobs:
 
       - name: Hash assets
         id: hash-assets
-        if: inputs.cache-assets && github.event_name != 'pull_request'
+        if: inputs.cache-assets && !(inputs.fill-asset-cache && github.event_name == 'pull_request')
         env:
           _51DEGREES_REPO: ${{ inputs.repo-name }}
         run: |
