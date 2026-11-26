@@ -229,8 +229,10 @@ jobs:
           language: ${{ matrix.options.Language }}
           version: ${{ matrix.options.LanguageVersion }}
 
+      # Only an entry that tests the package has the common-ci checkout the
+      # decrypting step runs from, and only it reads the assets.
       - name: Restore Asset Cache
-        if: needs.configure.outputs.asset_cache_key
+        if: ${{ needs.configure.outputs.asset_cache_key && matrix.options.packagerequirement }}
         uses: actions/cache/restore@v5
         with:
           key: ${{ needs.configure.outputs.asset_cache_key }}
@@ -240,7 +242,7 @@ jobs:
       # The free files come out of the cache as they are, and every other
       # file is decrypted with the key it was saved with.
       - name: Decrypt Asset Cache
-        if: needs.configure.outputs.asset_cache_key
+        if: ${{ needs.configure.outputs.asset_cache_key && matrix.options.packagerequirement }}
         env:
           CACHE_ENCRYPTION_KEY: ${{ secrets.CACHE_ENCRYPTION_KEY }}
         run: ./steps/asset-cache.ps1 -Restore

@@ -153,4 +153,18 @@ Describe 'The asset cache entry' {
         $hash | Should -Not -Match 'CACHE_ENCRYPTION_KEY|LICENSE_KEY_V4TAC_IPIV4ENTERPRISE|toJSON\(secrets\)'
         $script:Configure | Should -Match 'asset_cache_key: \$\{\{ steps\.prefetch-assets\.outputs\.cache-key \|\| steps\.hash-assets\.outputs\.key \}\}'
     }
+
+    # The publishing workflows' Test job checks out common-ci only for an
+    # entry that tests the package, so only that entry has the script the
+    # decrypting step runs.
+    It 'is restored and decrypted in <_>''s Test job only by an entry that tests the package' -ForEach @(
+        'nightly-publish.yml', 'nightly-publish-main.yml'
+    ) {
+        $text = Get-Content -Raw (Join-Path $PSScriptRoot "../.github/workflows/$_")
+        $test = ($text -split '(?m)^  Test:', 2)[1]
+        foreach ($name in 'Restore Asset Cache', 'Decrypt Asset Cache') {
+            $step = ($test -split '(?m)^      - name: ') | Where-Object { $_.StartsWith($name) }
+            $step | Should -Match 'if: \$\{\{ needs\.configure\.outputs\.asset_cache_key && matrix\.options\.packagerequirement \}\}\r?\n'
+        }
+    }
 }
