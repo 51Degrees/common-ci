@@ -24,6 +24,10 @@ on:
       cache-assets:
         default: false
         type: boolean
+      fill-asset-cache:
+        description: 'In a pull request''s own run, download and save the assets when the day''s cache entry is missing. The pull request''s ci/fetch-assets.ps1 then runs in the job that takes the cache encryption key, so only a caller that builds reviewed branches alone sets it'
+        default: false
+        type: boolean
       common-ci-ref:
         type: string
         default: ''
@@ -71,7 +75,8 @@ jobs:
     outputs:
       options: ${{ steps.configure.outputs.options }}
       build: ${{ steps.configure.outputs.build }}
-      asset_cache_key: ${{ steps.prefetch-assets.outputs.cache-key }}
+      asset_cache_key: ${{ steps.prefetch-assets.outputs.cache-key || steps.hash-assets.outputs.key }}
+      asset_cache_previous_key: ${{ steps.hash-assets.outputs.previous }}
     steps:
       - name: Checkout Common
         uses: actions/checkout@v6
@@ -95,15 +100,39 @@ jobs:
           -GitHubEmail ${{ inputs.email }} `
           -FullMatrix $FullMatrix
 
+      # A pull request's own run fills the asset cache when the day's entry is
+      # missing, with the data file license and the cache encryption key the
+      # run already has, where the caller asks with fill-asset-cache. The
+      # pull request's ci/fetch-assets.ps1 runs before the step that takes
+      # the encryption key, so only the release pull request's workflow,
+      # which builds rc alone, asks. The entry is saved where only that pull
+      # request's runs read it. Every other run, such as the nightly's on a
+      # branch, builds pull request code where the branch's own runs read, so
+      # it saves nothing. It works out the key the publishing workflows save
+      # with, and its build jobs download any asset that entry lacks.
       - name: Prefetch assets
         id: prefetch-assets
-        if: inputs.cache-assets
+        if: inputs.cache-assets && inputs.fill-asset-cache && github.event_name == 'pull_request'
         uses: ./.github/actions/prefetch_assets
         with:
           repo: ${{ inputs.repo-name }}
           secrets: ${{ toJSON(secrets) }}
           vars: ${{ toJSON(vars) }}
           license-key: ${{ secrets.LICENSE_KEY_V4TAC_IPIV4ENTERPRISE }}
+          encryption-key: ${{ secrets.CACHE_ENCRYPTION_KEY }}
+
+      - name: Hash assets
+        id: hash-assets
+        if: inputs.cache-assets && !(inputs.fill-asset-cache && github.event_name == 'pull_request')
+        env:
+          _51DEGREES_REPO: ${{ inputs.repo-name }}
+        run: |
+          $key = ./steps/prefetch-cache-key.ps1 -FetchScript "$env:_51DEGREES_REPO/ci/fetch-assets.ps1"
+          "key=$key" >> $env:GITHUB_OUTPUT
+          # The nightly builds the pull requests before it publishes, so the
+          # day's entry is not saved yet and the day before's is restored.
+          $previous = ./steps/prefetch-cache-key.ps1 -FetchScript "$env:_51DEGREES_REPO/ci/fetch-assets.ps1" -DaysAgo 1
+          "previous=$previous" >> $env:GITHUB_OUTPUT
 
   BuildAndTest:
     needs: Configure
@@ -135,8 +164,17 @@ jobs:
         uses: actions/cache/restore@v5
         with:
           key: ${{ needs.configure.outputs.asset_cache_key }}
-          path: assets
+          restore-keys: ${{ needs.configure.outputs.asset_cache_previous_key }}
+          path: asset-cache
           enableCrossOsArchive: true
+
+      # The free files come out of the cache as they are, and every other
+      # file is decrypted with the key it was saved with.
+      - name: Decrypt Asset Cache
+        if: needs.configure.outputs.asset_cache_key
+        env:
+          CACHE_ENCRYPTION_KEY: ${{ secrets.CACHE_ENCRYPTION_KEY }}
+        run: ./steps/asset-cache.ps1 -Restore
 
       # The CI secrets the repository's own build and test scripts read, as
       # its ci/ci-secrets.psd1 lists them on the branch the pull request goes

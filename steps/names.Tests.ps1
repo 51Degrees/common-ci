@@ -10,7 +10,7 @@
 BeforeAll {
     $script:Root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
     $script:Ci = Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot 'ci-secrets.psd1')
-    $script:CiNames = @($script:Ci.Every) + @($script:Ci.Publish) + @($script:Ci.Sign) + @($script:Ci.Data)
+    $script:CiNames = @($script:Ci.Every) + @($script:Ci.Publish) + @($script:Ci.Sign) + @($script:Ci.Data) + @($script:Ci.Cache)
     $script:Self = [IO.Path]::GetRelativePath($script:Root, $PSCommandPath) -replace '\\', '/'
 
     # The tracked text files, as paths relative to the root.
@@ -186,6 +186,20 @@ Describe 'A script reads a publishing or signing secret only where it publishes 
         foreach ($path in $signers) {
             $script:Reads[$path] | Where-Object { $_ -cnotin $script:Ci.Sign } |
                 Should -BeNullOrEmpty -Because "$path signs what it builds"
+        }
+    }
+}
+
+Describe 'The scripts the step data files name' {
+
+    It 'names only scripts that exist' {
+        $data = @($script:Files | Where-Object { $_ -like 'steps/*.psd1' })
+        $data.Count | Should -BeGreaterThan 0
+        foreach ($path in $data) {
+            $text = Get-Content -Raw -LiteralPath (Join-Path $script:Root $path)
+            foreach ($match in [regex]::Matches($text, 'steps/[\w.-]+\.ps1')) {
+                Join-Path $script:Root $match.Value | Should -Exist -Because "$path names $($match.Value)"
+            }
         }
     }
 }

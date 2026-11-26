@@ -19,16 +19,10 @@ $PSNativeCommandUseErrorActionPreference = $true
 $cache = New-Item -ItemType Directory -Path assets -Force
 
 # The free data files and test evidence come from the data repository,
-# https://github.com/51Degrees/data, keyed here by asset name. A file stored
-# there as a .link is downloaded by that repository's own script, which follows
-# the link, so the download rules live in one place.
-$dataFiles = @{
-    '51Degrees-LiteV4.1.hash' = 'device-detection/51Degrees-LiteV4.1.hash'
-    '20000 Evidence Records.yml' = 'device-detection/20000 Evidence Records.yml'
-    '51Degrees-LiteIpiV41.ipi' = 'ip-intelligence/51Degrees-LiteV41.ipi'
-    '51Degrees-IPIV4AsnIpiV41.ipi' = 'ip-intelligence/51Degrees-IPIV4AsnIpiV41.ipi'
-    'ip-intelligence-evidence.yml' = 'ip-intelligence/evidence.yml'
-}
+# https://github.com/51Degrees/data, keyed in free-assets.psd1 by asset name.
+# A file stored there as a .link is downloaded by that repository's own
+# script, which follows the link, so the download rules live in one place.
+$dataFiles = Import-PowerShellDataFile -Path (Join-Path $PSScriptRoot 'free-assets.psd1')
 $dataRepository = $null
 # Downloads are tried again after a reset connection.
 $DataAttempts = 3
@@ -39,10 +33,8 @@ function Get-FromData {
         [Parameter(Mandatory)][string]$Asset,
         [Parameter(Mandatory)][string]$Path
     )
-    # One shallow clone serves every asset in this run.
     if (-not $script:dataRepository) {
-        $script:dataRepository = Join-Path ([IO.Path]::GetTempPath()) "data-$PID"
-        git clone --quiet --depth 1 https://github.com/51Degrees/data.git $script:dataRepository
+        $script:dataRepository = & $PSScriptRoot/data-repository.ps1
     }
     $file = Join-Path $script:dataRepository $Path
     if (Test-Path -LiteralPath "$file.link") {
@@ -85,14 +77,23 @@ foreach ($asset in $Assets) {
                 Move-Item -Path $_ -Destination $cache
             }
             "51Degrees.csv" {
-                & $PSScriptRoot/download-data-file.ps1 -DataType 'CSV' -Product 'V4TAC' -FullFilePath "$_.zip"
-                Expand-Archive -DestinationPath . "$_.zip"
-                if ($FullCsv) {
-                    Move-Item -Path '51Degrees-Tac-All.csv' -Destination $cache/$_
-                } else {
-                    Get-Content -TotalCount 1 '51Degrees-Tac-All.csv' > $cache/$_ # Most repos only need the header
+                # The archive holds an export for each component beside the
+                # one for all of them, so it is expanded in a folder of its
+                # own and only the asset is kept.
+                $archive = New-Item -ItemType Directory `
+                    -Path (Join-Path ([IO.Path]::GetTempPath()) "csv-$(New-Guid)")
+                try {
+                    & $PSScriptRoot/download-data-file.ps1 -DataType 'CSV' -Product 'V4TAC' -FullFilePath "$archive/$asset.zip"
+                    Expand-Archive -DestinationPath $archive "$archive/$asset.zip"
+                    $all = Join-Path $archive '51Degrees-Tac-All.csv'
+                    if ($FullCsv) {
+                        Move-Item -LiteralPath $all -Destination $cache/$asset
+                    } else {
+                        Get-Content -TotalCount 1 -LiteralPath $all > $cache/$asset # Most repos only need the header
+                    }
+                } finally {
+                    Remove-Item -Recurse -Force -LiteralPath $archive
                 }
-                Remove-Item -Force "$_.zip", '51Degrees-Tac-All.csv'
             }
             "51Degrees-Tac.zip" {  # same as the CSV above, without extracting
                 & $PSScriptRoot/download-data-file.ps1 -DataType 'CSV' -Product 'V4TAC' -FullFilePath "$cache/$_"
@@ -109,6 +110,7 @@ foreach ($asset in $Assets) {
     }
 }
 
-if ($dataRepository) {
+# In GitHub Actions the clone stays for the rest of the job.
+if ($dataRepository -and -not $env:RUNNER_TEMP) {
     Remove-Item -Recurse -Force -LiteralPath $dataRepository
 }
