@@ -5,8 +5,8 @@
 # name starts with _51DEGREES_ and the secrets that only CI uses, which
 # ci-secrets.psd1 lists, and nothing else. A name listed under Publish is
 # exported only with -Publish, and one listed under Sign only with -Sign. A
-# name listed under Data is never exported. A
-# name that is both a secret and a variable is an error. The tests run it in
+# name listed under Data is never exported. A name that is both a secret and a
+# variable is an error. The tests run it in
 # this process, so each test clears the variables it set, and point GITHUB_ENV
 # at a file of their own.
 
@@ -213,6 +213,30 @@ Describe 'export-secrets.ps1' {
         It 'exports both with both switches' {
             Invoke-Step -Json $script:Json -Publish $true -Sign $true | Out-Null
             Get-Left | Should -Be @($script:Exported | Sort-Object)
+        }
+
+        It 'never exports a name listed under Data, with -Publish:<Publish> -Sign:<Sign>' -ForEach @(
+            @{ Publish = $false; Sign = $false }
+            @{ Publish = $true; Sign = $false }
+            @{ Publish = $false; Sign = $true }
+            @{ Publish = $true; Sign = $true }
+        ) {
+            $script:Ci.Data | Should -Not -BeNullOrEmpty
+            $given = [ordered]@{}
+            foreach ($name in $script:Ci.Data) { $given[$name] = "value-data-$name" }
+            $json = $given | ConvertTo-Json -Compress
+            try {
+                # As secrets, and then as variables.
+                $output = (Invoke-Step -Json $json -Publish $Publish -Sign $Sign) +
+                    (Invoke-Step -Json '{}' -Vars $json -Publish $Publish -Sign $Sign)
+                foreach ($name in $script:Ci.Data) {
+                    Test-Path -Path "Env:$name" | Should -BeFalse -Because "$name is listed under Data"
+                    $output | Should -Not -Match ([regex]::Escape($name)) -Because "$name is not exported"
+                }
+                (Get-Content -LiteralPath $script:GitHubEnv) | Should -BeNullOrEmpty
+            } finally {
+                foreach ($name in $script:Ci.Data) { Remove-Item -Path "Env:$name" -ErrorAction SilentlyContinue }
+            }
         }
 
         # The name is joined at run time, so that no file holds a publishing
