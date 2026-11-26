@@ -45,8 +45,14 @@ BeforeAll {
 
     # Runs the step for the repository org/demo. Every stream, so that the
     # output checks see all the step writes.
-    function Invoke-Step ([string]$Ref = 'rc') {
-        return (& $script:Step -Repository org/demo -Ref $Ref -Path $script:Saved *>&1 | Out-String)
+    function Invoke-Step ([string]$Ref = 'rc', [string]$HeadRef, [string]$HeadRepository) {
+        return (& $script:Step -Repository org/demo -Ref $Ref -HeadRef $HeadRef -HeadRepository $HeadRepository -Path $script:Saved *>&1 | Out-String)
+    }
+
+    # The branch the step asked GitHub for.
+    function Get-AskedRef {
+        $call = $global:CallerCiSecretsTest.Calls[0] -join ' '
+        return [regex]::Match($call, 'ci-secrets\.psd1\?ref=(\S+)').Groups[1].Value
     }
 }
 
@@ -129,6 +135,45 @@ Describe 'get-caller-ci-secrets.ps1' {
         foreach ($content in "@{`n    Scripts = @(`n        'EXAMPLE_TOKEN'", '@{ Scripts = @(Get-Date) }', 'EXAMPLE_TOKEN') {
             Set-Repository -Content $content
             { Invoke-Step } | Should -Throw -Because "this is not a data file: $content"
+        }
+    }
+
+    # A release pull request, rc into main, builds rc's scripts, so it reads
+    # rc's list. Only the same repository's rc is trusted for that, never a
+    # fork, even one whose branch is named rc.
+    Context 'with the branch the pull request comes from' {
+
+        BeforeEach {
+            Set-Repository -Content (New-List 'EXAMPLE_TOKEN')
+        }
+
+        It 'reads the list from the head when it is the same repository''s rc' {
+            Invoke-Step -Ref main -HeadRef rc -HeadRepository org/demo | Out-Null
+            Get-AskedRef | Should -Be 'rc'
+        }
+
+        It 'treats the repository name without regard to case' {
+            Invoke-Step -Ref main -HeadRef rc -HeadRepository Org/Demo | Out-Null
+            Get-AskedRef | Should -Be 'rc'
+        }
+
+        It 'reads the list from the base for any other head in the same repository' {
+            foreach ($head in 'feature/example', 'RC', 'rc2', 'main', '') {
+                Set-Repository -Content (New-List 'EXAMPLE_TOKEN')
+                Invoke-Step -Ref main -HeadRef $head -HeadRepository org/demo | Out-Null
+                Get-AskedRef | Should -Be 'main' -Because "the head '$head' is not rc"
+            }
+        }
+
+        It 'never reads the list from the head of a fork' {
+            foreach ($fork in 'someone/demo', 'org/demo-fork', 'org', '') {
+                foreach ($head in 'rc', 'feature/example') {
+                    Set-Repository -Content (New-List 'EXAMPLE_TOKEN')
+                    Invoke-Step -Ref main -HeadRef $head -HeadRepository $fork | Out-Null
+                    Get-AskedRef | Should -Be 'main' -Because "$fork is not org/demo"
+                    $global:CallerCiSecretsTest.Calls[0] | Should -Contain 'repos/org/demo/contents/ci/ci-secrets.psd1?ref=main'
+                }
+            }
         }
     }
 

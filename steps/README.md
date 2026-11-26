@@ -194,7 +194,7 @@ With `-CallerList`, the step also exports the secrets that the calling repositor
 ## Get Caller CI Secrets
 **Script: `get-caller-ci-secrets.ps1`**
 
-Saves the calling repository's `ci/ci-secrets.psd1`, read through the GitHub API, for `export-secrets.ps1 -CallerList`. A pull request job reads it from the branch the pull request goes into, and a publish job from the branch it builds. Saves nothing, and removes any file already at the path, when the repository has no such file. gh reads the token from `GH_TOKEN`.
+Saves the calling repository's `ci/ci-secrets.psd1`, read through the GitHub API, for `export-secrets.ps1 -CallerList`. A pull request job reads it from the branch the pull request goes into, a release pull request job from rc, and a publish job from the branch it builds. Saves nothing, and removes any file already at the path, when the repository has no such file. gh reads the token from `GH_TOKEN`.
 
 ## Update Sub-Modules
 **Script: `update-sub-modules.ps1`**

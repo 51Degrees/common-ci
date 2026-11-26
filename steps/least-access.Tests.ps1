@@ -131,6 +131,13 @@ Describe 'Secrets in <_.Name>' -ForEach $Workflows {
                 $read | Should -Match ' -Path caller-ci-secrets\.psd1\b' -Because "the read step of $name saves the file the export step reads"
                 $ref = [regex]::Match($read, '(?m)^\s*_51DEGREES_REF:\s*(.+?)\s*$').Groups[1].Value
                 $ref | Should -BeIn $refs -Because "the read step of $name reads at the branch the workflow works on"
+                # Where the head of the pull request may choose rc instead,
+                # the script decides from the event's own values.
+                if ($_.Name -ceq 'nightly-pull-request.yml' -or $read -cmatch ' -HeadRef\b') {
+                    $read | Should -Match ' -HeadRef \$env:_51DEGREES_HEAD_REF -HeadRepository \$env:_51DEGREES_HEAD_REPOSITORY\b'
+                    $read | Should -Match '(?m)^\s*_51DEGREES_HEAD_REF: \$\{\{ inputs\.ci-secrets-branch \}\}\s*$'
+                    $read | Should -Match '(?m)^\s*_51DEGREES_HEAD_REPOSITORY: \$\{\{ github\.event\.pull_request\.head\.repo\.full_name \}\}\s*$'
+                }
             }
         }
     }
@@ -250,5 +257,22 @@ Describe 'Secrets in the composite actions' {
 
     It '<_.Directory.Name> takes no publishing or signing name' -ForEach $Actions {
         (Get-Content -Raw -LiteralPath $_.FullName) | Should -Not -Match ' -(Publish|Sign)\b'
+    }
+}
+
+# The release pull request builds rc's scripts, so it reads rc's list of the
+# CI secrets they read, not the list on the branch it goes into.
+Describe 'The calling repository''s list in the release pull request' {
+    BeforeAll {
+        $script:Release = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '../.github/workflows/release-pull-request.yml')
+    }
+
+    It 'runs only for the same repository''s rc' {
+        $script:Release | Should -Match "github\.head_ref == 'rc'"
+        $script:Release | Should -Match 'github\.event\.pull_request\.head\.repo\.full_name == github\.repository'
+    }
+
+    It 'reads the list from the branch the pull request comes from' {
+        $script:Release | Should -Match '(?m)^\s*ci-secrets-branch: \$\{\{ github\.head_ref \}\}\s*$'
     }
 }
