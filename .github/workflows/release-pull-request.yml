@@ -66,6 +66,9 @@ jobs:
       full-matrix: true
       fail-fast: false
       cache-assets: ${{ inputs.cache-assets }}
+      # This job builds rc alone, from this repository, so its
+      # ci/fetch-assets.ps1 is reviewed code.
+      fill-asset-cache: true
       common-ci-ref: ${{ inputs.common-ci-ref }}
       branch: ${{ github.base_ref }}
       # The release builds rc's scripts, so it reads rc's list of the CI

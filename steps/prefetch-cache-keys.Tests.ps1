@@ -31,6 +31,13 @@ Describe 'prefetch-cache-key.ps1' {
         & $PrefetchKey -FetchScript $FetchScript | Should -BeLike "$(Get-Date -Format FileDate)-*"
     }
 
+    It 'is the key of an earlier day with -DaysAgo, for the same asset list' {
+        $today = & $PrefetchKey -FetchScript $FetchScript
+        $previous = & $PrefetchKey -FetchScript $FetchScript -DaysAgo 1
+        $previous | Should -BeLike "$((Get-Date).AddDays(-1).ToString('yyyyMMdd'))-*"
+        ($previous -split '-', 2)[1] | Should -Be ($today -split '-', 2)[1]
+    }
+
     It 'is the same for the same asset list' {
         & $PrefetchKey -FetchScript $FetchScript | Should -Be (& $PrefetchKey -FetchScript $FetchScript)
     }
@@ -117,22 +124,78 @@ Describe 'The asset cache entry' {
         $script:Workflows = Get-ChildItem (Join-Path $PSScriptRoot '../.github/workflows') -Filter '*.yml'
         $script:PullRequest = Get-Content -Raw (Join-Path $PSScriptRoot '../.github/workflows/nightly-pull-request.yml')
         $script:Configure = ($script:PullRequest -split '(?m)^  BuildAndTest:', 2)[0]
+        function Get-ConfigureStep ([string]$Name) {
+            ($script:Configure -split '(?m)^      - name: ') | Where-Object { $_.StartsWith($Name) }
+        }
     }
 
-    # The prefetch saves the entry, so only the publishing workflows run it.
-    It 'is saved by the publishing workflows alone' {
+    # The prefetch saves the entry, so it runs in the publishing workflows and
+    # in the pull request build.
+    It 'is saved by the publishing workflows and the pull request build alone' {
         $saving = $script:Workflows | Where-Object { (Get-Content -Raw $_.FullName) -match 'prefetch_assets' } |
             ForEach-Object Name | Sort-Object
-        $saving | Should -Be @('nightly-publish-main.yml', 'nightly-publish.yml')
+        $saving | Should -Be @('nightly-publish-main.yml', 'nightly-publish.yml', 'nightly-pull-request.yml')
     }
 
-    # A pull request build works out the key the publishing workflows save
-    # with and restores that entry. Its Configure job takes neither the cache
-    # key nor the data file license.
+    # A pull request's own run saves the entry where only that pull request
+    # reads it, so the pull request build prefetches for that event alone.
+    It 'is filled by a pull request''s own run when the day''s entry is missing' {
+        $prefetch = Get-ConfigureStep 'Prefetch assets'
+        $prefetch | Should -Match "if: inputs\.cache-assets && inputs\.fill-asset-cache && github\.event_name == 'pull_request'\r?\n"
+        $prefetch | Should -Match 'uses: \./\.github/actions/prefetch_assets'
+        $prefetch | Should -Match 'license-key: \$\{\{ secrets\.LICENSE_KEY_V4TAC_IPIV4ENTERPRISE \}\}'
+        $prefetch | Should -Match 'encryption-key: \$\{\{ secrets\.CACHE_ENCRYPTION_KEY \}\}'
+        $prefetch | Should -Not -Match 'save-free-data'
+    }
+
+    # The pull request's ci/fetch-assets.ps1 runs before the step that takes
+    # the cache encryption key, so the fill is off unless the caller asks,
+    # and only the release pull request's workflow, which builds rc alone,
+    # asks.
+    It 'is filled only for a caller that asks, the release pull request''s workflow alone' {
+        $script:PullRequest | Should -Match '(?m)^      fill-asset-cache:\r?\n(.*\r?\n)?        default: false\r?\n'
+        $asking = $script:Workflows | Where-Object { (Get-Content -Raw $_.FullName) -match '(?m)^\s+fill-asset-cache: true' } |
+            ForEach-Object Name
+        $asking | Should -Be @('release-pull-request.yml')
+        Get-Content -Raw (Join-Path $PSScriptRoot '../.github/workflows/release-pull-request.yml') |
+            Should -Match "github\.head_ref == 'rc' &&"
+    }
+
+    # Any other run of the pull request build, such as the nightly's on a
+    # branch, works out the key the publishing workflows save with and
+    # restores that entry, taking neither the cache key nor the data file
+    # license.
     It 'is restored by the pull request build under the key the prefetch saves with' {
-        $script:Configure | Should -Match 'steps/prefetch-cache-key\.ps1'
-        $script:Configure | Should -Match 'ci/fetch-assets\.ps1'
-        $script:Configure | Should -Match 'asset_cache_key: \$\{\{ steps\.hash-assets\.outputs\.key \}\}'
-        $script:Configure | Should -Not -Match 'CACHE_ENCRYPTION_KEY|LICENSE_KEY_V4TAC_IPIV4ENTERPRISE|toJSON\(secrets\)'
+        $hash = Get-ConfigureStep 'Hash assets'
+        $hash | Should -Match "if: inputs\.cache-assets && !\(inputs\.fill-asset-cache && github\.event_name == 'pull_request'\)\r?\n"
+        $hash | Should -Match 'steps/prefetch-cache-key\.ps1'
+        $hash | Should -Match 'ci/fetch-assets\.ps1'
+        $hash | Should -Not -Match 'CACHE_ENCRYPTION_KEY|LICENSE_KEY_V4TAC_IPIV4ENTERPRISE|toJSON\(secrets\)'
+        $script:Configure | Should -Match 'asset_cache_key: \$\{\{ steps\.prefetch-assets\.outputs\.cache-key \|\| steps\.hash-assets\.outputs\.key \}\}'
+    }
+
+    # The nightly builds the pull requests before it publishes, so the day's
+    # entry does not exist yet and the build jobs restore the day before's.
+    It 'falls back to the day before''s entry in a run that saves nothing' {
+        $hash = Get-ConfigureStep 'Hash assets'
+        $hash | Should -Match 'prefetch-cache-key\.ps1 .* -DaysAgo 1\r?\n\s+"previous=\$previous"'
+        $script:Configure | Should -Match 'asset_cache_previous_key: \$\{\{ steps\.hash-assets\.outputs\.previous \}\}'
+        $build = ($script:PullRequest -split '(?m)^  BuildAndTest:', 2)[1]
+        $restore = ($build -split '(?m)^      - name: ') | Where-Object { $_.StartsWith('Restore Asset Cache') }
+        $restore | Should -Match 'restore-keys: \$\{\{ needs\.configure\.outputs\.asset_cache_previous_key \}\}'
+    }
+
+    # The publishing workflows' Test job checks out common-ci only for an
+    # entry that tests the package, so only that entry has the script the
+    # decrypting step runs.
+    It 'is restored and decrypted in <_>''s Test job only by an entry that tests the package' -ForEach @(
+        'nightly-publish.yml', 'nightly-publish-main.yml'
+    ) {
+        $text = Get-Content -Raw (Join-Path $PSScriptRoot "../.github/workflows/$_")
+        $test = ($text -split '(?m)^  Test:', 2)[1]
+        foreach ($name in 'Restore Asset Cache', 'Decrypt Asset Cache') {
+            $step = ($test -split '(?m)^      - name: ') | Where-Object { $_.StartsWith($name) }
+            $step | Should -Match 'if: \$\{\{ needs\.configure\.outputs\.asset_cache_key && matrix\.options\.packagerequirement \}\}\r?\n'
+        }
     }
 }
