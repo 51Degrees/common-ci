@@ -68,6 +68,9 @@ jobs:
       cache-assets: ${{ inputs.cache-assets }}
       common-ci-ref: ${{ inputs.common-ci-ref }}
       branch: ${{ github.base_ref }}
+      # The release builds rc's scripts, so it reads rc's list of the CI
+      # secrets they need. The job runs only for this repository's own rc.
+      ci-secrets-branch: ${{ github.head_ref }}
       build-test-timeout-minutes: ${{ inputs.build-test-timeout-minutes }}
       skip-compare-performance: ${{ inputs.skip-compare-performance }}
       skip-lite-tests: ${{ inputs.skip-lite-tests }}

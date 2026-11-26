@@ -30,6 +30,10 @@ on:
       branch: # Branch to use if not one calling this
         type: string
         default: ''
+      ci-secrets-branch:
+        description: 'Branch the pull request comes from, whose ci/ci-secrets.psd1 is read when it is the same repository''s rc; empty uses branch'
+        type: string
+        default: ''
       performance-branch:
         description: 'Branch whose performance history the results are compared with; empty uses branch'
         type: string
@@ -162,13 +166,16 @@ jobs:
 
       # The CI secrets the repository's own build and test scripts read, as
       # its ci/ci-secrets.psd1 lists them on the branch the pull request goes
-      # into.
+      # into, or on ci-secrets-branch when the script finds that is the same
+      # repository's rc.
       - name: Read the repository's list of CI secrets
         env:
           GH_TOKEN: ${{ secrets.CI_ACCESS_TOKEN }}
           _51DEGREES_REPOSITORY: ${{ inputs.org-name }}/${{ inputs.repo-name }}
           _51DEGREES_REF: ${{ inputs.branch != '' && inputs.branch || github.ref_name }}
-        run: ./steps/get-caller-ci-secrets.ps1 -Repository $env:_51DEGREES_REPOSITORY -Ref $env:_51DEGREES_REF -Path caller-ci-secrets.psd1
+          _51DEGREES_HEAD_REF: ${{ inputs.ci-secrets-branch }}
+          _51DEGREES_HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+        run: ./steps/get-caller-ci-secrets.ps1 -Repository $env:_51DEGREES_REPOSITORY -Ref $env:_51DEGREES_REF -HeadRef $env:_51DEGREES_HEAD_REF -HeadRepository $env:_51DEGREES_HEAD_REPOSITORY -Path caller-ci-secrets.psd1
 
       # The secrets and variables, each under its own name, for the
       # steps that follow. The secrets context is read here alone.
