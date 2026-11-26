@@ -77,14 +77,23 @@ foreach ($asset in $Assets) {
                 Move-Item -Path $_ -Destination $cache
             }
             "51Degrees.csv" {
-                & $PSScriptRoot/download-data-file.ps1 -DataType 'CSV' -Product 'V4TAC' -FullFilePath "$_.zip"
-                Expand-Archive -DestinationPath . "$_.zip"
-                if ($FullCsv) {
-                    Move-Item -Path '51Degrees-Tac-All.csv' -Destination $cache/$_
-                } else {
-                    Get-Content -TotalCount 1 '51Degrees-Tac-All.csv' > $cache/$_ # Most repos only need the header
+                # The archive holds an export for each component beside the
+                # one for all of them, so it is expanded in a folder of its
+                # own and only the asset is kept.
+                $archive = New-Item -ItemType Directory `
+                    -Path (Join-Path ([IO.Path]::GetTempPath()) "csv-$(New-Guid)")
+                try {
+                    & $PSScriptRoot/download-data-file.ps1 -DataType 'CSV' -Product 'V4TAC' -FullFilePath "$archive/$asset.zip"
+                    Expand-Archive -DestinationPath $archive "$archive/$asset.zip"
+                    $all = Join-Path $archive '51Degrees-Tac-All.csv'
+                    if ($FullCsv) {
+                        Move-Item -LiteralPath $all -Destination $cache/$asset
+                    } else {
+                        Get-Content -TotalCount 1 -LiteralPath $all > $cache/$asset # Most repos only need the header
+                    }
+                } finally {
+                    Remove-Item -Recurse -Force -LiteralPath $archive
                 }
-                Remove-Item -Force "$_.zip", '51Degrees-Tac-All.csv'
             }
             "51Degrees-Tac.zip" {  # same as the CSV above, without extracting
                 & $PSScriptRoot/download-data-file.ps1 -DataType 'CSV' -Product 'V4TAC' -FullFilePath "$cache/$_"

@@ -247,6 +247,59 @@ Set-Content -Path $FullFilePath -Value 'downloaded'
     }
 }
 
+Describe 'fetch-assets.ps1 and the CSV archive' {
+    # The stand-in download writes an archive that holds the export for all
+    # components beside the export for one component, as the Distributor's
+    # archive does.
+    BeforeAll {
+        $script:CsvFolder = Join-Path ([IO.Path]::GetTempPath()) "fetch-assets-csv-$(New-Guid)"
+        New-Item -ItemType Directory -Path $script:CsvFolder | Out-Null
+        Copy-Item -LiteralPath $script:Step -Destination $script:CsvFolder
+        Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'free-assets.psd1') -Destination $script:CsvFolder
+        Set-Content -Path (Join-Path $script:CsvFolder 'download-data-file.ps1') -Value @'
+param([string]$FullFilePath, [string]$DataType, [string]$Product)
+$content = Join-Path ([IO.Path]::GetTempPath()) "csv-content-$(New-Guid)"
+New-Item -ItemType Directory -Path $content | Out-Null
+Set-Content -Path "$content/51Degrees-Tac-All.csv" -Value 'ProfileId,HardwareVendor', '1,Vendor'
+Set-Content -Path "$content/51Degrees-Tac-HardwarePlatform.csv" -Value 'ProfileId,HardwareVendor', '1,Vendor'
+Compress-Archive -Path "$content/*" -DestinationPath $FullFilePath
+Remove-Item -Recurse -Force -LiteralPath $content
+'@
+        $script:CsvStep = Join-Path $script:CsvFolder 'fetch-assets.ps1'
+    }
+
+    BeforeEach {
+        $script:SavedKey = $env:_51DEGREES_LICENSE_KEY
+        $env:_51DEGREES_LICENSE_KEY = 'license'
+        $script:Work = Join-Path ([IO.Path]::GetTempPath()) "fetch-assets-csv-work-$(New-Guid)"
+        New-Item -ItemType Directory -Path $script:Work | Out-Null
+    }
+
+    AfterEach {
+        $env:_51DEGREES_LICENSE_KEY = $script:SavedKey
+        Remove-Item -Recurse -Force $script:Work -ErrorAction SilentlyContinue
+    }
+
+    AfterAll {
+        Remove-Item -Recurse -Force $script:CsvFolder -ErrorAction SilentlyContinue
+    }
+
+    It 'keeps the header of the export for all components, and leaves no other file in the working folder<_>' -ForEach @('', ' with -FullCsv') {
+        $full = $_ -ne ''
+        Push-Location $script:Work
+        try {
+            & $script:CsvStep -Assets '51Degrees.csv' -FullCsv:$full 6>&1 | Out-Null
+        } finally {
+            Pop-Location
+        }
+        @(Get-ChildItem -LiteralPath $script:Work -Recurse -Force |
+            ForEach-Object { [IO.Path]::GetRelativePath($script:Work, $_.FullName) -replace '\\', '/' }) |
+            Sort-Object | Should -Be @('assets', 'assets/51Degrees.csv')
+        $expected = $full ? @('ProfileId,HardwareVendor', '1,Vendor') : @('ProfileId,HardwareVendor')
+        Get-Content -LiteralPath "$script:Work/assets/51Degrees.csv" | Should -Be $expected
+    }
+}
+
 Describe 'actions/fetch-assets' {
     BeforeAll {
         $script:Action = Get-Content -Raw -LiteralPath (Join-Path $PSScriptRoot '..' 'actions' 'fetch-assets' 'action.yml')
