@@ -261,8 +261,16 @@ Describe 'actions/fetch-assets' {
     # that entry or the step made one to save. Otherwise empty, so a later
     # job never restores an entry that was not saved.
     It 'gives the key of its cache entry as an output only when the entry exists' {
-        $value = [regex]::Escape("value: `${{ inputs.cache-key || ((steps.cache-restore.outputs.cache-hit == 'true' || steps.encrypt-assets.outputs.ready == 'true') && steps.hash-inputs.outputs.key) || '' }}")
+        $value = [regex]::Escape("value: `${{ inputs.cache-key || ((steps.cache-restore.outputs.cache-hit == 'true' || steps.confirm-save.outputs.cache-hit == 'true') && steps.hash-inputs.outputs.key) || '' }}")
         $script:Action | Should -Match "(?m)^outputs:\r?\n  cache-key:\r?\n(    #.*\r?\n)*    $value\r?$"
+    }
+
+    # The save step only warns when it fails, so the output takes the key
+    # from a lookup of the entry after the save.
+    It 'looks the saved entry up before giving its key' {
+        $script:Action | Should -Match "(?s)- name: Save cache.*- name: Confirm the saved entry\s+id: confirm-save\s+if: \$\{\{ steps\.encrypt-assets\.outputs\.ready == 'true' \}\}\s+uses: actions/cache/restore@v5\s+with:\s+key: \$\{\{ steps\.hash-inputs\.outputs\.key \}\}"
+        ($script:Action -split '- name: Confirm the saved entry', 2)[1] -split '(?m)^    - name: ' |
+            Select-Object -First 1 | Should -Match 'lookup-only: true'
     }
 
     # A later job passes an earlier job's cache-key output back in, and then
@@ -299,9 +307,10 @@ Describe 'actions/fetch-assets' {
         }
     }
 
+    # The restore, the save and the lookup that confirms the save.
     It 'saves and restores the asset-cache folder, after it is encrypted' {
         $script:Action | Should -Not -Match '(?m)^\s+path: assets\s*$'
-        @([regex]::Matches($script:Action, '(?m)^\s+path: asset-cache\s*$')).Count | Should -Be 2
+        @([regex]::Matches($script:Action, '(?m)^\s+path: asset-cache\s*$')).Count | Should -Be 3
         $script:Action | Should -Match "(?s)- name: Encrypt assets.*- name: Save cache\s+if: \$\{\{ steps\.encrypt-assets\.outputs\.ready == 'true' \}\}"
         $script:Action | Should -Match '(?s)- name: Restore cache.*- name: Decrypt assets.*- name: Fetch assets'
     }

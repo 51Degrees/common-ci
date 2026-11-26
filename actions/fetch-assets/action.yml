@@ -28,8 +28,8 @@ outputs:
     # With cache, the key of the entry the assets are cached under, for a
     # later job to pass back as the cache-key input. It is empty when no
     # entry exists, as when assets that are not free were not saved for want
-    # of an encryption-key.
-    value: ${{ inputs.cache-key || ((steps.cache-restore.outputs.cache-hit == 'true' || steps.encrypt-assets.outputs.ready == 'true') && steps.hash-inputs.outputs.key) || '' }}
+    # of an encryption-key, or when the save failed.
+    value: ${{ inputs.cache-key || ((steps.cache-restore.outputs.cache-hit == 'true' || steps.confirm-save.outputs.cache-hit == 'true') && steps.hash-inputs.outputs.key) || '' }}
 runs:
   using: "composite"
   steps:
@@ -141,6 +141,18 @@ runs:
         key: ${{ steps.hash-inputs.outputs.key }}
         path: asset-cache
         enableCrossOsArchive: true
+
+    # The save only warns when it fails, so the entry is looked up before the
+    # cache-key output names it.
+    - name: Confirm the saved entry
+      id: confirm-save
+      if: ${{ steps.encrypt-assets.outputs.ready == 'true' }}
+      uses: actions/cache/restore@v5
+      with:
+        key: ${{ steps.hash-inputs.outputs.key }}
+        path: asset-cache
+        enableCrossOsArchive: true
+        lookup-only: true
 
     # The copy the cache saved is not needed by the rest of the job.
     - name: Remove the cache folder
