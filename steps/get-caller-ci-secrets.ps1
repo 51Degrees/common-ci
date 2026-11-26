@@ -5,10 +5,11 @@
 
 .DESCRIPTION
     Reads ci/ci-secrets.psd1 from the repository through the GitHub API. A
-    pull request job reads it from the branch the pull request goes into, and
-    a publish job from the branch it builds. Saves it at Path. When the
-    repository has no such file, nothing is saved, any file already at Path
-    is removed, and the export step exports nothing more.
+    pull request job reads it from the branch the pull request goes into, a
+    release pull request job from rc, and a publish job from the branch it
+    builds. Saves it at Path. When the repository has no such file, nothing
+    is saved, any file already at Path is removed, and the export step
+    exports nothing more.
 
     The file is a PowerShell data file with the names under Scripts:
 
@@ -26,15 +27,30 @@
 .PARAMETER Ref
     The branch to read the list from.
 
+.PARAMETER HeadRef
+    The branch a pull request comes from. The list is read from it in place
+    of Ref only when it is rc and HeadRepository is Repository, which is the
+    release pull request. A fork's branch never chooses the list.
+
+.PARAMETER HeadRepository
+    The repository the pull request comes from, as owner/name.
+
 .PARAMETER Path
     Where to save the list.
 #>
 param(
     [Parameter(Mandatory)][string]$Repository,
     [Parameter(Mandatory)][string]$Ref,
-    [Parameter(Mandatory)][string]$Path
+    [Parameter(Mandatory)][string]$Path,
+    [string]$HeadRef,
+    [string]$HeadRepository
 )
 $ErrorActionPreference = "Stop"
+
+# Owner and repository names on GitHub ignore case, branch names do not.
+if ($HeadRef -ceq 'rc' -and $HeadRepository -ieq $Repository) {
+    $Ref = $HeadRef
+}
 
 $escaped = [Uri]::EscapeDataString($Ref)
 $content = gh api -H "Accept: application/vnd.github.raw" "repos/$Repository/contents/ci/ci-secrets.psd1?ref=$escaped" 2>$null

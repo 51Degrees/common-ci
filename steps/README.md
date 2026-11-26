@@ -64,7 +64,7 @@ Configures the default Git behavior in the following ways:
 ## Download Data File
 **Script: `download-data-file.ps1`**
 
-Downloads a data file of the given type and product from the 51Degrees Distributor service, with the data license key read from `_51DEGREES_LICENSE_KEY`, which the step that downloads sets from `LICENSE_KEY_V4TAC_IPIV4ENTERPRISE`. Fails naming that variable when it is not set.
+Downloads a data file of the given type and product from the 51Degrees Distributor service, with the data license key read from `_51DEGREES_LICENSE_KEY`, which the step that downloads sets from the source secret that carries the products, `LICENSE_KEY_V4TAC_IPIV4ENTERPRISE` in the shared workflows. Fails naming that variable when it is not set.
 
 ## Fetch Hash Assets
 **Script: `fetch-hash-assets.ps1`**
@@ -194,7 +194,7 @@ With `-CallerList`, the step also exports the secrets that the calling repositor
 ## Get Caller CI Secrets
 **Script: `get-caller-ci-secrets.ps1`**
 
-Saves the calling repository's `ci/ci-secrets.psd1`, read through the GitHub API, for `export-secrets.ps1 -CallerList`. A pull request job reads it from the branch the pull request goes into, and a publish job from the branch it builds. Saves nothing, and removes any file already at the path, when the repository has no such file. gh reads the token from `GH_TOKEN`.
+Saves the calling repository's `ci/ci-secrets.psd1`, read through the GitHub API, for `export-secrets.ps1 -CallerList`. A pull request job reads it from the branch the pull request goes into, a release pull request job from rc, and a publish job from the branch it builds. Saves nothing, and removes any file already at the path, when the repository has no such file. gh reads the token from `GH_TOKEN`.
 
 ## Update Sub-Modules
 **Script: `update-sub-modules.ps1`**

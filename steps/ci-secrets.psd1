@@ -1,7 +1,7 @@
 # The organization secrets that only CI uses, by the jobs that take them.
-# steps/export-secrets.ps1 exports them, apart from those under Data and Cache, and the
-# tests check the names against these lists. A secret that only CI uses has no _51DEGREES_ prefix, and its
-# name says what it does.
+# steps/export-secrets.ps1 exports them, apart from those under Data and Cache,
+# and the tests check the names against these lists. A secret that only CI uses
+# has no _51DEGREES_ prefix, and its name says what it does.
 @{
     # Every job that exports its secrets.
     Every = @(

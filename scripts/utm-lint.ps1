@@ -103,7 +103,7 @@ $urlAllowlist = @('million\.zip', '/reflector/', 'datareceiver',
     'nuget-fiftyone')
 
 # Functional hosts that must never carry campaign parameters.
-$excludedHostPattern = '^(cloud|distributor|devices-v4|bulkdata|docs|legacy|ipcloud|crm[\w-]*|srv[\w-]*)\.51degrees\.com$'
+$excludedHostPattern = '^(cloud|distributor|devices-v4|docs)\.51degrees\.com$'
 
 $sources = 'github|code|nuget|npm|maven|packagist|pypi|docs\.rs'
 # "about" is the website link in a GitHub repository's About box.

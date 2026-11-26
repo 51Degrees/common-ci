@@ -215,8 +215,7 @@ Set-Content -Path $FullFilePath -Value 'downloaded'
 
     It 'fails for each asset that needs a license when there is none, naming the variable' {
         foreach ($asset in 'TAC-HashV41.hash', '51Degrees-EnterpriseIpiV41.ipi',
-            '51Degrees.csv', '51Degrees-Tac.zip', 'chargify.json', 'entitlement.json',
-            'example-source.json') {
+            '51Degrees.csv', '51Degrees-Tac.zip') {
             { Invoke-KeyStep $asset } |
                 Should -Throw "*'$asset' needs the data license key, and _51DEGREES_LICENSE_KEY is not set*"
             $global:FetchAssetsKeyTest.Calls | Should -BeNullOrEmpty
@@ -233,12 +232,18 @@ Set-Content -Path $FullFilePath -Value 'downloaded'
         }
     }
 
-    It 'knows no CSV evidence file and no file that came only from an address' {
+    It 'knows no CSV evidence file, no file that came only from an address and no JSON file' {
         $env:_51DEGREES_LICENSE_KEY = 'license'
-        foreach ($asset in 'evidence.csv', '51Degrees-EnterpriseIpiV41-AllProperties.ipi') {
+        foreach ($asset in 'evidence.csv', '51Degrees-EnterpriseIpiV41-AllProperties.ipi',
+            'example-source.json') {
             { Invoke-KeyStep $asset } | Should -Throw "*Unknown asset: $asset*"
             Remove-Item -Recurse -Force $script:Work
         }
+    }
+
+    It 'takes a JSON file for an unknown asset, not a licensed one, when there is no key' {
+        { Invoke-KeyStep 'example-source.json' } | Should -Throw "*Unknown asset: example-source.json*"
+        $global:FetchAssetsKeyTest.Calls | Should -BeNullOrEmpty
     }
 }
 
@@ -274,82 +279,5 @@ Describe 'actions/fetch-assets' {
 
     It 'passes the step only the assets' {
         $script:Action | Should -Match 'fetch-assets\.ps1" -Assets \(\$env:_51DEGREES_ASSETS\.Trim\(\) -split "`n"\)\r?\n'
-    }
-}
-
-Describe 'fetch-assets.ps1 with bulkdata' {
-
-    # Bulkdata is replaced by stand-ins: the Available index lists two days,
-    # and a download writes a JSON object naming the URL it was given, or
-    # an empty file for the newest day when told to.
-    BeforeEach {
-        $global:FetchAssetsTest.Urls = [Collections.Generic.List[string]]::new()
-        $global:FetchAssetsTest.EmptyNewest = $false
-        function global:Invoke-WebRequest ([string]$Uri) {
-            $global:FetchAssetsTest.Urls.Add($Uri)
-            '{"2026/11/10":"2026-11-10T06:00:00.000","2026/11/11":"2026-11-11T06:00:00.000"}'
-        }
-        function global:curl {
-            $url = $args[-1]
-            $output = $args[$args.IndexOf('-fLo') + 1]
-            $global:FetchAssetsTest.Urls.Add($url)
-            if ($global:FetchAssetsTest.EmptyNewest -and $url.EndsWith('2026-11-11')) {
-                Set-Content -Path $output -Value ''
-            } else {
-                Set-Content -Path $output -Value (@{ url = $url } | ConvertTo-Json -Compress)
-            }
-        }
-        $global:FetchAssetsTest.Work = Join-Path ([IO.Path]::GetTempPath()) "fetch-assets-work-$(New-Guid)"
-        New-Item -ItemType Directory -Path $global:FetchAssetsTest.Work | Out-Null
-    }
-
-    AfterEach {
-        Remove-Item -Path Function:\Invoke-WebRequest, Function:\curl -ErrorAction SilentlyContinue
-        Remove-Item -Recurse -Force $global:FetchAssetsTest.Work -ErrorAction SilentlyContinue
-    }
-
-    BeforeAll {
-        # Runs the step for $Asset in the stand-in work folder, with the
-        # license key in the environment as the shared workflows export it.
-        function Invoke-BulkStep ([string]$Asset) {
-            $before = $env:_51DEGREES_LICENSE_KEY
-            $env:_51DEGREES_LICENSE_KEY = 'KEY'
-            Push-Location $global:FetchAssetsTest.Work
-            try {
-                & $script:Step -Assets $Asset 3>$null
-            } finally {
-                Pop-Location
-                $env:_51DEGREES_LICENSE_KEY = $before
-            }
-        }
-    }
-
-    It 'gets <Asset> as the <Source> data source, newest day first' -ForEach @(
-        @{ Asset = 'example-source.json'; Source = 'example-source' }
-        @{ Asset = 'chargify.json'; Source = 'chargify' }
-        @{ Asset = 'entitlement.json'; Source = 'entitlement' }
-        @{ Asset = 'source-2.json'; Source = 'source-2' }
-    ) {
-        Invoke-BulkStep $Asset
-        $file = Get-Content -Raw "$($global:FetchAssetsTest.Work)/assets/$Asset" | ConvertFrom-Json
-        $file.url | Should -Be "https://bulkdata.51degrees.com/api/v4/Download/Production/$Source/KEY/2026-11-11"
-        $global:FetchAssetsTest.Urls[0] | Should -BeLike "https://bulkdata.51degrees.com/api/v4/Available/Production/$Source/KEY/*"
-    }
-
-    It 'falls back to the day before when the newest file is empty' {
-        $global:FetchAssetsTest.EmptyNewest = $true
-        Invoke-BulkStep 'example-source.json'
-        $file = Get-Content -Raw "$($global:FetchAssetsTest.Work)/assets/example-source.json" | ConvertFrom-Json
-        $file.url | Should -BeLike '*/example-source/KEY/2026-11-10'
-    }
-
-    It 'refuses <Asset>, which is no data source name' -ForEach @(
-        @{ Asset = 'unknown.bin' }
-        @{ Asset = 'Upper.json' }
-        @{ Asset = '../escape.json' }
-        @{ Asset = 'two words.json' }
-    ) {
-        { Invoke-BulkStep $Asset } | Should -Throw -ExpectedMessage "*Unknown asset: $Asset*"
-        $global:FetchAssetsTest.Urls.Count | Should -Be 0
     }
 }

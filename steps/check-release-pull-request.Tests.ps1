@@ -60,7 +60,7 @@ It 'refuses a release two days after the last, and says how to ask for one' {
     $result.ExitCode | Should -Be 1
     $result.Output | Should -Match 'The last release, pull request #95, was on 2 November 2026'
     $result.Output | Should -Match 'the next may go from 9 November 2026'
-    $result.Output | Should -Match "James Rosewell's permission"
+    $result.Output | Should -Match 'needs permission for that release'
     $result.Output | Should -Match "add the label 'early-release' to this pull request"
     $result.Output | Should -Match 're-run this check from https://example\.test/run'
 }
