@@ -67,7 +67,7 @@ Two checks hold to this. Both count whole calendar days in UTC, so a release on 
 - The "Only rc into main" check fails a pull request from `rc` into `main` when the last one merged less than seven days before. It names the last release and the first day the next may go.
 - The publish refuses to release when the newest version tag is less than seven days old, so a release that reaches `main` another way waits as well.
 
-An early release needs James Rosewell's permission for that release. With it, add the label `early-release` to the release pull request, then re-run the "Only rc into main" check, because adding a label does not run it again. After the merge, run the repository's Publish workflow with `allow-early-release` set, because the nightly publish refuses an early release. Without permission, re-run the check on or after the day it names.
+An early release needs permission for that release. With it, add the label `early-release` to the release pull request, then re-run the "Only rc into main" check, because adding a label does not run it again. After the merge, run the repository's Publish workflow with `allow-early-release` set, because the nightly publish refuses an early release. Without permission, re-run the check on or after the day it names.
 
 The checks apply the rule from the date in the GitHub Actions configuration variable `_51DEGREES_WEEKLY_RELEASES_FROM`. While it is not set, or its date is still ahead, they report what they would decide and pass. An organisation owner sets it for every repository with this command.
 
