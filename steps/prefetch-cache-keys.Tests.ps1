@@ -31,6 +31,13 @@ Describe 'prefetch-cache-key.ps1' {
         & $PrefetchKey -FetchScript $FetchScript | Should -BeLike "$(Get-Date -Format FileDate)-*"
     }
 
+    It 'is the key of an earlier day with -DaysAgo, for the same asset list' {
+        $today = & $PrefetchKey -FetchScript $FetchScript
+        $previous = & $PrefetchKey -FetchScript $FetchScript -DaysAgo 1
+        $previous | Should -BeLike "$((Get-Date).AddDays(-1).ToString('yyyyMMdd'))-*"
+        ($previous -split '-', 2)[1] | Should -Be ($today -split '-', 2)[1]
+    }
+
     It 'is the same for the same asset list' {
         & $PrefetchKey -FetchScript $FetchScript | Should -Be (& $PrefetchKey -FetchScript $FetchScript)
     }
@@ -152,6 +159,17 @@ Describe 'The asset cache entry' {
         $hash | Should -Match 'ci/fetch-assets\.ps1'
         $hash | Should -Not -Match 'CACHE_ENCRYPTION_KEY|LICENSE_KEY_V4TAC_IPIV4ENTERPRISE|toJSON\(secrets\)'
         $script:Configure | Should -Match 'asset_cache_key: \$\{\{ steps\.prefetch-assets\.outputs\.cache-key \|\| steps\.hash-assets\.outputs\.key \}\}'
+    }
+
+    # The nightly builds the pull requests before it publishes, so the day's
+    # entry does not exist yet and the build jobs restore the day before's.
+    It 'falls back to the day before''s entry in a run that saves nothing' {
+        $hash = Get-ConfigureStep 'Hash assets'
+        $hash | Should -Match 'prefetch-cache-key\.ps1 .* -DaysAgo 1\r?\n\s+"previous=\$previous"'
+        $script:Configure | Should -Match 'asset_cache_previous_key: \$\{\{ steps\.hash-assets\.outputs\.previous \}\}'
+        $build = ($script:PullRequest -split '(?m)^  BuildAndTest:', 2)[1]
+        $restore = ($build -split '(?m)^      - name: ') | Where-Object { $_.StartsWith('Restore Asset Cache') }
+        $restore | Should -Match 'restore-keys: \$\{\{ needs\.configure\.outputs\.asset_cache_previous_key \}\}'
     }
 
     # The publishing workflows' Test job checks out common-ci only for an

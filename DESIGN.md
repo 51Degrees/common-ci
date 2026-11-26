@@ -237,7 +237,9 @@ workflows, `nightly-publish.yml` and `nightly-publish-main.yml`, run the prefetc
 request build runs the prefetch only for a pull request's own run, such as the release pull request's, which saves the
 entry where only that pull request's runs read it, so its checks never wait for a publishing run. Every other run of
 the pull request build, such as the nightly's, builds pull request code where the branch's own runs read, so it saves
-nothing. It works out the same key and restores the branch's entry, and its jobs download any asset it lacks.
+nothing. It works out the same key and restores the branch's entry, and its jobs download any asset it lacks. The
+nightly builds the pull requests before it publishes, so the day's entry is not saved yet, and such a run restores
+the entry the day before's publishing run saved, under the same key with that day in it.
 
 A check that needs assets and must never download them uses
 [actions/fetch-assets](actions/fetch-assets/action.yml) in two jobs. The first runs it with `cache` and `lazy`, which

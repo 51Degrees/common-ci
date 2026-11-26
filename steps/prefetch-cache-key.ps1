@@ -1,5 +1,7 @@
 param (
-    [Parameter(Mandatory)][string]$FetchScript
+    [Parameter(Mandatory)][string]$FetchScript,
+    # The key as it was this many days ago, for the entry an earlier day saved.
+    [int]$DaysAgo = 0
 )
 $ErrorActionPreference = 'Stop'
 
@@ -10,4 +12,4 @@ $ErrorActionPreference = 'Stop'
 $sha1 = [Security.Cryptography.SHA1]::Create()
 $text = Get-Content -Raw -LiteralPath $FetchScript
 $hash = [Convert]::ToHexString($sha1.ComputeHash([Text.Encoding]::UTF8.GetBytes($text)))
-"$(Get-Date -Format FileDate)-$hash"
+"$((Get-Date).AddDays(-$DaysAgo).ToString('yyyyMMdd'))-$hash"
