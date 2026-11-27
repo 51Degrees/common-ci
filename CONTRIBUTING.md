@@ -23,6 +23,7 @@ The reader should be familiar with:
   - [Releasing at most once a week](#releasing-at-most-once-a-week)
   - [Commenting](#commenting)
   - [Code Style](#code-style)
+  - [Warnings](#warnings)
   - [Tests](#tests)
   - [Commit Messages](#commit-messages)
 - [Making a Pull Request](#making-a-pull-request)
@@ -100,6 +101,12 @@ Guidelines for documenting methods and classes can be found in [Documenting Code
 ## Code Style
 
 Generally, 51Degrees follows the accepted styleguides for each language, and aims to keep line widths below 120 characters. If you are unsure, see the existing code as an example.
+
+## Warnings
+
+Compiler and build warnings MUST be treated as errors, so a change that introduces a warning fails the build instead of adding to a list nobody reads. For example, `TreatWarningsAsErrors` in .NET projects, `-Werror` (GCC, Clang) or `/WX` (MSVC) for C and C++, and `-Werror` for `javac`.
+
+Fix the cause of a warning rather than suppressing it. Where a warning cannot be fixed, suppress only that warning at the narrowest scope possible, with a comment explaining why it is safe.
 
 ## Tests
 
